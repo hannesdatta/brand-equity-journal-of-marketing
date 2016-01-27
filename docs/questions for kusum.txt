@@ -1,0 +1,68 @@
+26 January 2016
+- Availability of brands over time / cut-off (or: SUR with unequal equation length, still, dummies may not be identified well (e.g., attraction decreases just because a new brand enters the market)
+--> we decide to model only the longest consecutive stretch of observations for each brand, given that we have at least four years of data
+- What are attribute variables used for at this stage?
+
+27 January 2016
+- what are the exact variable names that should go into the model
+
+	 brand_name 			used as brand_id
+	 Brand_ID 				(column needed to "carry along" in my code?)
+	 
+	 act_pr_bt 				
+	 reg_pr_bt     			
+	 pi_bt 					?
+	 newprdum_bt      
+	 fd_bt 					?
+	 pi_unsup_bt 			?
+	 pi_sup_bt    			?
+	 fd_wo_bt   			?
+	 promo_bt 				?
+	 
+	 pct_store_skus 
+	 distrwidth_bt 			?
+	 LineLength_bt			x
+	 distrdepth_bt 			?
+	 advertising_bt			x
+
+	 ATTRIBUTES				(I need to clarify again which are the columns to take into account.
+							(- Have we already dropped one of the attribute columns?)
+							(- Which columns make up one attribute?)
+							(- Maybe consider relabeling these columns)
+	 
+	 packet_bt 
+	 liquid_bt  
+	 granul_bt 
+	 otherfrm_bt 
+	 aspartame_bt 
+	 sucralose_bt
+	 agave_bt 
+	 saccharin_bt 
+	 othersugar_typ_bt 
+	 
+	 
+- Calculation of marketing elasticities:
+  beta * X * (1- share)
+  
+  where share = avg. market share of a brand
+  X = AVERAGE marketing of (a) that brand, (b) across all brands
+  
+  Question: Which marketing mix levels to use? (a) or (b) or ...?
+  
+- Suggestion for an updated Table 4 to reflect our new model:
+
+Columns: Marketing Mix Parameter | Weighted Elasticity | Meta-analytic Z | Significance of Meta-analytic Z | % brands < 0 | % brands > 0
+
+Table notes: Weights equal to the elasticities' inverse standard error.
+
+
+- Are more data sets available already?
+- Second stage: Correlation with BAV; could you point me to the data?
+- Any mean-centering to be used? Currently I do not center any variables.
+- Notes: The model document has been updated to reflect our discussion from 26 January 2016.
+- Suggestion for next steps:
+	o implement copulas
+	o calculate elasticities
+	o develop maximum likelihood estimator to enable HLM-type models and estimation of advertising carry-over
+	o calculate VIFs (do we care much?)
+	
