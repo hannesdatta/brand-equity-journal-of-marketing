@@ -41,13 +41,17 @@ load('..//temp//datasets.RData')
 	#obs <- dt[,list(.N), by=c('brand_name')]
 	#dt <- dt[brand_name%in%obs[N==572]$brand_name,]
 
-# define variables
-	xvars_heterog <- c('pi_bt', 'promo_bt', 'distrwidth_bt', 'LineLength_bt') # can be potentially endogenous; copula correction terms pooled or homogenous? (--> Harald)
+# define variables #'pct_store_skus', 'AdStock_bt'
+	xvars_heterog <- c('reg_pr_bt', 'pct_store_skus') # can be potentially endogenous; copula correction terms pooled or homogenous? (--> Harald)
 	yvars <- c('sales_bt') # to be used to calculate market shares
-	xvars_homog <- c('attr_packet_bt') #grep('attr_', colnames(dt), value=T) # variable names which are homogenous
+	xvars_homog <- c('attr_packet_bt') #, 'attr_liquid_bt', 'attr_granul_bt', 'attr_aspartame_bt', 'attr_sucralose_bt', 'attr_agave_bt','attr_saccharin_bt') #grep('attr_', colnames(dt), value=T) # variable names which are homogenous
 	it <- c(brand='brand_name', time='week') # indexes brands ([1]), and time ([2])
 
-	
+	# investigate why price coef. is pos.
+#	summary(lm(log(sales_bt) ~ 1 + as.factor(brand_name) + log(reg_pr_bt), data = dt))
+
+run <- function(){
+	#'pi_bt', 
 	
 #######################################
 # DATA PREPARATION FOR SUR ESTIMATION #
@@ -65,26 +69,20 @@ load('..//temp//datasets.RData')
 	
 # create dummies for all brands (years later on)
 	brands <- unique(dt$brand_name)
-	for (br in brands) {
-		dt[, paste0('dummy',std_sep, br) := as.numeric(brand_name %in% br)]
-		}
+#	for (br in brands) {
+#		dt[, paste0('dummy',std_sep, br) := as.numeric(brand_name %in% br)]
+#		}
 
 # create dummies for all brands (for T-1 years)
 #if(0){
 	for (br in brands) {
 		yrs = unique(dt[brand_name==br]$year)
 		
-		for (yr in yrs[-(1)]) {
+		for (yr in yrs) {
 			dt[, paste0('dummy', std_sep, br, '_yr_', yr) := as.numeric(brand_name %in% br & year==yr)]
 			}
 		}
 #}
-
-# create year dummies	
-	#yrs = unique(dt$year)
-#		for (yr in yrs[-(1)]) {
-	#		dt[, paste0('dummy_yr',yr,'_',std_sep) := as.numeric( year==yr)]
-	#		}
 
 # set up the structure of the data set: 
 # - stacked Y's
@@ -160,14 +158,25 @@ load('..//temp//datasets.RData')
 ####################
 
 	X <- longdt[, grep('transf[_]', colnames(longdt),value=T),with=F]
+	
+	# drop zero-value colums (e.g., ad stock for some brands)
+	colnames(X)[colSums(X)==0]
+
+	X<-X[,abs(colSums(X))>0,with=F]
+	
 	setnames(X, gsub('transf[_]', '',colnames(X)))
 	dates_brands <- longdt[, c('brand_name', 'week'),with=F]
 	setnames(dates_brands, c('brand', 'date'))
 	Y <- longdt[, 'dv_ms',with=F]
 
+	print(dim(X))
+	
 	m <- sur(as.matrix(X),as.matrix(Y),dates_brands)
-
+	m$coefficients[, orig_var := variable]
 	m$coefficients[, z := coef/se] # -> retrieved coefficients
+	m$coefficients[, brand_name:=sapply(variable, function(x) strsplit(x, std_sep)[[1]][1])]
+	m$coefficients[, variable:=sapply(variable, function(x) strsplit(x, std_sep)[[1]][2])]
+	
 
 
 ############################
@@ -175,13 +184,13 @@ load('..//temp//datasets.RData')
 ############################
 	
 	# retrieve years
-	yrs <- m$coefficients[grepl('_yr_', variable)]
-	yrs[, brand:=sapply(variable, function(x) strsplit(strsplit(x, std_sep)[[1]][2], '_')[[1]][1])]
-	yrs[, year:=as.numeric(sapply(variable, function(x) rev(strsplit(x, '_')[[1]])[1]))]
+	yrs <- m$coefficients[grepl('_yr_', orig_var)]
+	yrs[, brand:=sapply(orig_var, function(x) strsplit(strsplit(x, std_sep)[[1]][2], '_')[[1]][1])]
+	yrs[, year:=as.numeric(sapply(orig_var, function(x) rev(strsplit(x, '_')[[1]])[1]))]
 	
 	require(lattice)
 	require(latticeExtra)
-	 glayer 
+	# glayer 
 	# code by http://www.r-bloggers.com/confidence-bands-with-lattice-and-r/
 	
 	my.panel.bands <- function(x, y, upper, lower, fill, col,
@@ -197,17 +206,53 @@ load('..//temp//datasets.RData')
 	yrs[,upper:=coef+1.96*se]
 	yrs[,lower:=coef-1.96*se]
 	yrs[, grp:=1]
-	
+if(0){
 	xyplot(coef~year|brand, data = yrs, groups = grp,
 		 upper = yrs$upper, lower = yrs$lower,
 		 panel = function(x, y, ...){
 		 panel.superpose(x, y, panel.groups = my.panel.bands, type='l', col='gray',...)
 		 panel.xyplot(x, y, type='b', cex=0.6, lty=1,...)
 		 }, main = c('Estimated SBBE with 1.96 x SE confidence bounds'))
-		 
+	}	 
 	
 	
+	# Calculate marketing elasticities
+	
+########################
+# EXTRACT ELASTICITIES #
+########################
 
-	
+# calculate mean variables
+means <- dt[, c('brand_name', xvars_heterog),with=F][, lapply(.SD, mean), by=c('brand_name'), .SDcols=c(xvars_heterog)]
+msaverage <- dt[, list(mean_ms = mean(ms)), by=c('brand_name')]
+meansmelt <- melt(means, id.vars=c('brand_name'))
+setnames(meansmelt, 'value','mean_var')
+
+elasticities <- merge(meansmelt, m$coefficients, by=c('variable', 'brand_name'), all.x=T, all.y=F)
+elasticities <- merge(elasticities, msaverage, by=c('brand_name'))
+
+elasticities[, elast := coef * (1-mean_ms) * mean_var]
+elasticities[, elast_se := se * (1-mean_ms) * mean_var]
+
+# summary
+selast <- elasticities[!is.na(coef), list(median_elast = median(elast), 
+										  w_elast = sum(elast/elast_se)/sum(1/elast_se), 
+										  N_brands= .N, 
+										  perc_positive = length(which(z>=(1.96)))/.N, 
+										  perc_null = length(which(abs(z)<1.96))/.N, 
+										  perc_negative = length(which(z<=(-1.96)))/.N), by=c('variable')]
+# summary table:
+tmpx<-elasticities
+setnames(tmpx, 'variable', 'varname')
+tmp=melt(tmpx, id.vars=c('brand_name', 'varname', 'orig_var'))
+
+print(dcast(tmp[varname%in%c('brand_name', xvars_heterog) & variable=='elast'], brand_name ~ varname))
+print(selast)
+return(list(coef=m$coefficients, elast=selast))
+}
+
+
+res <- run()
+
 # save results
 	#save(results_brands, results_category, markets, models, file='..\\output\\results.RData')

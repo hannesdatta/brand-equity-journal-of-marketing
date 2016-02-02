@@ -39,7 +39,8 @@ for (fn in seq(along=fns)) {
 dat <- catdata[[1]]
 
 yvars <- c('sales_bt')
-xvars <- c('pi_bt', 'promo_bt', 'distrwidth_bt', 'LineLength_bt')
+xvars <- c('reg_pr_bt', 'pi_bt', 'act_pr_bt', 'promo_bt', 'pct_store_skus', 'AdStock_bt')
+
 attrvars_orig <- colnames(dat)[(which(colnames(dat)=='promo_bt')+1):(which(colnames(dat)=='pct_store_skus')-1)]
 
 for (attrname in attrvars_orig) {
