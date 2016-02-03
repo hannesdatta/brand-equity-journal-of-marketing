@@ -12,9 +12,9 @@
 require(data.table)
 	
 # load data
-	load('..//temp//rawdata.RData')
+	load('..//temp//iri_sales.RData')
 	load('..//temp//attributes.RData')
-
+	load('..//temp//cpi.RData')
 
 # Brand selection has already been implemented in upstream-data preparation:
 # brands are selected that account for a cumulative market share of 90%.
@@ -78,24 +78,157 @@ dat <- NULL
 		setnames(dt, tolower(colnames(dt)))
 		dat[[i]] <- dt
 		}
-
+		
 names(dat) <- names(catdata)
 
+########################
+# ADD CPIs to DATASETS #
+########################
 
-###################################################################
-# SELECT LONGEST CONSECUTIVE STRETCH OF AVAILABLE DATA per brand  #
-###################################################################
+	for (i in seq(along=dat)) {
+		dt = dat[[i]]
+		
+		#####################################
+		# Convert IRI weeks to actual dates #
+		#####################################
+		
+		# retrieved from: http://pubsonline.informs.org/doi/suppl/10.1287/mksc.1080.0450/suppl_file/mksc.1080.0450-sm_technical_appendix.pdf [accessed 3 February 2016]
+		
+		#This provides a translation from the IRI week number used in the files to the standard
+		#calendar. [TBD: extend backward to beginning of actual data]
+		#The following conversion formulas will also work in an excel context, assuming the week
+		#is in cell A9
+		#(equation 1) End date = (A9-400)*7+31900
+		#(equation 2) Start date = (A9-400)*7+31900-6
+		#So, IRI week 1369 evaluates to a start date of 11/21/2005 and an end date of
+		#11/27/2005. 
+		
+		# return max occurence
+		max_occurence <- function(x, what = '%Y') {
+			.x <- seq(from=x, to=x+6, by = '1 day')
+			.tmp = sapply(.x, format, what)
+			if (length(unique(.tmp))==1) return(as.numeric(unique(.tmp)))
+			
+			# which one is max?!
+			.tmp <- table(.tmp)
+			as.numeric(names(which(.tmp==max(.tmp))))
+			}
+	
+		#max_occurence(as.Date('2012-01-01'), what = '%m')
+	
+		dates <- data.table(week = unique(dt$week))
+		dates[, week_start := as.Date('2005-11-21') + 7*(week - 1369)]
+		dates[, year_iri := sapply(week_start, max_occurence, '%Y')]
+		dates[, month_iri := sapply(week_start, max_occurence, '%m')]
+		setkey(dates, week)
+		setkey(dt, week)
+		
+		dt[dates, ':=' (year_iri = i.year_iri, month_iri=i.month_iri)]
+		
+		cpi_match = cpi
+		cpi_match=cpi_match[cat_name==unique(dt$cat_name)]
+		setorder(cpi_match, year,month)
+		cpi_match[, cpi_normalized := value/value[1]]
+		
+		setkey(cpi_match, year, month)
+		setkey(dt, year_iri, month_iri)
+		
+		dt[cpi_match, cpi:=i.cpi_normalized]
+
+		# normalize CPI by the first week observation in our data set
+		
+		
+		#################################################
+		# Change definition of year to IRI's definition #
+		#################################################
+				
+		dt[, ':=' (year = NULL, month_iri=NULL)]
+		setnames(dt, 'year_iri', 'year')
+		
+		
+		##################################
+		# Deflate monetary series by CPI #
+		##################################
+		
+		vars <- c('act_pr_bt', 'reg_pr_bt', 'rev_bt') # but not advertising.
+		
+		for (.var in vars) {
+			dt[, paste0('r', .var) := get(.var)/cpi,with=F]
+			}
+		
+		dat[[i]] <- dt
+		
+		
+		}
+
+#################
+# SELECT BRANDS #
+#################
+
+# Rule: all brands with a market share of at least 1% in four consecutive years
+
+	brandsales <- rbindlist(lapply(dat, function(x) return(x[, c('cat_name', 'brand_name', 'brand_id', 'sales_bt', 'year'), with=F])))
+	# calculate year-based market shares
+	brandsales_yr <- brandsales[, list(sales = sum(sales_bt)), by = c('cat_name','brand_name','brand_id','year')]
+	brandsales_yr[, ms := sales/sum(sales), by=c('cat_name','year')]
+
+# check whether we always have consecutive observations
+	brandsales_yr[, consec := length(min(year):max(year))==.N, by=c('cat_name','brand_name','brand_id')]
+	table(brandsales_yr$consec)
+	# it happens in a few cases, so below I need to select only consecutive observations
+
+# minimum of m in y years
+	m=.001
+	y=4
+	brandsales_yr[, min_ms := ms >= m]
+	setorder(brandsales_yr, cat_name, brand_name, year)
+
+	head(brandsales_yr)
+	brandsales_yr[, no_ms := 1-as.numeric(min_ms)]
+	brandsales_yr[, ms_cum := cumsum(no_ms), by=c('cat_name','brand_name')]
+
+	brandsales_yr[, selected := .N>=y & sum(min_ms)>=y, by=c('cat_name','brand_name')]
+	
+	# prepare overview
+	
+	sel_overview = brandsales_yr[, list(total_brands = length(unique(brand_name)), total_bav_brands = length(unique(brand_name[!brand_id==''])),
+									 total_selected_bav =  length(unique(brand_name[!brand_id=='' & selected == T]))
+									), by=c('cat_name')]
+	sel_overview[, cat_name:=as.character(cat_name)]
+	setorder(sel_overview, cat_name)
+	sel_overview = rbind(sel_overview, data.frame('total', sum(sel_overview[,2,with=F]),sum(sel_overview[,3,with=F]),sum(sel_overview[,4,with=F])), use.names=F)
+	
+	sink('..//audit//brand_selection.txt')
+	cat(paste0('Overview about number of selected brands given\na minimum market share of ', round(m*100,2), '% for at least ', y, ' consecutive years.\n\n'))
+	print(sel_overview)
+	sink()
+
+	selected_brands = brandsales_yr[, list(selected=any(selected==T)), by=c('cat_name', 'brand_name')]
+	setkey(selected_brands, cat_name, brand_name)
+	
+###########################################################################################
+# KEEP SELECTED BRANDS, AND TAKE LONGEST CONSECUTIVE STRETCH OF AVAILABLE DATA per brand  #
+###########################################################################################
 require(zoo)
 
-sink('..//audit//availablebrands.txt')
-
+sink('..//audit//brand_selection.txt', append = T)
+	
 for (i in seq(along=dat)) {
 	# variables to be used to determine availability
 	vars = colnames(dat[[i]])
 
 	# set zero sales to NA
 	dat[[i]][sales_bt==0, sales_bt := NA]
-
+	
+	# retain only selected brands
+	setkey(dat[[i]], cat_name, brand_name)
+	
+	dat[[i]][selected_brands, selected_brand := i.selected]
+	dat[[i]] <- dat[[i]][selected_brand==T]
+	dat[[i]][, selected_brand := NULL]
+	
+	dat[[i]][, ':=' (brand_name = as.factor(as.character(brand_name)), brand_id = as.factor(as.character(brand_id)))]
+	
 	tmp <- split(dat[[i]], paste0(dat[[i]]$cat_name, '_', dat[[i]]$brand_name))
 
 	dt <- rbindlist(lapply(tmp, function(x) {
@@ -112,7 +245,7 @@ for (i in seq(along=dat)) {
 
 	dat[[i]] <- dt[selected==T]
 	}
-	
+
 sink()
 
 # save
