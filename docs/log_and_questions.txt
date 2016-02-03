@@ -1,0 +1,154 @@
+26 January 2016
+- Availability of brands over time / cut-off (or: SUR with unequal equation length, still, dummies may not be identified well (e.g., attraction decreases just because a new brand enters the market)
+--> we decide to model only the longest consecutive stretch of observations for each brand, given that we have at least four years of data
+- What are attribute variables used for at this stage?
+
+27 January 2016
+- what are the exact variable names that should go into the model
+
+	 brand_name 			used as brand_id
+	 Brand_ID 				(column needed to "carry along" in my code?)
+	 
+	 act_pr_bt 				  orig paper
+	 reg_pr_bt     			                  		1)      --> regular price has to be in there for sure
+	 pi_bt 					? 						2)   a) --> this for first round; reg. and price index
+	 newprdum_bt      
+	 fd_bt 					? 
+	 pi_unsup_bt 			?							 b)  
+	 pi_sup_bt    			?							 b)
+	 fd_wo_bt   			?						     b)
+	 promo_bt 				? orig paper
+	 
+	 pct_store_skus 								3)      --> take this as %-SKUs in category are of our brand
+	 distrwidth_bt 			? 
+	 LineLength_bt			x
+	 distrdepth_bt 			?
+	 advertising_bt			x                       4)  2nd round
+	 adv_stock				  orig paper                preliminary
+	 
+	 
+	 
+	 ATTRIBUTES				(I need to clarify again which are the columns to take into account.
+							(- Have we already dropped one of the attribute columns?)
+							(- Which columns make up one attribute?)
+							(- Maybe consider relabeling these columns)
+	 
+	 packet_bt 
+	 liquid_bt  
+	 granul_bt 
+	 otherfrm_bt 
+	 aspartame_bt 
+	 sucralose_bt
+	 agave_bt 
+	 saccharin_bt 
+	 othersugar_typ_bt 
+	 
+	 --> All possibilities are there.
+	 --> I get the look-up tables
+	 
+	 
+- Calculation of marketing elasticities:
+  beta * X * (1- share)
+  
+  where share = avg. market share of a brand
+  X = AVERAGE marketing of (a) that brand, (b) across all brands
+  
+  Question: Which marketing mix levels to use? (a) or (b) or ...?
+  
+  --> Kusum: do option (a)
+  
+  --> Standardize intercepts
+  --> estimate it for every year, drop alphas
+  
+- Suggestion for an updated Table 4 to reflect our new model:
+
+Columns: Marketing Mix Parameter | Weighted Elasticity | Median Elasticity |  | % brands < 0 | % brands > 0
+
+Table notes: Meta-analytic Z | Significance of Meta-analytic Z.  Weights equal to the elasticities' inverse standard error.
+
+
+- Are more data sets available already?
+- Second stage: Correlation with BAV; could you point me to the data?      KUSUM WILL PROVIDE THE DATA
+- Any mean-centering to be used? Currently I do not center any variables.  NO
+- Notes: The model document has been updated to reflect our discussion from 26 January 2016.
+- Suggestion for next steps:
+	o implement copulas
+	o calculate elasticities
+	o develop maximum likelihood estimator to enable HLM-type models and estimation of advertising carry-over
+	o calculate VIFs (do we care much?) --> always check (but, if signs are ok... we are fine)
+
+
+- Elasticities
+- Face validity
+
+
+2 February 2016
+----------------
+MY AGENDA
+
+- What I did:
+  o Implemented model, as layed out in the \analysis_hannes\docs folder (@Harald, please have a look at it)
+  o Plotted all data (--> some questions still, see below), output to analysis_hannes\derived\audit\...
+  o Face validity of coefficients not given (problematic are regular price), also see issues below
+  o Recoded pi variable to discount variable (= 1 - pi_bt), easier to interpret (agree?)
+
+Questions:
+- Harald: any comment on the model document?
+  o Let us also discuss formula (8). I'm not sure where we want the second stage variables to enter. I suppose only for year 1? --> we corrected the document.
+  
+- Can you please explain the differences between the columns brand_name, Brand_ID, and brand_name_recode? (which ones are crucial for me to "carry along"?
+	o Answer: Brand_ID --> BAV (BAV data)
+	o brand_name_recode --> Full name of the brand (shorter version)
+	
+- The price variables contain problematic outliers, causing coefficient to lose face validity. See plots in \derived\audit\variables_by_brand\, e.g., for the sugarsub category. 
+	o Hannes: will prepare a list with brands and dates, and send it to Kusum/Rong to verify.
+	
+- Variables: pct_store_skus vs. LineLength_bt? Let's discuss benefits and drawbacks
+	o distribution variable: breadth and depths were standard (but multicollinear); breadth did not have much variation.
+	o  pct_store_skus is a variant of total distribution, where we hope to capture both breadth and depth. We continue with this metric.
+
+- Initialization period for adstock and regular price: drop first four weeks of the data.
+	o right now kick out first four weeks, until further notification.
+	
+- When do we kick out variables from estimation (sometimes line length only contains 2 or 3 values). Also, ad stock sometimes has 1 value only.
+	o Leave short time series in there (significance will "punish" these variables anyways).
+	o Kick out variables with only one observation
+	
+- apply a minimum-market share rule by year? (e.g., see soft n gentle in toilet tissue)
+	
+  o at least 1% in at least four consective years --> to be verified with Kusum and Harald.
+
+- 90% market share rule already applied? (some brands appear very small)
+	
+  o overview about available brands andd market shares: lapply(datasets, function(x) x[, list(ssales=sum(sales_bt)), by=c('brand_name')][, list(ms=100*(ssales/sum(ssales)))])
+
+Meeting summary:
+- Harald will provide BLS data for deflation of prices
+- Kusum will 
+  o verify lagged weights for re-weighing (in cases where we do not have enough previous observations)
+  o check with Rong regarding peaks and drops in prices (see above); Hannes will send some plots.
+- Hannes will
+  o apply the brand selection rule and report back to Harald and Kusum ("at least m% marketshare for at least y consecutive years").
+  o integrate BLS data for deflation
+  o rerun models and verify elasticities
+  
+  o model development
+    x implement copulas
+    x develop maximum likelihood estimator to enable HLM-type models and estimation of advertising carry-over
+    x calculate VIFs
+  
+  
+3 February 2016
+===============
+
+What I have done:
+
+- Deflated act_pr_bt, reg_pr_bt, and rev_bt (I slightly had to change category mappings, compared to what Harald suggested). 
+- Updated model document (replaced j by b').
+
+Questions/Issues:
+- deflate advertising spending?
+- I noticed that the mapping of weeks to years is slightly incorrect, e.g., the starting week of 1322 (2004-12-27) is mapped to 01-2005, and not 12-2004. The problem is a previous underlying assumption that years always have 52 weeks. However, this is not correct. The years 2004 and 2009 have 53 weeks. I have corrected all years acoordingly: I assign that year for which most dates fall in the given year (in this case, 5 days fall in that year).
+(The recoding was needed to merge CPI data).
+- can I move the category data folders to a joint subfolder \Data? (makes directory structure easier)
+- By the way we define elasticities, brands with small market shares have HIGH elasticities beta_b * (1 - marketshare_bt) * mean(X_bt). Is that really a desirable property? (cf. elasticity SUGAR TWIN in sugar subs, small brands, but weighs heavily, so does SWEETMATE).
