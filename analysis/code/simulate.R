@@ -17,7 +17,7 @@
 # All with correlations, all using SUR or Maximum Likelihood.
 
 # Features:
-# (a) Equal observations, and unequal observations
+# (a) Equal observations, and unequal observations (works in SUR)
 # (b) Mixture of homogenous and heterogenous coefficients CHECK
 # (c) SUR versus Maximum Likelihood CHECK
 
@@ -25,8 +25,9 @@
 
 
 # Next development steps:
+# - Implement unequal observations in maximum likelihood
+# - MCI vs. MNL: check whether that works, too.
 # - Implement concentrated likelihood
-# - Implement unequal observations
 
 
 # Preamble
@@ -128,21 +129,35 @@ for (p in 1:tobs) { # time periods
 	dummies = model.matrix( ~ var - 1, data=index)
 
 # Transform for estimation
-	X = cbind(datx_het, datx_hom, dummies)
-	Y = daty
+	X = as.matrix(cbind(datx_het, datx_hom, dummies))
+	Y = as.matrix(daty)
 	index=index
-	dates_brands=data.frame(date=index$t,brand=index$var)
-	
+
+# Put into correct order
+	# order data set by brands, then dates
+	iorder <- order(index$var,index$t)
+		
+	X=as.matrix(X[iorder,])
+	Y=as.matrix(Y[iorder,])
+	index = index[iorder,]
+			
 # SUR system
 	require(marketingtools)
 	
 	itersur <- function (X, Y, dates_brands, maxiter = 1000) {
-  
-		# initialize starting values for iterative SUR
-		beta_ols = solve(t(X) %*% X) %*% t(X) %*% Y
-		beta_hat = beta_ols
+
+		# verify correct data classes
+		if (!class(X)=='matrix'|!class(Y)=='matrix') stop('X and Y need to be matrices')
 		
-		# iterations
+		# verify order of dates_brands
+		if (!all(order(dates_brands[,2], dates_brands[,1])==1:nrow(X))) stop('Data needs to be stacked by brands')
+		
+
+		# initialize starting values for iterative SUR
+			beta_ols = solve(t(X) %*% X) %*% t(X) %*% Y
+			beta_hat = beta_ols
+		
+		# iterate through SUR
 		for (i in 1:maxiter) {
 			beta_old = beta_hat
 			
@@ -152,7 +167,8 @@ for (p in 1:tobs) { # time periods
 			resid_by_brand = dcast(data.frame(dates_brands, resid = matrix(resid)), 
 				date ~ brand, value.var = "resid")
 				
-			resid_y_by_brand = data.frame(dates_brands, y = Y, resid = matrix(resid))
+			resid_y_by_brand = data.frame(dates_brands, y = Y, resid = matrix(resid)) # really needed?
+			
 			sigma <- matrix(double(length(unique(dates_brands$brand))^2), 
 				ncol = length(unique(dates_brands$brand)))
 			
@@ -173,9 +189,13 @@ for (p in 1:tobs) { # time periods
 				}
 			}
 			
+			
 			max_t = length(unique(resid_by_brand$date))
 			obsperbrand = apply(resid_by_brand[, -1], 2, function(x) length(which(!is.na(x))))
 			sigma_inv = solve(sigma)
+			#sigma = (1/tobs) * crossprod(as.matrix(resid_by_brand[,-1]))
+			
+			
 			inew = NULL
 			
 			# calculate the cross product for unequal observations
@@ -239,12 +259,7 @@ for (p in 1:tobs) { # time periods
 	
 	diagT=diag(T)
 	
-	# sort out the sorting of the data still
-	neworder = c(seq(from=1, length.out=tobs, by=2), seq(from=2, length.out=tobs, by=2))
-	X=X[neworder,]
-	Y=Y[neworder]
-	
-	
+	# works only with stacked data sets (first all i=1's, then i=2's, etc.)
 	ll <- function(par) {
 		lchol = diag(2)
 		lchol[upper.tri(lchol,diag=T)]<-par[1:3]
@@ -285,9 +300,9 @@ for (p in 1:tobs) { # time periods
 	sigma = crossprod(lchol)
 	sigma
 	
+	print(m$coefficients)
 	
-	# all good so far.
-	
+
 	
 ####################################
 # TRANSFORM TO GEOMETRIC-AVERAGING #
