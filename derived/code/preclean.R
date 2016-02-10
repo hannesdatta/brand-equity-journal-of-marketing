@@ -26,6 +26,9 @@ require(data.table)
 	# Combine attribute information with panel data
 	relevant_attr = which(names(attr)%in%names(catdata))
 
+	availability = names(catdata)[!names(catdata)%in%names(attr)]
+	 
+	#if (!length(relevant_attr)==length(catdata)) stop('Not all attribute levels available, or a problem in the panel data')
 	if (!length(relevant_attr)==length(catdata)) stop('Not all attribute levels available, or a problem in the panel data')
 
 	attr <- attr[relevant_attr]
@@ -178,7 +181,7 @@ names(dat) <- names(catdata)
 	# it happens in a few cases, so below I need to select only consecutive observations
 
 # minimum of m in y years
-	m=.001
+	m=.01
 	y=4
 	brandsales_yr[, min_ms := ms >= m]
 	setorder(brandsales_yr, cat_name, brand_name, year)

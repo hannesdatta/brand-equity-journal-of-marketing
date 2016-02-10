@@ -31,7 +31,7 @@ $(TEMP_DIR)/cpi.RData: cpi.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "cpi.R"
 
 # read attribute-level information from XLS
-$(TEMP_DIR)/attributes.RData : attributes.R
+$(TEMP_DIR)/attributes.RData : attributes.R ../../../Attributes_check/cat_attrdummy_lookup.xlsx
 	"$(RBIN32)Rterm.exe" --vanilla --args "" < "attributes.R"
 
 # pre-clean data, indicate attributes in column names, remove last level

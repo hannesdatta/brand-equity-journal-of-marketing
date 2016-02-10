@@ -19,8 +19,8 @@ require(sas7bdat)
 
 	basepath <- '..\\..\\..\\'
 	# Define available categories
-	category_dirs = c('sugarsub', 'cigets', 'coffee', 'margbutr', 'toitisu', 'yogurt', 'beer', 'milk',
-					  'carbbev', 'coldcer', 'deod', 'diapers', 'hhclean', 'laundet')
+	category_dirs = c('sugarsub', 'beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'hhclean', 'laundet', 'margbutr', 'mayo', 'milk', 'peanbutr', 'shamp', 'soup') 
+
 
 	for (.dir in seq(along=category_dirs)) {
 		cat(paste0('Processing ', category_dirs[.dir], '...\n'))

@@ -35,7 +35,7 @@ load('../output//datasets.RData')
 	path='../audit/variables_by_cat/'
 	unlink(paste0(path,'*'))
 	dir.create(path)
-	vars=c('sales_bt', 'reg_pr_bt', 'pi_bt', 'pct_store_skus', 'adstock_bt')
+	vars=c('sales_bt', 'reg_pr_bt', 'pi_bt', 'pct_store_skus_bt', 'adstock_bt')
 
 	for (i in seq(along=datasets)) {
 		dt = melt(datasets[[i]][, colnames(datasets[[i]])%in%c(vars, 'brand_name', 'week'),with=F], id.vars=c('brand_name', 'week'))
@@ -60,7 +60,7 @@ load('../output//datasets.RData')
 	path='../audit/variables_by_brand/'
 	unlink(paste0(path,'*'))
 	dir.create(path)
-	vars=c('sales_bt', 'rreg_pr_bt', 'ract_pr_bt', 'pi_bt', 'promo_bt', 'pct_store_skus', 'adstock_bt')
+	vars=c('sales_bt', 'cpi', 'reg_pr_bt', 'act_pr_bt', 'rreg_pr_bt', 'ract_pr_bt', 'pi_bt', 'promo_bt', 'pct_store_skus_bt', 'adstock_bt')
 	
 	for (i in seq(along=datasets)) {
 		dt = melt(datasets[[i]][, colnames(datasets[[i]])%in%c(vars, 'brand_name', 'week'),with=F], id.vars=c('brand_name', 'week'))
@@ -78,4 +78,35 @@ load('../output//datasets.RData')
 			}
 
 	}
+
+# special plot: from Excel file (EQUAL)
+
+if(0){
+	vars=c('sales_bt', 'reg_pr_bt', 'act_pr_bt', 'pi_bt', 'promo_bt', 'pct_store_skus_bt')
+	require(RODBC)
+	ch <- odbcConnectExcel2007('../../../sugarsub/revision/Equal_revise_ck.xlsx')
 	
+	dt <- sqlFetch(ch, 'equal_ck')
+	dt <- data.table(dt)
+	setnames(dt, tolower(colnames(dt)))
+	dt[, source:='new']
+	
+	i=1
+	dt2 <- datasets[[i]][brand_name=='Equal']
+	dt2[, source:='old']
+	
+	tmp = rbind(dt[, colnames(dt)%in%c(vars, 'source', 'brand_name', 'week'),with=F],
+				dt2[, colnames(dt2)%in%c(vars, 'source', 'brand_name', 'week'),with=F])
+	
+	dt = melt(tmp, id.vars=c('brand_name', 'week', 'source'))
+	bname = unique(dt$brand_name)
+	
+	# Plot
+	path='../audit/variables_by_brand/'
+	
+	png(paste0(path, 'check_', catname, '_', bname, '.png'), res=200, units='in', height=8, width=12)
+	print(xyplot(value~week|variable, groups=source,data=dt,auto.key=T,type='l', scales = list(y = list(relation = "free")),
+	main=paste0('Category: ',catname, ', Brand: ', bname),sep=''))
+						
+	dev.off()
+	}
