@@ -38,10 +38,6 @@ load('..//..//derived//output//datasets.RData')
 	length(datasets)
 	
 	
-#allres <- NULL
-
-#	for (i in c(1:8)) {
-
 	run <- function(i, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'adstock_bt')) {
 	#i=1
 	print(i)
@@ -175,10 +171,7 @@ load('..//..//derived//output//datasets.RData')
 	X<-as.matrix(data.frame(X, dummatch))
 	
 	
-	X=as.matrix(dtbb@X)
-	
-	#test = split(data.frame(X[, grep('dummy|adstock',colnames(X),value=T)]), dtbb@individ)
-	
+	#X=as.matrix(dtbb@X)
 	
 	# drop one indicator for benchmark brand
 	# choice of base brand: put last.
@@ -187,11 +180,8 @@ load('..//..//derived//output//datasets.RData')
 	#ols=solve(t(X)%*%X)%*%t(X)%*%Y
 	#X2 = as(X, "dgeMatrix")
 	#ols2 <- solve(crossprod(X2), crossprod(X2,Y))
-	
-	
 	#ch <- chol(crossprod(X))
 	#chol.sol <- backsolve(ch, forwardsolve(ch, crossprod(X, Y), upper = TRUE, trans = TRUE))
-	
 
 	m <- itersur(X=X,Y=as.matrix(dtbb@y), dates_brands=data.frame(date=dtbb@period,brand=dtbb@individ))
 
@@ -201,8 +191,8 @@ load('..//..//derived//output//datasets.RData')
 	m$coefficients$brand_name<-unlist(lapply(strsplit(as.character(m$coefficients$orig_var), '_'), function(x) x[[1]][1]))
 	m$coefficients$var_name<-unlist(lapply(strsplit(as.character(m$coefficients$orig_var), '_'), function(x) paste0(x[-1], collapse='_')))
 	
-	print(m$sigma)
-	m$coefficients
+	#print(m$sigma)
+	#m$coefficients
 	
 	########################
 	# EXTRACT ELASTICITIES #
@@ -237,107 +227,22 @@ load('..//..//derived//output//datasets.RData')
 	sumtable = (dcast(tmp[var_name%in%c('brand_name', xvars_heterog) & variable=='elast'], brand_name ~ var_name))
 
 
-	return(list(model=m, elasticities=selast, elast_by_brand=sumtable))
+	return(list(cat_name = names(datasets)[i], model=m, elasticities = elasticities, summary_elasticities=selast, elast_by_brand=sumtable))
 	
 	}
 
 
-	out <- lapply(seq(along=datasets), function(x) {
+### RUN MODEL FOR ALL CATEGORIES ###	
+	focal_cats <- 1:3 #seq(along=datasets)
+	all_results <- lapply(focal_cats, function(x) {
 		cat('Running category ', x, '...\n')
 		if (names(datasets[x])%in%c('laundet', 'beer')) {
 			try(run(x, xvars_heterog=c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt')),silent=T) } else {
 			try(run(x, xvars_heterog=c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'adstock_bt')),silent=T) }
 	
 		})
-	names(out) <- names(datasets)
+		
+	names(all_results) <- names(datasets)[seq(along=all_results)]
 	
 	
-	# What's wrong with beer?!
-	for (i in seq(along=out)) {
-		out[[i]]$cat_name = names(datasets)[i]
-		}
-	
-	
-# Summarize elasticities
-	
-	res <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)), error = unlist(lapply(out, class)))
-	
-	checked = res$index[which(res$error=='list')]
-	
-	lapply(out[checked], function(x) x$elasticities)
-
-	elast = rbindlist(lapply(out[checked], function(x) data.frame(cat_name=x$cat_name, x$elasticities)))
-	
-	
-	# show elasticities by category
-	
-	
-	dcast(elast, cat_name ~ var_name, value.var = 'w_elast')
-
-# sweet!
-	
-# colMeans(dcast(elast, cat_name ~ var_name, value.var = 'w_elast')[,-1],na.rm=T)
-       adstock_bt pct_store_skus_bt          promo_bt        ract_pr_bt 
-      0.004318015       0.503036007       0.197683015      -0.842483267 
-	
-	
-### ALL ELASTICITIES
-
-
-	
-#allres[[i]]<-res
-	#}
-
-#save(allres, file='..//output//results.RData')
-
-	# compute VIFs
-	#tmp=split(data.frame(res$X, res$dates_brands), res$dates_brands$brand)
-	#vifs <- sapply(colnames(res$X), function(x) {
-	#	m<-lm(as.matrix(res$X[,x, with=F])~1+as.matrix(res$X[, !colnames(res$X)%in%x,with=F]))
-	#	1/(1-summary(m)$r.squared)
-	#	})
-	
-	# Base brand:
-	
-	tmp <- split(data.frame(X), dtbb@individ)
-	vifs<-lapply(tmp, function(X) {
-	
-	vifs <- sapply(colnames(X), function(x) {
-		m<-lm(as.matrix(X[,x])~1+as.matrix(X[, !colnames(X)%in%x]))
-		1/(1-summary(m)$r.squared)
-		})
-	
-		return(vifs) 
-	})
-
-	vifs<-unlist(vifs)[!is.na(unlist(vifs))]
-	
-	vifs<-data.table(variable=names(vifs),vif=vifs)
-	setorder(vifs, variable)
-	
-	vifs[, equation := sapply(variable, function(x) strsplit(x, '.',fixed=T)[[1]][1])]
-	vifs[, coefficient := sapply(variable, function(x) strsplit(x, '.',fixed=T)[[1]][2])]
-	vifs[, variable:=NULL]
-	setcolorder(vifs, c('equation','coefficient','vif'))
-	
-#res=allres[[5]]
-
-
-
-	
-	
-source('proc_plots.R')
-
-	
-	xyplot(coef~year|brand, data = res$brand_year_dummies, groups = grp,
-		 upper = res$brand_year_dummies$upper, lower = res$brand_year_dummies$lower,
-		 panel = function(x, y, ...){
-		 panel.superpose(x, y, panel.groups = my.panel.bands, type='l', col='gray',...)
-		 panel.xyplot(x, y, type='b', cex=0.6, lty=1,...)
-		 }, main = c('Estimated SBBE with 1.96 x SE confidence bounds'))
-
-
-	# summary(lm(log(sales_bt) ~ -1 + as.factor(brand_name) *log(reg_pr_bt), data = dt))
-
-# save results
-	#save(results_brands, results_category, markets, models, file='..\\output\\results.RData')
+save(all_results, file = '../output/results.RData')

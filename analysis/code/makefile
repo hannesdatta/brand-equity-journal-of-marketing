@@ -12,13 +12,10 @@ OUTPUT_DIR = ../output
 
 .PHONY : run
 
-build: $(TEMP_DIR)/datasets.RData
+build: $(OUTPUT_DIR)/results.RData
 
 ###### DATA ANALYSIS ######
 
 # analyze data
-run : analysis.R proc_analysis.R proc_sur.R
+$(OUTPUT_DIR)/results.RData: analysis.R attraction.R itersur.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "analysis.R"
-
-$(TEMP_DIR)/datasets.RData : preclean.R
-	"$(RBIN64)Rterm.exe" --vanilla --args "" < "preclean.R"
