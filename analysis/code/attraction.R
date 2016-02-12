@@ -35,7 +35,7 @@ setMethod("show", "attr.raw", function(object) {
 setGeneric("convertbb", function(object, ...) {})
 
 
-setMethod("convertbb", "attr.raw", function(object, model = 'MCI', heterogenous = rep(0, ncol(object@X))) {
+setMethod("convertbb", "attr.raw", function(object, model = 'MCI', benchmark = NULL, heterogenous = rep(0, ncol(object@X))) {
 	#print(heterogenous)
 	#print(object)
 	n_individ = length(unique(object@individ))
@@ -52,9 +52,14 @@ setMethod("convertbb", "attr.raw", function(object, model = 'MCI', heterogenous 
 	
 	dtmelt <- melt(data.frame(object@X, y=object@y, individ=object@individ, period=object@period), id.vars=c('individ', 'period'))
 	
-	# select benchmark brand: the one with most available observations (at a tie, take last one)
-	tmp <- table(dtmelt[which(dtmelt$variable=='y' & !is.na(dtmelt$value)), c('individ')])
-	bindivid = rev(names(tmp)[which(tmp==min(tmp))])[1]
+	# select benchmark brand: the one with most available observations (mean of all variables)
+	#data.table(dtmelt)[, list(N=length(which(!is.na(value)))), by=c('individ','variable')][, list(meanobs = mean(N)),by=c('individ')]
+	
+	if (is.null(benchmark)) {
+		tmp <- table(dtmelt[which(dtmelt$variable=='y' & !is.na(dtmelt$value)), c('individ')])
+		bindivid = rev(names(tmp)[which(tmp==max(tmp))])[1] } else {
+		bindivid = benchmark }
+		
 	aindivid = names(tmp)[!names(tmp)==bindivid]
 	
 	# stacked data set
