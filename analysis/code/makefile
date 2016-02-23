@@ -10,12 +10,12 @@ OUTPUT_DIR = ../output
 
 ###### BUILD COMMANDS ######
 
-.PHONY : run
+.PHONY: build
 
 build: $(OUTPUT_DIR)/results.RData
 
 ###### DATA ANALYSIS ######
 
 # analyze data
-$(OUTPUT_DIR)/results.RData: analysis.R attraction.R itersur.R
+$(OUTPUT_DIR)/results.RData: analysis.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "analysis.R"
