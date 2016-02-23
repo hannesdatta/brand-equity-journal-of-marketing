@@ -1,3 +1,4 @@
+require(memisc)
 
 print.xtable2<-function(x, heading=NULL, align=NULL, notes = NULL, scalebox = 1, ...) {
 

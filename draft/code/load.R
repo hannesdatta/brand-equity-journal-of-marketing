@@ -1,42 +1,51 @@
-#     _____    __   _  __                               _                 _       
-#    / ____|  / _| | |/ /       /\                     | |               (_)      
-#   | |  __  | |_  | ' /       /  \     _ __     __ _  | |  _   _   ___   _   ___ 
-#   | | |_ | |  _| |  <       / /\ \   | '_ \   / _` | | | | | | | / __| | | / __|
-#   | |__| | | |   | . \     / ____ \  | | | | | (_| | | | | |_| | \__ \ | | \__ \
-#    \_____| |_|   |_|\_\   /_/    \_\ |_| |_|  \__,_| |_|  \__, | |___/ |_| |___/
-#                                                            __/ |                
-#                                                           |___/                 
-#
-#  _________________________
-# |  _______________  |     |
-# | |               | |1 2 3|
-# | |               | |4 5 6|
-# | |               | |7 8 9|
-# | |               | |# # #|
-# | |               | | ___ |
-# | |_______________| ||___|| 
-# |___________________|_____|
+#     _    ____     __      __  _____           _           _      _  
+#    | |  |  _ \   /\ \    / / |  __ \         (_)         | |    | | 
+#   / __) | |_) | /  \ \  / /  | |__) | __ ___  _  ___  ___| |_  / __)
+#   \__ \ |  _ < / /\ \ \/ /   |  ___/ '__/ _ \| |/ _ \/ __| __| \__ \
+#   (   / | |_) / ____ \  /    | |   | | | (_) | |  __/ (__| |_  (   /
+#    |_|  |____/_/    \_\/     |_|   |_|  \___/| |\___|\___|\__|  |_| 
+#                                             _/ |                    
+#                                            |__/                     
 
 
 #################################
 ## PRODUCE TABLES WITH RESULTS  #
 #################################
 
-# Load data sets and results
-	load(file = '..\\..\\derived\\output\\datasets.RData')
-	load(file = '..\\..\\derived\\temp\\attributes.RData')
-	load(file = '..\\..\\analysis\\output\\results.RData')
+### LOAD DATA SETS
+require(data.table)
+require(marketingtools)
+require(reshape2)
 
-	#all_results_cop <- all_results
-	#load(file = '..\\..\\analysis\\output\\resultsNOCOP.RData')
+load('..//..//derived//output//datasets.RData')
+load('..//..//analysis//output//results.RData')
+source('xtable2.R')
+source("auxilary.R")
 
 # Load externals	
-	source('..\\external\\proc_rename.R')
+source('proc_rename.R')
 
 # Load packages
-	require(data.table)
 	require(xtable)
 
+	
+	allres <- NULL
+	
+	allres[[1]] <- lapply(all_results, function(x) x[[1]])	
+	allres[[2]] <- lapply(all_results, function(x) x[[2]])	
+	
+	checked_all <- lapply(allres, function(x) which(unlist(lapply(x, class))=='list'))
+	
+	
+	
+	
+	
+	#results <- all_results
+	
+#res <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)), error = unlist(lapply(results, class)))
+#checked = res$index[which(res$error=='list')]
+
+if (0){
 # Prepare panel data
 	brand_panel=rbindlist(lapply(all_data, function(x) rbindlist(x$data_cleaned)))
 	setorder(brand_panel, market_id, category,country,brand,date)
@@ -66,4 +75,4 @@ for (i in seq(along=results_category)) {
 	}))
 	checks_category[[i]]<-check
 	}
-	
+	}

@@ -1,0 +1,46 @@
+source	target	type
+beer	Beer	gsub
+carbbev	Carbonated Soft Drinks	gsub
+cigets	Cigarettes	gsub
+coffee	Coffee	gsub
+coldcer	Cold (RTE) Cereal	gsub
+deod	Deodorants	gsub
+diapers	Disposable Diapers	gsub
+pz[_]di	Frozen Pizza and Dinners	gsub
+hhclean	Household Cleaners	gsub
+laundet	Laundry Detergents	gsub
+margbutr	Margarine and Spreads	gsub
+mayo	Mayonnaise	gsub
+milk	Milk	gsub
+mustard	Mustard	gsub
+spagsauc	Pasta Sauce	gsub
+peanbutr	Peanut Butter	gsub
+rz[_]bl	Razors and Blades	gsub
+saltsnck	Salty Snacks	gsub
+shamp	Shampoo	gsub
+soup	Soup	gsub
+sugarsub	Sugar Substitutes	gsub
+toitisu	Toilet Tissue	gsub
+toothpa	Toothpaste	gsub
+yogurt	Yogurt	gsub
+cat[_]name	Category	gsub
+nobrands	No. of Brands	gsub
+meanyrs	Mean No. of\\newline Years per Brand	gsub
+revmean	Brand Dollar Sales (\\$m), mean	gsub
+revsd	Brand Dollar Sales (\\$m), SD	gsub
+bavsmean	Brand Asset Score, mean	gsub
+bavssd	Brand Asset Score, SD	gsub
+var[_]name	Marketing Mix Parameter	gsub
+welast	Weighted Elasticity Across Brands	gsub
+rosenthalznw	Meta Analytic Z	gsub
+signstars	Significance	gsub
+low90	10\\% quantile	gsub
+up90	90\\% quantile	gsub
+ncoef	Number of estimated elasticities	gsub
+possig	\\%-brands for which Posterior Interval \\textless 0	gsub
+nullsig	\\%-brands for which Posterior Interval Includes 0	gsub
+negsig	\\%-brands for which Posterior Interval \\\textless 0	gsub
+pct[_]store[_]skus[_]bt	Distribution	gsub
+promo[_]bt	Promotion	gsub
+ract[_]pr[_]bt	Price	gsub
+adstock[_]bt	Advertising	gsub
