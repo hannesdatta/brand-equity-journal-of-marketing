@@ -19,12 +19,17 @@ build: $(OUTPUT_DIR)/datasets.RData
 raw: $(TEMP_DIR)/iri_sales.RData
 attr: $(TEMP_DIR)/attributes.RData
 cpindex: $(TEMP_DIR)/cpi.RData
+bavdat: $(TEMP_DIR)/bav.RData
 
 ###### DATA PREPARATION ######
 
-# convert sas7bdat to RData
+# convert sales data from sas7bdat to RData
 $(TEMP_DIR)/iri_sales.RData : iri_sales.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "iri_sales.R"
+
+# convert BAV data from sas7bdat to RData
+$(TEMP_DIR)/bav.RData : bav.R
+	"$(RBIN64)Rterm.exe" --vanilla --args "" < "bav.R"
 
 # read in CPI data and map to category names (cat_name)
 $(TEMP_DIR)/cpi.RData: cpi.R
@@ -35,7 +40,7 @@ $(TEMP_DIR)/attributes.RData : attributes.R ../../../Attributes_check/cat_attrdu
 	"$(RBIN32)Rterm.exe" --vanilla --args "" < "attributes.R"
 
 # pre-clean data, indicate attributes in column names, remove last level
-$(OUTPUT_DIR)/datasets.RData : preclean.R $(TEMP_DIR)/attributes.RData $(TEMP_DIR)/iri_sales.RData
+$(OUTPUT_DIR)/datasets.RData : preclean.R $(TEMP_DIR)/attributes.RData $(TEMP_DIR)/iri_sales.RData $(TEMP_DIR)/cpi.RData $(TEMP_DIR)/bav.RData
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "preclean.R"
 
 # pre-clean data, indicate attributes in column names, remove last level

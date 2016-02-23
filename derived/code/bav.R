@@ -14,38 +14,26 @@ require(data.table)
 require(sas7bdat)
 
 
+load('..//output//datasets.RData')
+
 # Gathers all data sets, and saves them as RData
-	catdata <- NULL
+	bavdata <- NULL
 
 	basepath <- '..\\..\\..\\'
 	# Define available categories
-	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'pz_di', 'hhclean','laundet', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'rz_bl', 
-					   'saltsnck', 'shamp', 'soup', 'sugarsub', 'toitisu', 'toothpa', 'yogurt') 
-
-					 
+	category_dirs = names(datasets)				 
 					  
-					  
-	require(parallel)
-	cl<-makePSOCKcluster(24)
-	clusterEvalQ(cl, require(data.table))
-	clusterEvalQ(cl, require(sas7bdat))
-	
 	open_sas <- function(.dir) {
 	
 		cat(paste0('Processing ', category_dirs[.dir], '...\n'))
 		path = paste0(basepath, '\\', category_dirs[.dir], '\\revision\\')
 		fs = list.files(path)
-		fn = grep('varneed[.]sas7bdat', fs, value=T)
+		fn = grep('brand[_]year.*[.]sas7bdat', fs, value=T)
 		dt <- data.table(read.sas7bdat(paste0(path, fn)))
-		colindex <- 1:grep('cat_name', colnames(dt))
-		return(dt[, colindex, with=F])
-		#
+		return(dt)
 		}
 	
-	clusterExport(cl, c('basepath','category_dirs','open_sas'))
-
-	catdata <- clusterApply(cl, seq(along=category_dirs), open_sas)
-	names(catdata) <- category_dirs
-	stopCluster(cl)
+	bavdata <- lapply(seq(along=category_dirs), open_sas)
+	names(bavdata) <- category_dirs
 	
-save(catdata, file='../temp//iri_sales.RData')
+save(bavdata, file='../temp//bav.RData')

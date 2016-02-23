@@ -15,9 +15,12 @@ require(data.table)
 	load('..//temp//iri_sales.RData')
 	load('..//temp//attributes.RData')
 	load('..//temp//cpi.RData')
+	load('..//temp//bav.RData')
 
 # Brand selection has already been implemented in upstream-data preparation:
 # brands are selected that account for a cumulative market share of 90%.
+
+exclude <- 'toothpa'
 
 ################################
 # PREPARE ATTRIBUTE-LEVEL DATA #
@@ -26,8 +29,9 @@ require(data.table)
 	# Combine attribute information with panel data
 	relevant_attr = which(names(attr)%in%names(catdata))
 
-	availability = names(catdata)[!names(catdata)%in%names(attr)]
-	 
+	nonavailability = names(catdata)[!names(catdata)%in%names(attr)]
+	print(nonavailability)
+	
 	#if (!length(relevant_attr)==length(catdata)) stop('Not all attribute levels available, or a problem in the panel data')
 	if (!length(relevant_attr)==length(catdata)) stop('Not all attribute levels available, or a problem in the panel data')
 
@@ -56,7 +60,6 @@ require(data.table)
 dat <- NULL
 
 	for (i in seq(along=catdata)) {
-	
 		# verify whether all attribute levels are listed as variable names
 		vars <- colnames(catdata[[i]])
 		
@@ -69,6 +72,9 @@ dat <- NULL
 		
 		dt = catdata[[i]]
 		
+		setkeyv(dt, setdiff(colnames(dt), 'AdStock_bt'))
+		dt <- unique(dt)
+
 		vars_keep = vars[1:grep('cat_name', vars)]
 		vars_keep = vars_keep[!vars_keep%in%attrs_rem]
 		
@@ -164,6 +170,28 @@ names(dat) <- names(catdata)
 		
 		}
 
+		
+
+################
+# ADD BAV DATA #
+################
+
+	for (i in seq(along=dat)) {
+		dt = dat[[i]]
+		
+		bav = bavdata[[i]]
+		
+		setkey(dt, cat_name, brand_name, year)
+		setkey(bav, cat_name, brand_name, year)
+		dt[bav, ':=' (bav_energizeddiff = i.Energized_Differentiation_C, 
+					  bav_relevance = i.Relevance_C,
+					  bav_esteem = i.Esteem_C,
+					  bav_knowledge = i.Knowledge_C,
+					  bav_asset = i.Brand_Asset_C)]
+					  
+		dat[[i]] <- dt
+		}
+
 #################
 # SELECT BRANDS #
 #################
@@ -235,11 +263,10 @@ for (i in seq(along=dat)) {
 	tmp <- split(dat[[i]], paste0(dat[[i]]$cat_name, '_', dat[[i]]$brand_name))
 
 	dt <- rbindlist(lapply(tmp, function(x) {
-		.zoo=zoo(x)
+		.zoo=zoo(x[, !grepl('bav[_]', colnames(x)),with=F])
 		.out = na.contiguous(.zoo)
 		suppressWarnings(res <- x[, selected:=!1:.N %in% as.numeric(attr(.out, 'na.action'))])
 		res
-		# Add condition of at least 4 years of data (!)
 		}))
 
 	# --> number of obs.
