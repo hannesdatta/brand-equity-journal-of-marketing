@@ -1,0 +1,79 @@
+peanbutr: 
+TEDDIE (price spikes)
+REESES (CPI spikes)
+Peter Pan (pct_store)
+Private label: pct_store_SKUs
+
+milk:
+Private label (same irregularities in the weeks as private label for peanbutr)
+Horizon Organic (pct_store)
+Kemps (same pct_store issues, spiky act_price); exactly the same periods
+
+mayo:
+private label
+Garelick Farms (I have the intuition that this has to do with tying years together)
+
+margbutr:
+private label
+I can't believe its not butter
+blue bonnet (same spikes, when tying together data)
+
+laundet: 
+surf
+private label
+
+hhclean: 
+private label, pct_store and actual price
+murphy oil soap: pct_store skus (step-like pattern)
+hhclean: around week 1430 (clorox, fabuloso, formula 409, fantastik
+
+
+diapers:
+private label
+
+deod: 
+arm & hammer, pct store
+private label
+
+coffee:
+yuban, pct_store around 1400
+dunkin donuts: pct_store (from when do we start modeling?)
+
+
+
+coldcer:
+cheerios, pct_store
+private label
+
+cigets:
+private label
+parliament, pct_store 1600-1650
+marlboro (same spike on pct_store)
+misty
+capri
+
+Let us have a look at CPI for camel: cpi goes up, actual price goes up. really correct for it? maybe lagged CPI?
+
+basic: pct_store
+
+carbbev:
+privat e label
+
+beer: 
+michelob pct store
+
+sugarsub:
+private label
+
+soup:
+private label
+progresso: spikes in same periods as PL, albeit less pronounced
+
+shamp: private label
+
+
+
+SALES PLOTS: Private label for soup
+
+
+Observe variables_by_cat\

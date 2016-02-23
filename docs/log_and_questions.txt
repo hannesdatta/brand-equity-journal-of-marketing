@@ -151,4 +151,114 @@ Questions/Issues:
 - I noticed that the mapping of weeks to years is slightly incorrect, e.g., the starting week of 1322 (2004-12-27) is mapped to 01-2005, and not 12-2004. The problem is a previous underlying assumption that years always have 52 weeks. However, this is not correct. The years 2004 and 2009 have 53 weeks. I have corrected all years acoordingly: I assign that year for which most dates fall in the given year (in this case, 5 days fall in that year).
 (The recoding was needed to merge CPI data).
 - can I move the category data folders to a joint subfolder \Data? (makes directory structure easier)
+
+
 - By the way we define elasticities, brands with small market shares have HIGH elasticities beta_b * (1 - marketshare_bt) * mean(X_bt). Is that really a desirable property? (cf. elasticity SUGAR TWIN in sugar subs, small brands, but weighs heavily, so does SWEETMATE).
+
+4 February 2016
+===============
+
+- Rong will process remaining categories
+
+- Model development
+	o Simulate data, retrieve parameters (also SEs)
+		x Make homogenous model first, without attributes
+		x Homogenous model with attributes
+		x Differential model
+	
+	o Learn about Geometric vs. Base-brand approach (and parameter recovery)
+	
+	o Estimate model on real sugarsub data
+	o Code up VIFs
+	
+	(Final goal: intercepts driven by CBBE)
+	
+	o Attributes? Do they mess things up?
+	o Inclusion CBBE metrics 
+
+- Integrate all data, define brand selection criteria
+
+
+8 February 2016 + Solving these issues on 9 February
+==================
+- Done: 
+	- Integrated beer category; plots look good.
+	- Simulated homogenous and differential models, without attributes. Works (except the intercepts are off)
+	- VIFs are gigantic (even without having product attributes in the model); 
+	  let us re-define which variables we'd like to be in the test equations (e.g., brand-year dummies?).
+	  Alternatively, let us consider 'mimicking' how VIFs are in a base-brand approach. They should be much lower.
+	- Price coefficients for sugarsubs (without attributes) is still not face valid.
+	
+- Pending: 
+	- Geometric vs. Base-brand approach & parameter recovery CONFIRMED: it is the same thing.
+	- Brand intercepts not well recovered SOLVED
+	- Standard errors slightly diverge between SUR (systemfit in R), and my own code (magnitude negligible though) SOLVED
+	- Recovery of error term still to be verified SOLVED
+	- Estimation of beer category not possible yet --> will be done with base brand approach.
+	
+11 February 2016
+================
+
+- Done:
+  o Verified simulation code; wrote estimation procedure for differential effects MNL attraction model
+  o Elasticities look face-valid
+    
+- Questions:
+  o identification of year dummies for benchmark brand
+  o clarify pz_dn and rz_bl versus pizza_dinner and razor_blade SOLVED
+  o how to report sales response estimates= (table 4): mean of weighted means in a category, or weighted means across all categories
+  o adv. in beer & laundry detergents
+  
+- Pending: 
+  o verify parameter estimate changes for models with and without attributes
+  o report VIFS: model with and without attributes
+
+  o try to back out alpha_B
+  o replicate CBBE correlation analysis with final model results on all categories
+
+  o bring in CBBE
+  o add Gaussian Copulas
+
+  
+15 February 2016
+=================
+ 
+- Data
+  o Tying together of data sets from different years continues to cause spikes in pct_store_
+  o Ad_stock_bt variable causes duplicates in toothpa category; for now excluded
+  
+- Estimation
+  o beer, laundet, toitisu: advertising coefficients can't be estimated; any experience in these categories?
+
+- To be discussed
+  o We have extreme VIFs
+  o CBBE
+     o taking a_by as direct estimates of brand equity seems invalid (exp(a_by) seems more appropriate).
+	 o But: only difference to benchmark brand is recovered
+     o Solution: similar to round 1, we can simulate market shares at average marketing mix.
+	 o Alternatives: residuals?
+  o Let's discuss how CBBE enters our analysis
+  o Comment by reviewer: why no autoregressive component?
+  o Attributes: broader attribute definitions?
+ 
+17 February 2016
+=================
+
+- We decide to run the following models:
+  (a) xvars_heterog=c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'adstock_bt')
+  (b) xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', 'adstock_bt') * this is the "minimum" model we need *
+  (c) xvars_heterog=c('fd_bt', 'pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', 'adstock_bt') *** this is possibly the final model ***
+  (d) xvars_heterog=xvars_heterog=c("pi_unsup_bt" ,"pi_sup_bt", 'fd_wo_bt', 'rreg_pr_bt', 'pct_store_skus_bt', 'adstock_bt') * only if face valid and estimatable consistently *
+ 
+ 
+19 February 2016
+=================
+
+- Implemented Praise-Winsten correction for auto-correlation in marketingtool's itersur()
+- Implemented computation of SBBE (normalization proposed by Dennis Fok, email from 16 February 2016); computation of standard errors using the Delta Method
+- Implemented merging with CBBE, and computation of correlations
+- Implemented endogeneity corrections using Gaussian Copulas
+- Tried out estimation using different variable combinations (see notes above from 17 Feb. 2016)
+
+Pending:
+- a few exceptions in estimation laundet, toitisu and beer (e.g., changing benchmark brand, removing adstock).
