@@ -30,6 +30,21 @@ prepare_data <- function(i) {
 	
 	void<-dt[, list(obs = .N), by=c('brand_name', 'year')]
 
+	dt[, adstock_bt := adstock_bt-1]
+	dt[, advertising_bt := advertising_bt/1000]
+	
+	# compute adstock
+	adstock <- function(x, lambda) {
+		res=double(length(x))
+		res[1]=x[1]
+		for (k in seq(from=2, to=length(x))) {
+			res[k] = lambda * res[k-1] + (1-lambda) * x[k]
+			}
+		return(res)
+		}
+	
+	dt[, adstock50_bt := adstock(advertising_bt, lambda=.5),by=c('brand_name')]
+	
 	# get out brands with equal number of observations
 	#obs <- dt[,list(.N), by=c('brand_name')]
 	#dt <- dt[brand_name%in%obs[N==572]$brand_name,]
@@ -148,7 +163,7 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	# drop one indicator for benchmark brand
 	# choice of base brand: put last.
 	if (any(colSums(X)==0)) stop(paste0('Problems with no variation in variables: ', paste(colnames(X)[which(colSums(X)==0)], collapse = ', ')))
-
+	
 	mest <- itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=method)
 
 	m<-NULL
