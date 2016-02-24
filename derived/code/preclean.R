@@ -209,32 +209,50 @@ names(dat) <- names(catdata)
 	# it happens in a few cases, so below I need to select only consecutive observations
 
 # minimum of m in y years
-	m=.01
-	y=4
-	brandsales_yr[, min_ms := ms >= m]
+	# evaluation criteria
+	m=.001
+	y=3
+	brandsales_yr[, min_ms := ms >= m] # whether brand meets criteria in a given year
 	setorder(brandsales_yr, cat_name, brand_name, year)
 
 	head(brandsales_yr)
-	brandsales_yr[, no_ms := 1-as.numeric(min_ms)]
-	brandsales_yr[, ms_cum := cumsum(no_ms), by=c('cat_name','brand_name')]
+	brandsales_yr[, stretch_indicator := cumsum(1-min_ms), by=c('cat_name','brand_name')]
 
-	brandsales_yr[, selected := .N>=y & sum(min_ms)>=y, by=c('cat_name','brand_name')]
+	brandsales_yr[, stretch_length := length(which(min_ms==T)), by=c('cat_name','brand_name','stretch_indicator')]
 	
+	# check whether longest stretch has consecutive observations for at least y years
+	brandsales_yr[, selected := stretch_length>=y, by=c('cat_name','brand_name', 'stretch_indicator')]
+	
+	selected_brands = brandsales_yr[, list(min_ms = round(min(ms),4), max_ms=round(max(ms),4), no_yrs = max(stretch_length),
+										   selected = any(selected)), by=c('cat_name','brand_name', 'brand_id')]
 	# prepare overview
 	
-	sel_overview = brandsales_yr[, list(total_brands = length(unique(brand_name)), total_bav_brands = length(unique(brand_name[!brand_id==''])),
-									 total_selected_bav =  length(unique(brand_name[!brand_id=='' & selected == T]))
+	sel_overview = brandsales_yr[, list(total_brands = length(unique(brand_name)), 
+										total_selected_brands = length(unique(brand_name[selected==T])),
+										total_bav_brands = length(unique(brand_name[!brand_id==''])),
+										total_selected_bav =  length(unique(brand_name[!brand_id=='' & selected == T]))
 									), by=c('cat_name')]
+									
+	sel_overview_total = brandsales_yr[, list(total_brands = length(unique(brand_name)), 
+										total_selected_brands = length(unique(brand_name[selected==T])),
+										total_bav_brands = length(unique(brand_name[!brand_id==''])),
+										total_selected_bav =  length(unique(brand_name[!brand_id=='' & selected == T]))
+									)]
 	sel_overview[, cat_name:=as.character(cat_name)]
-	setorder(sel_overview, cat_name)
-	sel_overview = rbind(sel_overview, data.frame('total', sum(sel_overview[,2,with=F]),sum(sel_overview[,3,with=F]),sum(sel_overview[,4,with=F])), use.names=F)
+	sel_overview_total[, cat_name:='total (unique)']
+	sel_overview=rbindlist(list(sel_overview, sel_overview_total),fill=T)
 	
+	options(width=600)
 	sink('..//audit//brand_selection.txt')
 	cat(paste0('Overview about number of selected brands given\na minimum market share of ', round(m*100,2), '% for at least ', y, ' consecutive years.\n\n'))
 	print(sel_overview)
+	cat('\n\n\n')
+	options(scipen=999)
+	print(data.frame(selected_brands),digits=4)
+	write.table(selected_brands, sep='\t', file='..//audit//brand_selection.csv',row.names=F)
 	sink()
 
-	selected_brands = brandsales_yr[, list(selected=any(selected==T)), by=c('cat_name', 'brand_name')]
+	selected_brands = selected_brands[selected==T]
 	setkey(selected_brands, cat_name, brand_name)
 	
 ###########################################################################################
