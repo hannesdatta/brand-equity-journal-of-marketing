@@ -19,11 +19,17 @@ require(sas7bdat)
 
 	basepath <- '..\\..\\..\\'
 	# Define available categories
-	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'pz_di', 'hhclean','laundet', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'rz_bl', 
+	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'pz_di', 'hhclean', 'ketchup', 'laundet', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'rz_bl', 
 					   'saltsnck', 'shamp', 'soup', 'sugarsub', 'toitisu', 'toothpa', 'yogurt') 
 
 					 
-					  
+	# verify whether all data sets can be located
+	for (.dir in seq(along=category_dirs)) {
+		path = paste0(basepath, '\\', category_dirs[.dir], '\\revision\\')
+		fs = list.files(path)
+		fn = grep('varneed[.]sas7bdat', fs, value=T)
+		if (!file.exists(paste0(path,fn))) stop('File ', fn, ' in ', path, ' does not exist.')
+		}
 					  
 	require(parallel)
 	cl<-makePSOCKcluster(24)

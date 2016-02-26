@@ -16,11 +16,10 @@ require(data.table)
 	load('..//temp//attributes.RData')
 	load('..//temp//cpi.RData')
 	load('..//temp//bav.RData')
+	load('..//temp//bav_deletes.RData')
 
 # Brand selection has already been implemented in upstream-data preparation:
 # brands are selected that account for a cumulative market share of 90%.
-
-exclude <- 'toothpa'
 
 ################################
 # PREPARE ATTRIBUTE-LEVEL DATA #
@@ -51,7 +50,7 @@ exclude <- 'toothpa'
 	
 	attr[, keep := !(1:.N==.N), by=c('cat_name', 'attribute')]
 	
-	
+
 ###########################
 # BUILD DERIVED DATA SETS #
 ###########################
@@ -85,6 +84,7 @@ dat <- NULL
 			if (.n%in%colnames(dt)) setnames(dt, .n, paste0('attr_', .n))
 			}
 		setnames(dt, tolower(colnames(dt)))
+
 		dat[[i]] <- dt
 		}
 		
@@ -151,9 +151,9 @@ names(dat) <- names(catdata)
 		# Change definition of year to IRI's definition #
 		#################################################
 				
-		dt[, ':=' (year = NULL, month_iri=NULL)]
+		dt[, ':=' (year = NULL)]
 		setnames(dt, 'year_iri', 'year')
-		
+		setnames(dt, 'month_iri', 'month')
 		
 		##################################
 		# Deflate monetary series by CPI #
@@ -170,11 +170,17 @@ names(dat) <- names(catdata)
 		
 		}
 
-		
+#####################################################################
+# ADD BAV DATA AND                                                  #
+# ADD INDICATORS WHETHER BAV BRANDS ARE TO BE "DEACTIVATED"/DELETED #
+# (e.g., Lipton in soup (as its major category is ice tea)          #
+#####################################################################
 
-################
-# ADD BAV DATA #
-################
+# Verify whether data can be matched using brand_id (this requires that deletion information is completely identified using brand_id, and not brand_name)
+test=bav_deletes[, list(check=length(unique(delete))==1),by=c('cat_name', 'brand_id')]
+if(nrow(test[check==F])>0) stop('Please verify matching with BAV deletes.')
+rm(test)
+setkey(bav_deletes, cat_name, brand_id)
 
 	for (i in seq(along=dat)) {
 		dt = dat[[i]]
@@ -188,7 +194,11 @@ names(dat) <- names(catdata)
 					  bav_esteem = i.Esteem_C,
 					  bav_knowledge = i.Knowledge_C,
 					  bav_asset = i.Brand_Asset_C)]
-					  
+		
+		setkey(dt, cat_name, brand_id)
+		dt[bav_deletes, delete_bav := i.delete]
+		dt[is.na(delete_bav), delete_bav := 0]
+		
 		dat[[i]] <- dt
 		}
 
@@ -196,11 +206,14 @@ names(dat) <- names(catdata)
 # SELECT BRANDS #
 #################
 
-# Rule: all brands with a market share of at least 1% in four consecutive years
+# Rule: Select all BAV brands, and remaining brands with a market share of at least 1% in three consecutive years.
 
-	brandsales <- rbindlist(lapply(dat, function(x) return(x[, c('cat_name', 'brand_name', 'brand_id', 'sales_bt', 'year'), with=F])))
+	brandsales <- rbindlist(lapply(dat, function(x) return(x[, c('cat_name', 'brand_name', 'brand_id', 'sales_bt', 'year', 'delete_bav'), with=F])))
+	# verify whether there are any unmatched
+	#brandsales[!brand_id=='' & is.na(delete_bav)][,list(.N), by=c('cat_name', 'brand_id', 'brand_name')]
+	
 	# calculate year-based market shares
-	brandsales_yr <- brandsales[, list(sales = sum(sales_bt)), by = c('cat_name','brand_name','brand_id','year')]
+	brandsales_yr <- brandsales[, list(sales = sum(sales_bt)), by = c('cat_name','brand_name','brand_id','year', 'delete_bav')]
 	brandsales_yr[, ms := sales/sum(sales), by=c('cat_name','year')]
 
 # check whether we always have consecutive observations
@@ -210,7 +223,7 @@ names(dat) <- names(catdata)
 
 # minimum of m in y years
 	# evaluation criteria
-	m=.001
+	m=.000
 	y=3
 	brandsales_yr[, min_ms := ms >= m] # whether brand meets criteria in a given year
 	setorder(brandsales_yr, cat_name, brand_name, year)
@@ -224,27 +237,29 @@ names(dat) <- names(catdata)
 	brandsales_yr[, selected := stretch_length>=y, by=c('cat_name','brand_name', 'stretch_indicator')]
 	
 	selected_brands = brandsales_yr[, list(min_ms = round(min(ms),4), max_ms=round(max(ms),4), no_yrs = max(stretch_length),
-										   selected = any(selected)), by=c('cat_name','brand_name', 'brand_id')]
+										   selected = any(selected)|!brand_id==''), by=c('cat_name','brand_name', 'brand_id', 'delete_bav')]
 	# prepare overview
 	
-	sel_overview = brandsales_yr[, list(total_brands = length(unique(brand_name)), 
-										total_selected_brands = length(unique(brand_name[selected==T])),
-										total_bav_brands = length(unique(brand_name[!brand_id==''])),
-										total_selected_bav =  length(unique(brand_name[!brand_id=='' & selected == T]))
+	sel_overview = selected_brands[, list(total_brands = length(unique(brand_name)), 
+										total_brands_for_estimation = length(unique(brand_name[selected==T])),
+										total_bav_brands_for_estimation = length(unique(brand_name[!brand_id==''])),
+										total_selected_bav_for_metaanalysis =  length(unique(brand_name[!brand_id=='' & delete_bav==0 & selected == T]))
 									), by=c('cat_name')]
-									
-	sel_overview_total = brandsales_yr[, list(total_brands = length(unique(brand_name)), 
-										total_selected_brands = length(unique(brand_name[selected==T])),
-										total_bav_brands = length(unique(brand_name[!brand_id==''])),
-										total_selected_bav =  length(unique(brand_name[!brand_id=='' & selected == T]))
+	sel_overview_total = cbind(cat_name='total (sum)', sel_overview[, lapply(.SD, sum), .SDcols=grep('total[_]', colnames(sel_overview),value=T)])
+	
+	sel_overview_totalu = selected_brands[, list(total_brands = length(unique(brand_name)), 
+										total_brands_for_estimation = length(unique(brand_name[selected==T])),
+										total_bav_brands_for_estimation = length(unique(brand_name[!brand_id==''])),
+										total_selected_bav_for_metaanalysis =  length(unique(brand_name[!brand_id==''  & delete_bav==0 & selected == T]))
 									)]
+	
 	sel_overview[, cat_name:=as.character(cat_name)]
-	sel_overview_total[, cat_name:='total (unique)']
-	sel_overview=rbindlist(list(sel_overview, sel_overview_total),fill=T)
+	sel_overview_totalu[, cat_name:='total (unique)']
+	sel_overview=rbindlist(list(sel_overview, sel_overview_total, sel_overview_totalu),fill=T)
 	
 	options(width=600)
 	sink('..//audit//brand_selection.txt')
-	cat(paste0('Overview about number of selected brands given\na minimum market share of ', round(m*100,2), '% for at least ', y, ' consecutive years.\n\n'))
+	cat(paste0('Overview about selected brands\n===========================================\n\nRule: All BAV brands after deletion; and all other brands given\na minimum market share of ', round(m*100,2), '% for at least ', y, ' consecutive years.\n\n'))
 	print(sel_overview)
 	cat('\n\n\n')
 	options(scipen=999)
@@ -290,8 +305,24 @@ for (i in seq(along=dat)) {
 	# --> number of obs.
 	cat(paste0('\n\nCATEGORY: ', unique(dat[[i]]$cat_name), '\n'))
 	print(dt[selected==T, list(nobs = .N), by = c('cat_name', 'brand_name')])
+	
+	# make brand names ASCII compatible (retain only characters, remove spaces)
+	dt[, brand_name := gsub('[^a-zA-Z]', '', brand_name)]
+	
+	# delete pre-computed ad-stock variable
+	dt[, adstock_bt := NULL]
+	
+	# keep only data for 2002 onwards
+	dt <- dt[year>=2002]
+	
+	# delete non-selected brands
+	dt <- dt[selected==T]
+	dt[, selected:=NULL]
 
-	dat[[i]] <- dt[selected==T]
+	# compute market share
+	dt[, ms_bt := sales_bt/sum(sales_bt), by=c('week')]
+	
+	dat[[i]] <- dt
 	}
 
 sink()

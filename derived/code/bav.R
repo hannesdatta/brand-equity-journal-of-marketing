@@ -14,14 +14,14 @@ require(data.table)
 require(sas7bdat)
 
 
-load('..//output//datasets.RData')
+load('..//temp//iri_sales.RData')
 
 # Gathers all data sets, and saves them as RData
 	bavdata <- NULL
 
 	basepath <- '..\\..\\..\\'
 	# Define available categories
-	category_dirs = names(datasets)				 
+	category_dirs = names(catdata)				 
 					  
 	open_sas <- function(.dir) {
 	
