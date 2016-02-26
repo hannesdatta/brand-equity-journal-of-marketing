@@ -21,16 +21,8 @@ prepare_data <- function(i) {
 	
 	dt <- datasets[[i]]
 	
-	# kick out first 4 observations by brand
-	dt[, min_week := min(week),by=c('brand_name')]
-	dt <- dt[week>min_week+3]
-	# keep only data for 2002 onwards
-	dt <- dt[year>=2002]
-	dt[, brand_name := gsub('[^a-zA-Z]', '', brand_name)]
-	
 	void<-dt[, list(obs = .N), by=c('brand_name', 'year')]
 
-	dt[, adstock_bt := adstock_bt-1]
 	dt[, advertising_bt := advertising_bt/1000]
 	
 	# compute adstock
@@ -43,16 +35,22 @@ prepare_data <- function(i) {
 		return(res)
 		}
 	
-	dt[, adstock50_bt := adstock(advertising_bt, lambda=.5),by=c('brand_name')]
+	decays = formatC(seq(from=0.00, to=1, by=.05)*100, width=2, flag=0)
+	for (decay in decays) {
+		dt[, paste0('adstock', decay, '_bt') := adstock(advertising_bt, lambda=as.numeric(decay)/100),by=c('brand_name'),with=F]
+		}
 	
-	# get out brands with equal number of observations
-	#obs <- dt[,list(.N), by=c('brand_name')]
-	#dt <- dt[brand_name%in%obs[N==572]$brand_name,]
+	# kick out first 4 observations by brand
+	dt[, min_week := min(week),by=c('brand_name')]
+	dt <- dt[week>min_week+3]
+	
+	# retain only observations from year 2002 onwards (to match with BAV data)
+	dt <- dt[year>=2002]
+	
 	dt
 	}
 
-
-analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'adstock_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL) {
+analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'adstock_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE) {
 
 	####################
 	# DEFINE VARIABLES #
@@ -101,17 +99,25 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	################################
 	# Add Copula Correction Terms  #
 	################################
-		make_copula <- function(x) {
-		if (length(unique(x))==1) return(as.numeric(rep(NA, length(x))))
-		return(ifelse(ecdf(x)(x)==1, qnorm(1-.0000001), qnorm(ecdf(x)(x))))
-		}
 
 	for (.var in xvars_endog) {
 		dt[, paste0('cop_', .var) := make_copula(get(.var)), by=c('brand_name'),with=F]
 		xvars_heterog <- c(xvars_heterog, paste0('cop_',.var))
 		}
 	
-	
+	# Add copula series to the data and verify normality
+	copula_normality=NULL
+		if (length(xvars_endog>0)) {
+			tmp=dt[, c('brand_name','week', xvars_endog),with=F][, lapply(.SD, function(x) {
+				if (all(is.na(x))) return(as.numeric(NA))
+				as.numeric(shapiro.test(x)$p)
+				}
+				), by=c('brand_name'), .SDcols=xvars_endog]
+
+			copula_normality <- melt(tmp, id.vars=c('brand_name'))
+			setnames(copula_normality, 'value', 'pval')
+		}
+
 	###########################
 	### BASE BRAND APPROACH ###
 	###########################
@@ -122,13 +128,13 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	dt[, year:=as.numeric(year)]
 	dt[, nbrands := length(unique(get(it[1]))), by = c(it[2])]
 	dt[, ms := sales_bt/sum(sales_bt), by=c(it[2])]
-	
+
 	# Transform data to base-brand representation
 	dtbb <- attraction_data(as.formula(paste0('ms ~ ', paste0(c(xvars_heterog, xvars_homog),collapse=' + '))), 
 					data = dt, heterogenous = as.formula(paste0(' ~ ', paste0(c(xvars_heterog),collapse=' + '))),
 					index = ~ brand_name + week, model = "MNL", benchmark = benchmark)
 	validObject(dtbb)
-#	show(dtbb)
+	#show(dtbb)
 	
 	# create dummies for all brands in all years they are available
 	brands <- unique(dt$brand_name)
@@ -139,22 +145,29 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	# match years
 	setkey(dummatrix,individ,period)
 	setkey(dt, brand_name, week)
-	dummatrix[dt, year:=i.year]
+	dummatrix[dt, ':=' (year=i.year, quarter=i.quarter)]
 	
 	for (br in brands[!brands%in%benchbrand]) {
-		yrs = unique(dummatrix[individ==br]$year)
+		# do not create dummy variable for benchmark brand
+		if (br==benchbrand) next
 		
+		# create quarterly dummies
+		if (quarter==T) {
+			dummatrix[, paste0('quarter2', '_', br) := as.numeric(individ %in% br & quarter==2)]
+			dummatrix[, paste0('quarter3', '_', br) := as.numeric(individ %in% br & quarter==3)]
+			dummatrix[, paste0('quarter4', '_', br) := as.numeric(individ %in% br & quarter==4)]
+			}
+		# create year dummies
+		yrs = unique(dummatrix[individ==br]$year)
+				
 		for (yr in yrs) {
-			# do not create dummy variable for benchmark brand
-			if (br==benchbrand) next# & yr == yrs[1]) next
 			dummatrix[, paste0('dummy', '_', br, '_yr_', yr) := as.numeric(individ %in% br & year==yr)]
 			}
 		}
+	
+	dummatrix[, ':=' (quarter=NULL, period=NULL, individ=NULL, year=NULL)]
 
-	# match new dummy matrix to transformed data set
-	dummatrix <- dummatrix[, c(grep('^dummy[_]', colnames(dummatrix),value=T)), with=F]
-	
-	
+
 	X=as.matrix(data.frame(dtbb@X[, -c(grep('[_]dum', colnames(dtbb@X)))],dummatrix))
 	if (simpleDummies==TRUE) X=as.matrix(dtbb@X)
 	Y=dtbb@y
@@ -163,15 +176,19 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	# drop one indicator for benchmark brand
 	# choice of base brand: put last.
 	if (any(colSums(X)==0)) stop(paste0('Problems with no variation in variables: ', paste(colnames(X)[which(colSums(X)==0)], collapse = ', ')))
-	
+	a=Sys.time()
 	mest <- itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=method)
-
+	b=Sys.time()
+	
 	m<-NULL
 	m$coefficients <- coef(mest)
 	m$varcovar = mest@varcovar
 	m$rho = mest@rho
 	m$rho_hat = mest@rho_hat
+	m$bic = mest@bic
+	m$aic = mest@aic
 	m$sigma=mest@sigma
+	m$elapse = as.numeric(b-a)
 	m$coefficients$orig_var=m$coefficients$variable
 	m$coefficients$variable <- NULL
 	m$coefficients$z <- m$coefficients$coef/m$coefficients$se
@@ -263,7 +280,8 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 					  model=m, 
 					  benchmark=dtbb@benchmark, 
 					  elasticities = elasticities, 
-					  summary_elasticities=selast, 
+					  summary_elasticities=selast,
+					  copula_normality = copula_normality,
 					  equity=data.frame(brand_equity))
 	class(retobject) <- append(class(retobject), "bav_attraction")
 	return(retobject)
@@ -297,6 +315,24 @@ show.bav_attraction <- function(x) {
 	print(cor(x$equity[,c('sbbe', grep('bav[_]', colnames(x$equity),value=T))],use='complete.obs'))
 	cat('\nSBBE and CBBE measures are available for ', length(unique(x$equity[which(!is.na(x$equity$bav_asset)),]$brand_name)), ' brands.\n')
 	#print(dcast(melt(x$equity,id.vars=c('brand_name', 'year')), brand_name + year ~ variable),digits=3)
+	
+	# run this part only if Copulas are part of the model
+	if(!is.null(x$copula_normality)) {
+		cat('\nAssessment of normality for Gaussian Copulas using Shapiro-Wilk tests\n')
+		tmp=x$copula_normality[, list(non_normal = length(which(pval<.05)), normal = length(which(pval>=.05))), by=c('variable')]
+		print(tmp)
+		cat('\nNote: p-value of .05 used.\n\n')
+		if (sum(tmp$normal)>0) {
+			cat('\nOverview of normally-distributed variables:\n')
+			print(data.frame(x$copula_normality[pval>=.05]))
+			}
+			
+		cat('\nAssessment of significance of Gaussian Copulas terms\n')
+		tmp=data.table(x$model$coefficients)[grepl('cop[_]', orig_var)]
+		cat('   Number of significant copula terms:  ', nrow(tmp[abs(z)>=1.69]),'\n')
+		cat('   Number of insignificant copula terms:  ', nrow(tmp[abs(z)<1.69]))
+		cat('\n   Note: p-value of .1 used.\n\n')
+		}
 	
 	}
 

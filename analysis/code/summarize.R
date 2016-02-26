@@ -100,7 +100,7 @@ library(Hmisc)
 	# select on TOP brands only
 	
 	
-	r=1
+#	r=1
  summ <- function(r)	{
 	######################################
 	# POOLED CORRELATIONS: CBBE vs. SBBE #
@@ -135,7 +135,7 @@ library(Hmisc)
 	tmp=cor(as.matrix(std_equity[,-(1:2),with=F]))
 	#tmp[upper.tri(tmp,diag=T)]<-NA				 
 	#,use='pairwise.complete')
-	tmp = tmp[1:4, -(1:4)]
+	#tmp = tmp[1:4, -(1:4)]
 	
 	cat('\n\nPooled Cross Section - Time Series Correlations Across Brands and Time\n\n')
 	print(tmp)
@@ -152,7 +152,7 @@ library(Hmisc)
 	tmp=cor(as.matrix(std_equity[,-(1:2),with=F]))
 	#tmp[upper.tri(tmp,diag=T)]<-NA				 
 	#,use='pairwise.complete')
-	tmp = tmp[1:4, -(1:4)]
+	#tmp = tmp[1:4, -(1:4)]
 	
 	#tmp = corstars(as.matrix(std_equity[,-(1:2),with=F]), method=c("pearson"), removeTriangle=c("lower"),
      #                result=c("none"))
@@ -188,17 +188,29 @@ library(Hmisc)
 	#cat('\n\nPooled correlations: Marketing elasticities and SBBE\n')
 	#tmp=cor(elast[, !colnames(elast)%in%c('brand_name', 'cat_name'),with=F], use='pairwise.complete')
 	#print(tmp[grep('bav[_]', rownames(tmp)), -grep('bav[_]', rownames(tmp))])	
+	#
+	#
+	adstock <- lm(elast ~  as.factor(cat_name) + bav_relevance + bav_energizeddiff +  bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name=='adstock50_bt')
+	pctskus <- lm(elast ~  as.factor(cat_name) + bav_relevance + bav_energizeddiff +  bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name=='pct_store_skus_bt')
+	pibt <- lm(elast ~  as.factor(cat_name) + bav_relevance + bav_energizeddiff +  bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name=='pi_bt')
+	rregpr <- lm(elast ~ as.factor(cat_name) + bav_relevance + bav_energizeddiff +  bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name=='rreg_pr_bt')
 	
-	adstock <- lm(elast ~ as.factor(cat_name) + bav_energizeddiff + bav_relevance + bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name=='adstock50_bt')
-	pctskus <- lm(elast ~ as.factor(cat_name) + bav_energizeddiff + bav_relevance + bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name=='pct_store_skus_bt')
-	pibt <- lm(elast ~ as.factor(cat_name) + bav_energizeddiff + bav_relevance + bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name=='pi_bt')
-	rregpr <- lm(elast ~ as.factor(cat_name) + bav_energizeddiff + bav_relevance + bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name=='rreg_pr_bt')
+	require(car)
 	
 	require(memisc)
 	
 	#mall = paste0(paste0('\"',.vars,'\"'),'=meta[[',seq(along=.vars),']]')
 	cat('\n\n\nMeta analysis')
 	print(mtable(adstock,pctskus,pibt,rregpr, coef.style='horizontal'))
+	
+	#cat('\n adstock\n')
+	#print(vif(adstock))
+	#cat('\n pctskus\n')
+	#print(vif(pctskus))
+	#cat('\n pibt\n')
+	#print(vif(pibt))
+	#cat('\n rregpr\n')
+	#print(vif(rregpr))
 	
 	###############################
 	# SUMMARY OF ALL ELASTICITIES #
