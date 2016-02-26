@@ -313,7 +313,6 @@ for (i in seq(along=dat)) {
 	dt[, adstock_bt := NULL]
 	
 	# keep only data for 2002 onwards
-	dt <- dt[year>=2002]
 	
 	# delete non-selected brands
 	dt <- dt[selected==T]
@@ -321,6 +320,9 @@ for (i in seq(along=dat)) {
 
 	# compute market share
 	dt[, ms_bt := sales_bt/sum(sales_bt), by=c('week')]
+
+	# add quarterly dummies
+	dt[,quarter:=as.numeric(cut(month,c(0,3,6,9,12)))]
 	
 	dat[[i]] <- dt
 	}
