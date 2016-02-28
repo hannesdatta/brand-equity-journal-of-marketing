@@ -15,15 +15,13 @@ require(reshape2)
 require(marketingtools)
 require(car) # for delta method
 
-prepare_data <- function(i) {
+prepare_data <- function(i, standardize = TRUE) {
 	print(i)
 	print(names(datasets)[i])
 	
 	dt <- datasets[[i]]
 	
-	void<-dt[, list(obs = .N), by=c('brand_name', 'year')]
-
-	dt[, advertising_bt := advertising_bt/1000]
+	void<-dt[, list(obs = .N), by=c('brand_name', 'year')]	
 	
 	# compute adstock
 	adstock <- function(x, lambda) {
@@ -37,7 +35,8 @@ prepare_data <- function(i) {
 	
 	decays = formatC(seq(from=0.00, to=1, by=.05)*100, width=2, flag=0)
 	for (decay in decays) {
-		dt[, paste0('adstock', decay, '_bt') := adstock(advertising_bt, lambda=as.numeric(decay)/100),by=c('brand_name'),with=F]
+		prec=6
+		dt[, paste0('adstock', decay, '_bt') := round(adstock(advertising_bt, lambda=as.numeric(decay)/100),prec),by=c('brand_name'),with=F]
 		}
 	
 	# kick out first 4 observations by brand
@@ -46,7 +45,15 @@ prepare_data <- function(i) {
 	
 	# retain only observations from year 2002 onwards (to match with BAV data)
 	dt <- dt[year>=2002]
-	
+		
+		if(standardize==T) { # standardize between 0 and 1.
+			
+		vars=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',grep('adstock', colnames(dt),value=T))
+		for (.var in c(vars, grep('attr[_]', colnames(dt),value=T))) {
+			dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
+			}
+		}
+
 	dt
 	}
 
@@ -90,7 +97,11 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 		prec=6
 		dt[, get_n := length(unique(round(get(.n),prec))),by=c('brand_name')]
 		dt[get_n==1, .n := NA, with=F]
-	
+		if (grepl('advertising|adstock', .n)) {
+			dt[, obs := length(which(round(get(.n),prec)>0)),by=c('brand_name')]
+			dt[obs<8, .n := NA, with=F]
+			dt[, obs:=NULL]
+			}
 		dt[,':=' (get_n=NULL)]
 		}
 	cat('Unique values\n')
@@ -153,10 +164,11 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 		
 		# create quarterly dummies
 		if (quarter==T) {
-			dummatrix[, paste0('quarter2', '_', br) := as.numeric(individ %in% br & quarter==2)]
-			dummatrix[, paste0('quarter3', '_', br) := as.numeric(individ %in% br & quarter==3)]
-			dummatrix[, paste0('quarter4', '_', br) := as.numeric(individ %in% br & quarter==4)]
+			for (qu in 2:4) {
+				dummatrix[, paste0('quarter', qu,'_', br) := ifelse(individ %in% br, ifelse(quarter==qu, .75, -.25),0)]
+				}
 			}
+			
 		# create year dummies
 		yrs = unique(dummatrix[individ==br]$year)
 				
@@ -188,7 +200,7 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	m$bic = mest@bic
 	m$aic = mest@aic
 	m$sigma=mest@sigma
-	m$elapse = as.numeric(b-a)
+	m$elapse_minutes = as.numeric(difftime(b,a,unit="mins"))
 	m$coefficients$orig_var=m$coefficients$variable
 	m$coefficients$variable <- NULL
 	m$coefficients$z <- m$coefficients$coef/m$coefficients$se

@@ -12,6 +12,11 @@
 ### LOAD DATA SETS
 load('..//..//derived//output//datasets.RData')
 
+# Data set overview
+	overview <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)))
+	print(overview)
+	
+	
 init <- function() {
 		require(marketingtools)
 		require(reshape2)
@@ -24,13 +29,10 @@ init()
 
 # Enable cluster estimation	
 	require(parallel)
-	cl <- makePSOCKcluster(24)
+	cl <- makePSOCKcluster(16)
 
-# Data set overview
-	overview <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)))
-	print(overview)
-	
-	
+
+
 # Example for one category
 	
 #	if(0){ #cluster estimation for prototyping
@@ -38,56 +40,67 @@ init()
 		clusterExport(cl, c('prepare_data', 'datasets', 'init', 'analyze_marketshares'))
 		void<-clusterEvalQ(cl, init())
 		
-		estimorder = overview$index[order(overview$nobs,decreasing=T)] # largest cat first
-		names(estimorder) <- rownames(overview)[order(overview$nobs,decreasing=T)]
-		estimorder=22
+		mestim = overview$index
+		#mestim=22:23
 		model_types <- c('non-copula', 'copula')
-		
 		decays = formatC(seq(from=0, to=1, by=c(.1))*100, width=2, flag=0)
-
-		models=data.table(expand.grid(estimorder, model_types, decays))
-		setkey(models, Var1,Var2,Var3)
-		models[, descr := paste(Var1,Var2,Var3,sep='_')]
+		models=data.table(expand.grid(index=mestim, type=model_types, decay=decays))
+		models[, sample_size := overview$nobs[match(index, overview$index)]]
+		setorderv(models, c('type','sample_size','decay'), order=-1L)
+		
+		models[, descr := paste(index,type,decay,sep='_')]
+		
 		models <- models$descr
-
-		all_results <-parLapply(cl, models, function(m) {
+		unlink('..//temp//*')
+		a=Sys.time()
+		all_results <-clusterApplyLB(cl, models, function(m) {
 					i=as.numeric(strsplit(m,'_')[[1]][1])
 					spec=strsplit(m,'_')[[1]][2]
 					decay=strsplit(m,'_')[[1]][3]
-					
+					sink(paste0('..//temp//progress_', m,'.txt'))
+					cat('running\n')
+					print(Sys.time())
+					sink()
 					dt <- prepare_data(i)
 					
 					if(spec=='non-copula') res=try(analyze_marketshares(dt, xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',paste0('adstock', decay, '_bt')), simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL),silent=T)
 					if(spec=='copula') res=try(analyze_marketshares(dt, xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',paste0('adstock', decay, '_bt')),
 																	xvars_endog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',paste0('adstock', decay, '_bt')),
 																	simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL),silent=T)
+					res$category_no=i
+					res$spec = spec
+					res$adv_decay = decay
+					
+					sink(paste0('../temp//progress_', m,'.txt'),append=T)
+					cat(class(res))
+					
+					cat('ended\n')
+					print(Sys.time())
+					sink()
 					
 					return(res)
 				})
-		
+		b=Sys.time()
+	
 	names(all_results) <- models
 	
 	if(0) { # estimation of a single category
 	
-		i=7
+		i=23
 		
 		init()
 		dt <- prepare_data(i)
-		xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt','adstock50_bt')
+		xvars_heterog=c('pi_bt', 'rreg_pr_bt', 
+						'pct_store_skus_bt','adstock50_bt')
+		dt[brand_name=='MD', c('adstock50_bt', 'adstock60_bt'),with=F]
+	
+		out=try(analyze_marketshares(dt, xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE),silent=T)
 		
-		std_var <- function(x) {
-			std = ifelse(sd(x,na.rm=T)==0,1,sd(x,na.rm=T))
-			(x-mean(x,na.rm=T))/std
-			}
-			
-		for (.var in c(xvars_heterog, grep('attr[_]', colnames(dt),value=T))) {
-			dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
-			}
-			
-		summary(dt[, xvars_heterog,with=F])
-		summary(dt[, grep('attr[_]', colnames(dt),value=T),with=F])
-		
-		out=try(analyze_marketshares(dt, xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE),silent=T)
+		require(lattice)
+		xyplot(adstock60_bt ~ week|brand_name, data=dt,auto.key=T,type='l')
+		xyplot(adstock50_bt ~ week|brand_name, data=dt,auto.key=T,type='l')
+		xyplot(advertising_bt ~ week|brand_name, data=dt,auto.key=T,type='l')
+	#	
 		out$model$elapse
 		
 		outendog=analyze_marketshares(dt, xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', 'adstock50_bt'),
@@ -96,6 +109,7 @@ init()
 		show(out)
 		show(outendog)
 	}
+	
 #	xvars_heterog=c('pi_bt', 'rreg_pr_bt')#,'adstock50_bt')
 		
 #	out=try(analyze_marketshares(dt, xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE),silent=T)
@@ -166,3 +180,4 @@ if(0){
 ####################
 	
 	save(all_results, file = '../output/results.RData')
+	save(a,b, file = '../output/results_time.RData')
