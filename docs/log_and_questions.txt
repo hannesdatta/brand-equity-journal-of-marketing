@@ -262,3 +262,53 @@ Questions/Issues:
 
 Pending:
 - a few exceptions in estimation laundet, toitisu and beer (e.g., changing benchmark brand, removing adstock).
+
+
+24 February 2016
+=================
+- Solved advertising estimation problems by rescaling
+- Correlations between elasticities (comment by R2); Harald: not relevant to test anymore, given the new model
+- Test for seasonality in marketshares
+  o Have a look at the marketshare plots
+  o Alternatively, I could run an ANOVA with 3 quarterly dummies; check p-value of ANOVA
+- Factor analysis for BAV: to be seen
+- HLM versus second-stage weighted least squares
+  --> we settle on a second-stage meta analysis
+  
+To do:
+------
+
+- Data:
+  o Kusum/Rong: verify pct_store_sku variable
+  o Hannes: add ketchup, incorporate BAV brand deletions, apply new selection rule ("retain all BAV brands")
+
+- Model
+  o Verify copula significance and normality of untransformed variables (DONE)
+  o Implement advertising decay / grid search
+  o Rerun on new data
+  o Output results as summary CSV file with SBBE / other measures
+  
+- Meta analysis of 
+  o correlations ("explore" heterogeneity")
+  o marketing elasticities
+  o variables in second stage
+    x brand-level variables
+	  - market leader vs. follower OR market share
+	  - price positioning (average price, rescaled between -1 and 1)
+	  - subbrand or major brand
+	  - advertising intensity
+	x category-level characteristics
+	  - often vs. rarely bought products
+	  - degree of competition
+	  - foot vs. non-food
+  o other
+    x what about the "non"-correlating cases: is this predictive of performing bad in the future? "tracking" in the danger zone
+      -> when do the metrics match, and when not?
+    x cost implications
+    x lagged CBBE effects
+
+  o Model specs
+    x clustered standard errors
+	x check VIFs in second stage, if necessary, run factor analysis
+	
+
