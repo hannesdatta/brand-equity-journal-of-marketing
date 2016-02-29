@@ -46,18 +46,17 @@ prepare_data <- function(i, standardize = TRUE) {
 	# retain only observations from year 2002 onwards (to match with BAV data)
 	dt <- dt[year>=2002]
 		
-		if(standardize==T) { # standardize between 0 and 1.
-			
+	if(standardize==T) { # standardize between 0 and 1.
 		vars=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',grep('adstock', colnames(dt),value=T))
 		for (.var in c(vars, grep('attr[_]', colnames(dt),value=T))) {
-			dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
+			if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
 			}
 		}
 
 	dt
 	}
 
-analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'adstock_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE) {
+analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'adstock_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE, testing = FALSE) {
 
 	####################
 	# DEFINE VARIABLES #
@@ -165,7 +164,9 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 		# create quarterly dummies
 		if (quarter==T) {
 			for (qu in 2:4) {
-				dummatrix[, paste0('quarter', qu,'_', br) := ifelse(individ %in% br, ifelse(quarter==qu, .75, -.25),0)]
+				# mean-centering for effect coding
+				dummatrix[individ==br, paste0('quarter', qu,'_', br) := ifelse(quarter==qu, 1, 0)-sum(quarter==qu)/.N]
+				dummatrix[!individ==br, paste0('quarter', qu,'_', br) := 0]
 				}
 			}
 			
@@ -176,7 +177,6 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 			dummatrix[, paste0('dummy', '_', br, '_yr_', yr) := as.numeric(individ %in% br & year==yr)]
 			}
 		}
-	
 	dummatrix[, ':=' (quarter=NULL, period=NULL, individ=NULL, year=NULL)]
 
 
@@ -187,10 +187,16 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	
 	# drop one indicator for benchmark brand
 	# choice of base brand: put last.
-	if (any(colSums(X)==0)) stop(paste0('Problems with no variation in variables: ', paste(colnames(X)[which(colSums(X)==0)], collapse = ', ')))
+	X_without_quarter = X[,!grepl('quarter', colnames(X))]
+	if (any(colSums(X_without_quarter)==0)) stop(paste0('Problems with no variation in variables: ', paste(colnames(X_without_quarter)[which(colSums(X_without_quarter)==0)], collapse = ', ')))
+	
 	a=Sys.time()
-	mest <- itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=method)
+	cat('Starting model estimation...\n')
+	mest <- itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=method,maxiter=ifelse(testing==T, 1, 1000))
 	b=Sys.time()
+	cat('Finished model estimation.\n')
+	
+	#if (class(mest)=='try-error' & testing==TRUE) return(X)#stop('Iterative SUR procedure does not run')
 	
 	m<-NULL
 	m$coefficients <- coef(mest)

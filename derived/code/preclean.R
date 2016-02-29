@@ -206,51 +206,42 @@ setkey(bav_deletes, cat_name, brand_id)
 # SELECT BRANDS #
 #################
 
-# Rule: Select all BAV brands, and remaining brands with a market share of at least 1% in three consecutive years.
+# Rule: Select all brands (BAV, and NON-BAV), provided we have at least three years of consecutive data for model estimation.
 
-	brandsales <- rbindlist(lapply(dat, function(x) return(x[, c('cat_name', 'brand_name', 'brand_id', 'sales_bt', 'year', 'delete_bav'), with=F])))
-	# verify whether there are any unmatched
-	#brandsales[!brand_id=='' & is.na(delete_bav)][,list(.N), by=c('cat_name', 'brand_id', 'brand_name')]
+	brandsales <- rbindlist(lapply(dat, function(x) return(x[, c('cat_name', 'brand_name', 'brand_id', 'sales_bt', 'year', 'week', 'delete_bav'), with=F])))
 	
 	# calculate year-based market shares
-	brandsales_yr <- brandsales[, list(sales = sum(sales_bt)), by = c('cat_name','brand_name','brand_id','year', 'delete_bav')]
-	brandsales_yr[, ms := sales/sum(sales), by=c('cat_name','year')]
-
+	brandsales_yr <- brandsales[, list(sales = sum(sales_bt)), by = c('cat_name','brand_name','brand_id','week', 'year', 'delete_bav')]
+	brandsales_yr[, ms := sales/sum(sales), by = c('cat_name','week', 'year')]
+	
 # check whether we always have consecutive observations
-	brandsales_yr[, consec := length(min(year):max(year))==.N, by=c('cat_name','brand_name','brand_id')]
-	table(brandsales_yr$consec)
-	# it happens in a few cases, so below I need to select only consecutive observations
-
-# minimum of m in y years
-	# evaluation criteria
-	m=.000
-	y=3
-	brandsales_yr[, min_ms := ms >= m] # whether brand meets criteria in a given year
-	setorder(brandsales_yr, cat_name, brand_name, year)
-
-	head(brandsales_yr)
-	brandsales_yr[, stretch_indicator := cumsum(1-min_ms), by=c('cat_name','brand_name')]
-
-	brandsales_yr[, stretch_length := length(which(min_ms==T)), by=c('cat_name','brand_name','stretch_indicator')]
+	brandsales_yr <- brandsales_yr[year>=2002]
+	brandsales_yr[, consec_weeks := ifelse(c(min(week)-1, week[-.N])==week-1,1,0), by=c('cat_name','brand_name','brand_id')]
+	brandsales_yr[, stretch_indicator := cumsum(1-consec_weeks), by=c('cat_name','brand_name')]
+	brandsales_yr[, consec_weeks := ifelse(1:.N==1, 1, consec_weeks), by=c('cat_name','brand_name','stretch_indicator')]
+	brandsales_yr[, stretch_length := sum(consec_weeks), by=c('cat_name','brand_name','stretch_indicator')]
+	brandsales_yr[, max_stretch_length := max(stretch_length),by=c('cat_name','brand_name')]
 	
-	# check whether longest stretch has consecutive observations for at least y years
-	brandsales_yr[, selected := stretch_length>=y, by=c('cat_name','brand_name', 'stretch_indicator')]
+	y=2 # minimum number of years required
 	
-	selected_brands = brandsales_yr[, list(min_ms = round(min(ms),4), max_ms=round(max(ms),4), no_yrs = max(stretch_length),
-										   selected = any(selected)|!brand_id==''), by=c('cat_name','brand_name', 'brand_id', 'delete_bav')]
-	# prepare overview
+	brandsales_yr[, selected := stretch_length==max(stretch_length) & stretch_length >= y*52,by=c('cat_name','brand_name')] # whether brand meets criteria in a given year
+
+	selected_brands = brandsales_yr[, list(min_ms = round(min(ms),4), max_ms=round(max(ms),4), no_months = max(stretch_length),
+										   selected = any(selected)), by=c('cat_name','brand_name', 'brand_id', 'delete_bav')]
+
+   # prepare overview
 	
 	sel_overview = selected_brands[, list(total_brands = length(unique(brand_name)), 
 										total_brands_for_estimation = length(unique(brand_name[selected==T])),
 										total_bav_brands_for_estimation = length(unique(brand_name[!brand_id==''])),
-										total_selected_bav_for_metaanalysis =  length(unique(brand_name[!brand_id=='' & delete_bav==0 & selected == T]))
+										total_selected_bav_for_metaanalysis =  length(unique(brand_name[!brand_id=='' & selected == T]))
 									), by=c('cat_name')]
 	sel_overview_total = cbind(cat_name='total (sum)', sel_overview[, lapply(.SD, sum), .SDcols=grep('total[_]', colnames(sel_overview),value=T)])
 	
 	sel_overview_totalu = selected_brands[, list(total_brands = length(unique(brand_name)), 
 										total_brands_for_estimation = length(unique(brand_name[selected==T])),
 										total_bav_brands_for_estimation = length(unique(brand_name[!brand_id==''])),
-										total_selected_bav_for_metaanalysis =  length(unique(brand_name[!brand_id==''  & delete_bav==0 & selected == T]))
+										total_selected_bav_for_metaanalysis =  length(unique(brand_name[!brand_id=='' & selected == T]))
 									)]
 	
 	sel_overview[, cat_name:=as.character(cat_name)]
@@ -259,7 +250,7 @@ setkey(bav_deletes, cat_name, brand_id)
 	
 	options(width=600)
 	sink('..//audit//brand_selection.txt')
-	cat(paste0('Overview about selected brands\n===========================================\n\nRule: All BAV brands after deletion; and all other brands given\na minimum market share of ', round(m*100,2), '% for at least ', y, ' consecutive years.\n\n'))
+	cat(paste0('Overview about selected brands\n===========================================\n\nRule: All BAV brands and all other brands given at least ', y, ' years of consecutive data.\n\n'))
 	print(sel_overview)
 	cat('\n\n\n')
 	options(scipen=999)

@@ -15,40 +15,18 @@ load('..//..//analysis//output//results.RData')
 # Load analysis code
 	source('proc_analysis.R')
 	
-	unlink('..//output//*.txt')
+	models = rbindlist(lapply(all_results, function(x) data.frame(error=!'bav_attraction' %in% class(x), aic=x$model$aic, bic=x$model$bic)))
+	models[, ':=' (index=1:nrow(models), model_name = names(all_results))]
 	
-	r=1
-	sink('..//output//estimates_without_copulas.txt')
+	models[, type := sapply(model_name, function(x) strsplit(x, split='_')[[1]][2])]
+	models[, cat_index := sapply(model_name, function(x) strsplit(x, split='_')[[1]][1])]
+	models[, decay := sapply(model_name, function(x) strsplit(x, split='_')[[1]][3])]
+	models[, best_aic := min(aic), by=c('cat_index', 'type')]
 	
-	for (i in 1:24) {
-		res = all_results[[i]][[r]]
-		if (!'try-error'%in%class(res)) {
-			(show(res)) } else {
-			print(i)
-			print('error')
-			}
-		
-		}
-	
-	sink()
-	
-	#	if(0){
-	r=2
-	sink('..//output//estimates_with_copulas.txt')
-	
-	for (i in 1:24) {
-		res = all_results[[i]][[r]]
-		if (!'try-error'%in%class(res)) {
-			(show(res)) } else {
-			print(i)
-			print('error')
-			}
-		
-		}
-	
-	sink()
-	#}
-	
+	# select best fit by type
+	selected_models = models[best_aic==aic]
+
+
 corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper", "lower"),
                      result=c("none", "html", "latex")){
 
@@ -95,23 +73,18 @@ corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper"
 
 } 
 library(Hmisc)
-	
-	
-	# select on TOP brands only
-	
-	
-#	r=1
- summ <- function(r)	{
+
+ summ <- function(all_results)	{
 	######################################
 	# POOLED CORRELATIONS: CBBE vs. SBBE #
 	######################################
 
-	equity=rbindlist(lapply(all_results, function(x) data.frame(cat_name=x[[r]]$cat_name, x[[r]]$equity)))
+	equity=rbindlist(lapply(all_results, function(x) data.frame(cat_name=x$cat_name, x$equity)))
 	setcolorder(equity, c('cat_name','brand_name','year','sbbe', 'sbbe_se', 'bav_relevance', 'bav_esteem','bav_knowledge', 'bav_energizeddiff', 'bav_asset'))
 	# standarize sbbe by category
 	
 	# extract extra variables
-		othervars=rbindlist(lapply(datasets, function(x) x[selected==T, list(unitsales=sum(sales_bt,na.rm=T), revenue=sum(rev_bt,na.rm=T), price = mean(act_pr_bt,na.rm=T)),by=c('cat_name','brand_name', 'year')]))
+		othervars=rbindlist(lapply(datasets, function(x) x[year>=2002, list(unitsales=sum(sales_bt,na.rm=T), revenue=sum(rev_bt,na.rm=T), price = mean(act_pr_bt,na.rm=T)),by=c('cat_name','brand_name', 'year')]))
 		othervars[, brand_name := gsub('[^a-zA-Z]', '', brand_name)]
 	
 	equity <- merge(equity, othervars,by=c('cat_name','brand_name', 'year'),all.x=T,all.y=F)
@@ -174,7 +147,7 @@ library(Hmisc)
 	setkey(meanequity, cat_name, brand_name)
 	
 	# retrieve parameter estimtaes
-	elast=rbindlist(lapply(all_results, function(x) data.frame(cat_name=x[[r]]$cat_name, x[[r]]$elasticities)))[var_name%in%vars]
+	elast=rbindlist(lapply(all_results, function(x) data.frame(cat_name=x$cat_name, x$elasticities)))[var_name%in%vars]
 	
 	#elast=data.table(dcast(tmp[], cat_name + brand_name ~ var_name, value.var=c('elast')))
 	
@@ -216,7 +189,7 @@ library(Hmisc)
 	# SUMMARY OF ALL ELASTICITIES #
 	###############################
 	
-	elast=rbindlist(lapply(all_results, function(x) data.frame(cat_name=x[[r]]$cat_name, x[[r]]$elasticities)))
+	elast=rbindlist(lapply(all_results, function(x) data.frame(cat_name=x$cat_name, x$elasticities)))
 	elast[, id := .GRP, by=c('cat_name', 'brand_name')]
 	
 	# merge BAV brand IDs
@@ -269,14 +242,35 @@ library(Hmisc)
 	cat('\n\nSUMMARY OF ELASTICITIES FOR BAV BRANDS\n')
 	print(tmp)
 		
-	}
-	
-	sink('..//output//summary_with_copulas.txt')
-	summ(2)
-	sink()
-	
-	sink('..//output//summary_without_copulas.txt')
-	summ(1)
-	sink()
-		
+	}	
 
+################
+# PRINT OUTPUT #
+################
+
+	unlink('..//output//*.txt')
+	
+	# Report individual model results
+	for (r in unique(selected_models$type)) {
+		sel=selected_models[type==r]
+		sink(paste0('..//output//estimates_', r, '.txt'))
+	
+		for (i in sel$index) {
+		res = all_results[[i]]
+		if (!'try-error'%in%class(res)) {
+			(show(res)) } else {
+			print(i)
+			print('error')
+			}
+		
+		}
+	
+		sink()
+		
+		sink(paste0('..//output//summary_', r, '.txt'))
+		summ(all_results[sel$index])
+		
+		
+		sink()
+	
+	}
