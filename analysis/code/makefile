@@ -19,3 +19,6 @@ build: $(OUTPUT_DIR)/results.RData
 # analyze data
 $(OUTPUT_DIR)/results.RData: analysis.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "analysis.R"
+
+summarize: summarize.R
+	"$(RBIN64)Rterm.exe" --vanilla --args "" < "summarize.R"
