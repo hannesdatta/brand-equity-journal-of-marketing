@@ -1,101 +1,37 @@
-
-### LOAD DATA SETS
-require(data.table)
-require(reshape2)
-require(marketingtools)
-require(car) # for delta method and VIFs
-library(Hmisc)
-options(width=600)
-
-load('..//..//derived//output//datasets.RData')
-load('..//..//analysis//output//results.RData')
-
-# Data set overview
-	overview <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)))
-	print(overview)
 	
-# Load analysis code
-	source('proc_analysis.R')
+extract_equity <- function(tmp_results) {
+
+	equity=rbindlist(lapply(tmp_results, function(x) data.frame(cat_name=x$cat_name, x$equity)))
+	setcolorder(equity, c('cat_name','brand_name','year','sbbe', 'sbbe_se', 'bav_relevance', 'bav_esteem','bav_knowledge', 'bav_energizeddiff', 'bav_asset'))
 	
-	models = rbindlist(lapply(all_results, function(x) data.frame(error=!'bav_attraction' %in% class(x), aic=x$model$aic, bic=x$model$bic, est_minutes = x$model$elapse_minutes)))
-	models[, ':=' (index=1:nrow(models), model_name = names(all_results))]
+	# extract extra variables
+	othervars=rbindlist(lapply(datasets, function(x) x[year>=2002, list(unitsales=sum(sales_bt,na.rm=T), revenue=sum(rev_bt,na.rm=T), price = mean(act_pr_bt,na.rm=T)),by=c('cat_name','brand_name', 'year')]))
+	othervars[, brand_name := gsub('[^a-zA-Z]', '', brand_name)]
 	
-	models[, type := sapply(model_name, function(x) strsplit(x, split='_')[[1]][2])]
-	models[, cat_index := sapply(model_name, function(x) strsplit(x, split='_')[[1]][1])]
-	models[, decay := as.numeric(sapply(model_name, function(x) strsplit(x, split='_')[[1]][3]))]
-
-	# drop decays == 100
-	models <- models[decay<100]
+	equity <- merge(equity, othervars,by=c('cat_name','brand_name', 'year'),all.x=T,all.y=F)
 	
-	models[, best_aic := min(aic), by=c('cat_index', 'type')]
-	models[, selected := best_aic == aic]
+	equity[, rev_total := sum(revenue),by=c('cat_name', 'brand_name')]
+	equity[, max_cat := rev_total==max(rev_total),by=c('brand_name')]
+	equity[, ':=' (max_cat=NULL, rev_total=NULL)]
+
+	meanequity = equity[, lapply(.SD, mean, na.rm=T), by=c('cat_name', 'brand_name'), .SDcols=grep('bav[_]', colnames(equity),value=T)]
+	setkey(meanequity, cat_name, brand_name)
 	
-	path='..//audit//decay_selection//'
-	dir.create(path)
-	require(lattice)
-	for (i in unique(models$cat_index)) {
-		tmp=models[cat_index==i]
-		cat_name=rownames(overview)[match(i, overview$index)]
-		png(paste0(path, cat_name, '.png'), res=200, units='in', height=8, width=12)
+	# retrieve parameter estimtaes
+	elast=rbindlist(lapply(tmp_results, function(x) data.frame(cat_name=x$cat_name, x$elasticities)))
+	elast[,var_name := gsub('adstock[0-9]*', 'adstock', var_name)]
+	elast = elast[!grepl('cop[_]', var_name)]
+	
+	setkey(elast, cat_name, brand_name)
+	elast=meanequity[elast]
 
-		print(xyplot(aic+bic~decay, groups=type,dat=tmp, 
-		main=paste0(cat_name, ' (id ', i, ')'),
-		scales = list(y = list(relation = "free")), type='l', auto.key=TRUE))
-		dev.off()	   
-		
-		}
-		
-	# select best fit by type
-	selected_models = models[best_aic==aic]
+	elast=elast[, !colnames(elast)%in%c('mean_var','coef','se', 'z', 'orig_var', 'mean_ms'),with=F]
+	return(list(elast=elast, equity=equity, meanequity=meanequity))
+	
+	}
 
-
-corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper", "lower"),
-                     result=c("none", "html", "latex")){
-
-    #Compute correlation matrix
-    require(Hmisc)
-    x <- as.matrix(x)
-    correlation_matrix<-rcorr(x, type=method[1])
-    R <- correlation_matrix$r # Matrix of correlation coeficients
-    p <- correlation_matrix$P # Matrix of p-value 
-    
-    ## Define notions for significance levels; spacing is important.
-    mystars <- ifelse(p < .001, "****", ifelse(p < .001, "*** ", ifelse(p < .01, "**  ", ifelse(p < .05, "*   ", "    "))))
-    
-    ## trunctuate the correlation matrix to two decimal
-    R <- format(round(cbind(rep(-1.11, ncol(x)), R), 2))[,-1]
-    
-    ## build a new matrix that includes the correlations with their apropriate stars
-    Rnew <- matrix(paste(R, mystars, sep=""), ncol=ncol(x))
-    diag(Rnew) <- paste(diag(R), " ", sep="")
-    rownames(Rnew) <- colnames(x)
-    colnames(Rnew) <- paste(colnames(x), "", sep="")
-    
-    ## remove upper triangle of correlation matrix
-    if(removeTriangle[1]=="upper"){
-      Rnew <- as.matrix(Rnew)
-      Rnew[upper.tri(Rnew, diag = TRUE)] <- ""
-      Rnew <- as.data.frame(Rnew)
-    }
-    
-    ## remove lower triangle of correlation matrix
-    else if(removeTriangle[1]=="lower"){
-      Rnew <- as.matrix(Rnew)
-      Rnew[lower.tri(Rnew, diag = TRUE)] <- ""
-      Rnew <- as.data.frame(Rnew)
-    }
-    
-    ## remove last column and return the correlation matrix
-    Rnew <- cbind(Rnew[1:length(Rnew)-1])
-    if (result[1]=="none") return(Rnew)
-    else{
-      if(result[1]=="html") print(xtable(Rnew), type="html")
-      else print(xtable(Rnew), type="latex") 
-    }
-
-} 
-
-
+	
+	
 summ <- function(tmp_results)	{
 	######################################
 	# POOLED CORRELATIONS: CBBE vs. SBBE #
@@ -273,96 +209,3 @@ summ <- function(tmp_results)	{
 	
 
 	}	
-
-################
-# PRINT OUTPUT #
-################
-
-	unlink('..//output//*.txt')
-	
-	# Report individual model results
-	for (r in unique(selected_models$type)) {
-		sel=selected_models[type==r]
-		sink(paste0('..//output//estimates_', r, '.txt'))
-	
-		for (i in sel$index) {
-		res = all_results[[i]]
-		if (!'try-error'%in%class(res)) {
-			(show(res)) } else {
-			print(i)
-			print('error')
-			}
-		
-		}
-	
-		sink()
-		
-		sink(paste0('..//output//summary_', r, '.txt'))
-		summ(all_results[sel$index])
-		
-		
-		sink()
-	
-	}
-	
-#################################
-## PREPARE META CHARACTERISTICS #
-#################################
-
-selected_models$cat_index
-
-# category characteristics
-cat_char = rbindlist(lapply(datasets, function(x) {
-	dt=x[year>=2001]
-	cat_name=unique(dt$cat_name)
-	# concentration
-	tmp=dt[, list(sales=sum(sales_bt,na.rm=T)),by=c('brand_name')]
-	tmp[, ms := sales/sum(sales)]
-	setorderv(tmp, 'sales',order=-1L)
-	
-	c4= sum(tmp$sales[1:4])/sum(tmp$sales)
-	H = sum(tmp$ms^2)
-	
-	# growth rate
-	tmp=dt[, list(sales=sum(sales_bt,na.rm=T),weeks=length(unique(week))),by=c('year')]
-	
-	setorder(tmp, year)
-	growth=(sum(rev(tmp$sales)[1:2])-sum((tmp$sales)[1:2]))/sum((tmp$sales)[1:2])
-	
-	fooddrinks = ifelse(cat_name %in% c('beer', 'carbbev', 'coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
-	
-	hygiene = ifelse(cat_name %in% c('deod', 'diapers', 'laundet', 'rz_bl', 'shamp', 'toitisu'), 1,0)
-	hhclean = ifelse(cat_name %in% c('hhclean'), 1,0)
-	#perishable = ifelse(cat_name %in% c('
-	
-	fooddrinks = ifelse(cat_name %in% c('beer', 'carbbev', 'coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
-	
-
-	data.frame(cat_name=cat_name, c4=c4, H=H, sales_growth = growth)
-	}))
-
-
-# brand characteristics
-brand_char = rbindlist(lapply(datasets, function(x) {
-	dt=x[year>=2001]
-	# concentration
-	tmp=dt[, list(sales=sum(sales_bt,na.rm=T), meanprice = mean(rreg_pr_bt,na.rm=T), sdpriceindex = sd(pi_bt,na.rm=T),
-											meanad = mean(advertising_bt,na.rm=T)),by=c('cat_name', 'brand_name')]
-	tmp[, ms := sales/sum(sales)]
-	
-	std_by1 = function(x) {
-		-1+2*(x/max(x,na.rm=T))
-		
-		}
-		
-	tmp=tmp[, list(brand_name=brand_name, ms=ms, pricepos = std_by1(meanprice), dealdepth = sdpriceindex, relad = std_by1(meanad)), by=c('cat_name')]
-	
-	return(tmp)
-	}))
-
-setkey(cat_char, cat_name)
-setkey(brand_char, cat_name)
-
-meta_char = brand_char[cat_char]
-
-#cat_equity = 
