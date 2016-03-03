@@ -233,15 +233,15 @@ setkey(bav_deletes, cat_name, brand_id)
 	
 	sel_overview = selected_brands[, list(total_brands = length(unique(brand_name)), 
 										total_brands_for_estimation = length(unique(brand_name[selected==T])),
-										total_bav_brands_for_estimation = length(unique(brand_name[!brand_id==''])),
-										total_selected_bav_for_metaanalysis =  length(unique(brand_name[!brand_id=='' & selected == T]))
+										total_bav_brands = length(unique(brand_name[!brand_id==''])),
+										total_bav_brands_for_estimation =  length(unique(brand_name[!brand_id=='' & selected == T]))
 									), by=c('cat_name')]
 	sel_overview_total = cbind(cat_name='total (sum)', sel_overview[, lapply(.SD, sum), .SDcols=grep('total[_]', colnames(sel_overview),value=T)])
 	
 	sel_overview_totalu = selected_brands[, list(total_brands = length(unique(brand_name)), 
 										total_brands_for_estimation = length(unique(brand_name[selected==T])),
-										total_bav_brands_for_estimation = length(unique(brand_name[!brand_id==''])),
-										total_selected_bav_for_metaanalysis =  length(unique(brand_name[!brand_id=='' & selected == T]))
+										total_bav_brands = length(unique(brand_name[!brand_id==''])),
+										total_bav_brands_for_estimation =  length(unique(brand_name[!brand_id=='' & selected == T]))
 									)]
 	
 	sel_overview[, cat_name:=as.character(cat_name)]

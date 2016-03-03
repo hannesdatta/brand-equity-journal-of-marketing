@@ -60,7 +60,7 @@ load('../output//datasets.RData')
 	path='../audit/variables_by_brand/'
 	unlink(paste0(path,'*'))
 	dir.create(path)
-	vars=c('sales_bt', 'ms_bt', 'rreg_pr_bt', 'ract_pr_bt', 'pi_bt', 'fd_bt', 'pct_store_skus_bt', 'distrwidth_bt', 'distrdepth_bt', 'advertising_bt', 'cpi')
+	vars=c('sales_bt', 'ms_bt', 'rreg_pr_bt', 'ract_pr_bt', 'reg_pr_bt', 'act_pr_bt', 'pi_bt', 'fd_bt', 'pct_store_skus_bt', 'distrwidth_bt', 'distrdepth_bt', 'advertising_bt', 'cpi')
 	
 	for (i in seq(along=datasets)) {
 		dt = melt(datasets[[i]][, colnames(datasets[[i]])%in%c(vars, 'brand_name', 'week'),with=F], id.vars=c('brand_name', 'week'))
