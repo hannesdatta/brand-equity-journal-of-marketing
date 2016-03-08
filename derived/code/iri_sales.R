@@ -21,11 +21,11 @@ require(sas7bdat)
 	# Define available categories
 	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'pz_di', 'hhclean', 'ketchup', 'laundet', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'rz_bl', 
 					   'saltsnck', 'shamp', 'soup', 'sugarsub', 'toitisu', 'toothpa', 'yogurt') 
-
+	category_dirs = c('sugarsub', 'peanbutr', 'saltsnck', 'mustard', 'ketchup')
 					 
 	# verify whether all data sets can be located
 	for (.dir in seq(along=category_dirs)) {
-		path = paste0(basepath, '\\', category_dirs[.dir], '\\revision\\')
+		path = paste0(basepath, '\\', category_dirs[.dir], '\\revision\\fix_distrwidth\\')
 		fs = list.files(path)
 		fn = grep('varneed[.]sas7bdat', fs, value=T)
 		if (!file.exists(paste0(path,fn))) stop('File ', fn, ' in ', path, ' does not exist.')

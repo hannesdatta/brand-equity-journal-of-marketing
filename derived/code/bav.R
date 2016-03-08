@@ -26,7 +26,7 @@ load('..//temp//iri_sales.RData')
 	open_sas <- function(.dir) {
 	
 		cat(paste0('Processing ', category_dirs[.dir], '...\n'))
-		path = paste0(basepath, '\\', category_dirs[.dir], '\\revision\\')
+		path = paste0(basepath, '\\', category_dirs[.dir], '\\revision\\fix_distrwidth\\')
 		fs = list.files(path)
 		fn = grep('brand[_]year.*[.]sas7bdat', fs, value=T)
 		dt <- data.table(read.sas7bdat(paste0(path, fn)))
