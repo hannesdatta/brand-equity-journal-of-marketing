@@ -25,10 +25,11 @@ cat_char = rbindlist(lapply(datasets, function(x) {
 	
 	fooddrinks = ifelse(cat_name %in% c('beer', 'carbbev', 'coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
 	
-	hygiene = ifelse(cat_name %in% c('deod', 'diapers', 'laundet', 'rz_bl', 'shamp', 'toitisu'), 1,0)
-	hhclean = ifelse(cat_name %in% c('hhclean'), 1,0)
-	food = ifelse(cat_name %in% c('coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
-	drinks = ifelse(cat_name %in% c('beer', 'carbbev', 'milk'), 1,0)
+	hygiene = ifelse(cat_name %in% c('deod', 'diapers', 'rz_bl', 'shamp', 'toitisu', 'toothpa'), 1,0)
+	hhclean = ifelse(cat_name %in% c('hhclean', 'laundet'), 1,0)
+	food = ifelse(cat_name %in% c('coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
+	drinks = ifelse(cat_name %in% c('beer', 'carbbev', 'milk', 'coffee'), 1,0)
+	cigs = ifelse(cat_name %in% c("cigets"), 1,0)
 	
 #	perishable = ifelse(cat_name %in% c('coldcer', 'mayo', 'milk', 'yogurt'),1,0)
 #	impulse = ifelse(cat_name %in% c('saltsnck'),1,0)
@@ -36,13 +37,13 @@ cat_char = rbindlist(lapply(datasets, function(x) {
 	
 
 	data.frame(cat_name=cat_name, c4=c4, H=H, sales_growth = growth,
-			   fooddrinks, hygiene, hhclean, food, drinks)
+			   fooddrinks, hygiene, hhclean, food, drinks, cigs)
 	}))
 
 
 # brand characteristics
 brand_char = rbindlist(lapply(datasets, function(x) {
-	dt=x[year>=2001]
+	dt=x[year>2001]
 	# concentration
 	tmp=dt[, list(sales=sum(sales_bt,na.rm=T), meanprice = mean(rreg_pr_bt,na.rm=T), sdpriceindex = sd(pi_bt,na.rm=T),
 											meanad = mean(advertising_bt,na.rm=T),secondary_category = as.numeric(unique(delete_bav)==1)),by=c('cat_name', 'brand_name')]

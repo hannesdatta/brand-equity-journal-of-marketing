@@ -25,7 +25,7 @@ extract_equity <- function(tmp_results) {
 	setkey(elast, cat_name, brand_name)
 	elast=meanequity[elast]
 
-	elast=elast[, !colnames(elast)%in%c('mean_var','coef','se', 'z', 'orig_var', 'mean_ms'),with=F]
+	elast=elast[, !colnames(elast)%in%c('z', 'orig_var', 'mean_ms'),with=F] #'mean_var','coef','se', 
 	return(list(elast=elast, equity=equity, meanequity=meanequity))
 	
 	}

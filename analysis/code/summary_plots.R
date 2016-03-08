@@ -68,7 +68,26 @@
 			dev.off()
 			}
 
+	# SCATTERPLOT BY CBBE
+	path='../audit/elast_cbbe_NONSTD_scatter_by_cat/'
+	unlink(paste0(path,'*'))
+	dir.create(path)
 	
+	
+		for (i in unique(elast$var_name)) {
+			png(paste0(path, 'elast_cbbe_', i, '.png'), res=200, units='in', height=8, width=12)
+		
+			df = elast[var_name==i]
+			with(df, plot(x=elast_STD, y=F_RelEst, main = paste0('Elasticities vs. CBBE: ', i),ylab='CBBE dimension'))
+			with(df, points(x=elast_STD, y=F_Knowledge,col='green'))
+			with(df, points(x=elast_STD, y=F_EnergDiff, col='blue'))
+			
+			legend("topleft", legend = c("RelEst", "Knowledge", "EnergDiff"),col=c('black', 'green', 'blue'),pch=1)
+			
+			dev.off()
+			}
+
+		
 	########
 	# SBBE #
 	########
