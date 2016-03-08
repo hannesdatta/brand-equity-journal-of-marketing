@@ -308,7 +308,9 @@ for (i in seq(along=dat)) {
 	# delete non-selected brands
 	dt <- dt[selected==T]
 	dt[, selected:=NULL]
-
+	
+	dt[, pct_store_skus_bt := distrwidth_bt * distrdepth_bt]
+	
 	# compute market share
 	dt[, ms_bt := sales_bt/sum(sales_bt), by=c('week')]
 
