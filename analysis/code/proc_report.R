@@ -1,37 +1,4 @@
 	
-extract_equity <- function(tmp_results) {
-
-	equity=rbindlist(lapply(tmp_results, function(x) data.frame(cat_name=x$cat_name, x$equity)))
-	setcolorder(equity, c('cat_name','brand_name','year','sbbe', 'sbbe_se', 'bav_relevance', 'bav_esteem','bav_knowledge', 'bav_energizeddiff', 'bav_asset'))
-	
-	# extract extra variables
-	othervars=rbindlist(lapply(datasets, function(x) x[year>=2002, list(unitsales=sum(sales_bt,na.rm=T), revenue=sum(rev_bt,na.rm=T), price = mean(act_pr_bt,na.rm=T)),by=c('cat_name','brand_name', 'year')]))
-	othervars[, brand_name := gsub('[^a-zA-Z]', '', brand_name)]
-	
-	equity <- merge(equity, othervars,by=c('cat_name','brand_name', 'year'),all.x=T,all.y=F)
-	
-	equity[, rev_total := sum(revenue),by=c('cat_name', 'brand_name')]
-	equity[, max_cat := rev_total==max(rev_total),by=c('brand_name')]
-	equity[, ':=' (max_cat=NULL, rev_total=NULL)]
-
-	meanequity = equity[, lapply(.SD, mean, na.rm=T), by=c('cat_name', 'brand_name'), .SDcols=grep('bav[_]', colnames(equity),value=T)]
-	setkey(meanequity, cat_name, brand_name)
-	
-	# retrieve parameter estimtaes
-	elast=rbindlist(lapply(tmp_results, function(x) data.frame(cat_name=x$cat_name, x$elasticities)))
-	elast[,var_name := gsub('adstock[0-9]*', 'adstock', var_name)]
-	elast = elast[!grepl('cop[_]', var_name)]
-	
-	setkey(elast, cat_name, brand_name)
-	elast=meanequity[elast]
-
-	elast=elast[, !colnames(elast)%in%c('z', 'orig_var', 'mean_ms'),with=F] #'mean_var','coef','se', 
-	return(list(elast=elast, equity=equity, meanequity=meanequity))
-	
-	}
-
-	
-	
 summ <- function(tmp_results)	{
 	######################################
 	# POOLED CORRELATIONS: CBBE vs. SBBE #

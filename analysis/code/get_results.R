@@ -59,14 +59,13 @@ load('..//..//analysis//output//results.RData')
 		}
 		
 # Store selection
-	selected_models = models[best_aic==aic]
-
-selected_models = models[type=='copula'&best_aic==aic]
-
+	#selected_models = models[best_aic==aic]
+	selected_models = models[type=='copula'&best_aic==aic]
 
 ################
 # PRINT OUTPUT #
 ################
+	source('proc_report.R')
 
 	unlink('..//output//*.txt')
 	

@@ -1,9 +1,6 @@
-	
 #################################
 ## PREPARE META CHARACTERISTICS #
 #################################
-
-#selected_models$cat_index
 
 # category characteristics
 cat_char = rbindlist(lapply(datasets, function(x) {
@@ -55,11 +52,11 @@ brand_char = rbindlist(lapply(datasets, function(x) {
 		}
 		
 	tmp=tmp[, list(brand_name=brand_name, ms=ms, pricepos = std_by1(meanprice), dealdepth = sdpriceindex, relad = std_by1(meanad), secondary_cat = secondary_category), by=c('cat_name')]
-	
+	tmp[, brand_light := ifelse(grepl('light', brand_name,ignore.case = TRUE), 1,0)]
 	return(tmp)
 	}))
 
 setkey(cat_char, cat_name)
 setkey(brand_char, cat_name) # by time, e.g., year?!
-
 meta_char = brand_char[cat_char]
+
