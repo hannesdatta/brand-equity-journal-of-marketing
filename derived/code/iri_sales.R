@@ -21,7 +21,8 @@ require(sas7bdat)
 	# Define available categories
 	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'pz_di', 'hhclean', 'ketchup', 'laundet', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'rz_bl', 
 					   'saltsnck', 'shamp', 'soup', 'sugarsub', 'toitisu', 'toothpa', 'yogurt') 
-	category_dirs = c('sugarsub', 'peanbutr', 'saltsnck', 'mustard', 'ketchup')
+	
+	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee','sugarsub', 'peanbutr', 'saltsnck', 'mustard', 'ketchup')
 					 
 	# verify whether all data sets can be located
 	for (.dir in seq(along=category_dirs)) {
@@ -32,7 +33,7 @@ require(sas7bdat)
 		}
 					  
 	require(parallel)
-	cl<-makePSOCKcluster(24)
+	cl<-makePSOCKcluster(12)
 	clusterEvalQ(cl, require(data.table))
 	clusterEvalQ(cl, require(sas7bdat))
 	
@@ -50,7 +51,7 @@ require(sas7bdat)
 	
 	clusterExport(cl, c('basepath','category_dirs','open_sas'))
 
-	catdata <- clusterApply(cl, seq(along=category_dirs), open_sas)
+	catdata <- clusterApplyLB(cl, seq(along=category_dirs), open_sas)
 	names(catdata) <- category_dirs
 	stopCluster(cl)
 	
