@@ -196,7 +196,7 @@ setkey(bav_deletes, cat_name, brand_id)
 					  bav_asset = i.Brand_Asset_C)]
 		
 		setkey(dt, cat_name, brand_id)
-		dt[bav_deletes, delete_bav := i.delete]
+		dt[bav_deletes, ':=' (delete_bav = i.delete, newbrnd_bav = i.new_brnd, dyingbrnd_bav = i.dying_brnd)]
 		dt[is.na(delete_bav), delete_bav := 0]
 		
 		dat[[i]] <- dt
