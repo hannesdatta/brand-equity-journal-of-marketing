@@ -14,8 +14,8 @@
 if (0) {
 	# Write data sets to CSV
 
-	write.table(equity, '..//output//equity.csv', sep='\t', row.names=F)
-	write.table(elast, '..//output//elasticities.csv', sep='\t', row.names=F)
+	write.table(equity, '..//output//equity.csv', sep='\t', row.names=F,na = "")
+	write.table(elast, '..//output//elasticities.csv', sep='\t', row.names=F,na = "")
 
 	# export to SAS
 	require(foreign)
@@ -38,6 +38,23 @@ form = 'elast_STD ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff + ms'
 form = 'elast_STD ~ 1 + F_RelEst_STD + F_Knowledge_STD + F_EnergDiff_STD'
 form = 'elast ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
 form = 'coef ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
+
+form = 'coef_STD ~ 1 + ms'
+
+	setnames(elast, 'PC1', 'F2_RelEstKnow')
+	setnames(elast, 'PC2', 'F2_EnergDiff')
+
+form = 'coef_STD ~ 1 + F_RelEst_STD + F_Knowledge_STD + F_EnergDiff_STD'
+
+form = 'coef_STD ~ 1 + F2_RelEstKnow_STD + F2_EnergDiff_STD'
+
+form = 'coef_STD ~ 1 + F_RelEst_STD + F_Knowledge_STD + F_EnergDiff_STD'
+form = 'coef_STD ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
+
+form = 'coef_STD ~ 1 + F2_RelEstKnow + F2_EnergDiff'
+
+
+#elast=elast[secondary_cat==0]
 
 #dcast(elast, )
 #signific = c(0.001, 0.01, .050, .1)
@@ -83,11 +100,12 @@ bav_dims = c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 bav_dims = c('F_RelEst' 'F_Knowledge' 'F_EnergDiff')
 
 	   
-m<-lm(sbbe~as.factor(cat_name)+secondary_cat+
-		   brand_light+F_RelEst*secondary_cat+F_Knowledge*secondary_cat+F_EnergDiff*secondary_cat, data = equity, weights=1/sbbe_se)
+m<-lm(sbbe~as.factor(cat_name)+
+		   F2_RelEstKnow+F2_EnergDiff, data = equity, weights=1/sbbe_se)
 
 summary(m)
 
+brand_light
 
 if (0){
 
