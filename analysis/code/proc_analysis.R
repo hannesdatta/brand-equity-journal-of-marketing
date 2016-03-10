@@ -205,6 +205,7 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	m$rho_hat = mest@rho_hat
 	m$bic = mest@bic
 	m$aic = mest@aic
+	m$llik = mest@llik
 	m$sigma=mest@sigma
 	m$elapse_minutes = as.numeric(difftime(b,a,unit="mins"))
 	m$coefficients$orig_var=m$coefficients$variable

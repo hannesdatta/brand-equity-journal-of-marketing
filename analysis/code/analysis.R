@@ -46,7 +46,7 @@ init()
 		mestim = overview$index
 		#mestim = 22:23
 		model_types <- c('non-copula', 'copula')
-		decays = formatC(seq(from=0, to=1, by=c(.1))*100, width=2, flag=0)
+		decays = formatC(seq(from=0, to=.9, by=c(.1))*100, width=2, flag=0)
 		models=data.table(expand.grid(index=mestim, type=model_types, decay=decays))
 		models[, sample_size := overview$nobs[match(index, overview$index)]]
 		setorderv(models, c('type','sample_size','decay'), order=-1L)
