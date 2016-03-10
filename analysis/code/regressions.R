@@ -7,6 +7,12 @@
 	source('get_results.R')
 # Extract equity / prepare data sets to be used in meta analysis
 	source('get_equity_elast.R')
+	source('proc_metadata.R') # get meta characteristics
+	
+# Merge equity and elasticities with brand- and category-level characteristics
+	equity = merge(equity, meta_char, by=c('cat_name', 'brand_name'),all.x=T,all.y=F)
+	elast = merge(elast, meta_char, by = c('cat_name', 'brand_name'), all.x=T, all.y=F)
+	
 # Make summary plots
 	#source('summary_plots.R')
 
@@ -53,6 +59,7 @@ form = 'coef_STD ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
 
 form = 'coef_STD ~ 1 + F2_RelEstKnow + F2_EnergDiff'
 
+form = 'coef_STD ~ 1 + F_RelEstKnow + F_EnergDiff'
 
 #elast=elast[secondary_cat==0]
 
@@ -62,7 +69,7 @@ form = 'coef_STD ~ 1 + F2_RelEstKnow + F2_EnergDiff'
 #saveopt = getOption("signif.symbols")
 #options(signif.symbols=signific)
 
-go<-function(){
+go<-function(standardize=FALSE){
 	# do by variable
 	vars = unique(elast$var_name)
 	meta<-NULL
