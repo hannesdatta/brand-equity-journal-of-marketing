@@ -33,7 +33,7 @@ require(sas7bdat)
 		}
 					  
 	require(parallel)
-	cl<-makePSOCKcluster(12)
+	cl<-makePSOCKcluster(24)
 	clusterEvalQ(cl, require(data.table))
 	clusterEvalQ(cl, require(sas7bdat))
 	
