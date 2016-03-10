@@ -52,3 +52,5 @@ $(OUTPUT_DIR)/datasets.RData : preclean.R $(TEMP_DIR)/attributes.RData $(TEMP_DI
 # pre-clean data, indicate attributes in column names, remove last level
 plots : plots.R $(OUTPUT_DIR)/datasets.RData
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "plots.R"
+plots2 : plots.R
+	"$(RBIN64)Rterm.exe" --vanilla --args "" < "plots.R"
