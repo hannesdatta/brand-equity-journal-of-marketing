@@ -24,7 +24,7 @@ require(sas7bdat)
 	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'pz_di', 'hhclean', 'ketchup', 'laundet', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'rz_bl', 
 					   'saltsnck', 'shamp', 'soup', 'sugarsub', 'toitisu', 'toothpa', 'yogurt') 
 	
-	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'hhclean','laundet', 'margbutr','sugarsub', 'peanbutr', 'saltsnck', 'mustard', 'ketchup')
+	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'hhclean','laundet', 'mayo', 'milk',  'margbutr', 'spagsauc', 'sugarsub', 'peanbutr', 'saltsnck',  'shamp', 'soup', 'mustard', 'ketchup', 'toitisu')
 
 	
 	# verify whether all data sets can be located
