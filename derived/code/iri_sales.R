@@ -18,14 +18,16 @@ require(sas7bdat)
 	catdata <- NULL
 
 	basepath <- '..\\..\\..\\'
+	fpath = '\\revision\\fix_distrwidth\\'
+	
 	# Define available categories
 	category_dirs = c('beer', 'carbbev', 'cigets', 'coffee', 'coldcer', 'deod', 'diapers', 'pz_di', 'hhclean', 'ketchup', 'laundet', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'rz_bl', 
 					   'saltsnck', 'shamp', 'soup', 'sugarsub', 'toitisu', 'toothpa', 'yogurt') 
-
-					 
+	
+	
 	# verify whether all data sets can be located
 	for (.dir in seq(along=category_dirs)) {
-		path = paste0(basepath, '\\', category_dirs[.dir], '\\revision\\')
+		path = paste0(basepath, '\\', category_dirs[.dir], fpath)
 		fs = list.files(path)
 		fn = grep('varneed[.]sas7bdat', fs, value=T)
 		if (!file.exists(paste0(path,fn))) stop('File ', fn, ' in ', path, ' does not exist.')
@@ -39,7 +41,7 @@ require(sas7bdat)
 	open_sas <- function(.dir) {
 	
 		cat(paste0('Processing ', category_dirs[.dir], '...\n'))
-		path = paste0(basepath, '\\', category_dirs[.dir], '\\revision\\')
+		path = paste0(basepath, '\\', category_dirs[.dir], fpath)
 		fs = list.files(path)
 		fn = grep('varneed[.]sas7bdat', fs, value=T)
 		dt <- data.table(read.sas7bdat(paste0(path, fn)))
@@ -48,9 +50,9 @@ require(sas7bdat)
 		#
 		}
 	
-	clusterExport(cl, c('basepath','category_dirs','open_sas'))
+	clusterExport(cl, c('basepath','category_dirs','open_sas', 'fpath'))
 
-	catdata <- clusterApply(cl, seq(along=category_dirs), open_sas)
+	catdata <- clusterApplyLB(cl, seq(along=category_dirs), open_sas)
 	names(catdata) <- category_dirs
 	stopCluster(cl)
 	
