@@ -287,7 +287,7 @@ for (i in seq(along=dat)) {
 	tmp <- split(dat[[i]], paste0(dat[[i]]$cat_name, '_', dat[[i]]$brand_name))
 
 	dt <- rbindlist(lapply(tmp, function(x) {
-		.zoo=zoo(x[, !grepl('bav[_]', colnames(x)),with=F])
+		.zoo=zoo(x[, !grepl('bav[_]|[_]bav', colnames(x)),with=F])
 		.out = na.contiguous(.zoo)
 		suppressWarnings(res <- x[, selected:=!1:.N %in% as.numeric(attr(.out, 'na.action'))])
 		res
