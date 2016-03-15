@@ -12,10 +12,15 @@
 # Merge equity and elasticities with brand- and category-level characteristics
 	equity = merge(equity, meta_char, by=c('cat_name', 'brand_name'),all.x=T,all.y=F)
 	elast = merge(elast, meta_char, by = c('cat_name', 'brand_name'), all.x=T, all.y=F)
+
+# Assertions
+	elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
+	# should be near-to-zero
+	equity[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
 	
 # Make summary plots
-	#source('summary_plots.R')
-
+	source('summary_plots.R')
+	
 # Write data files to disk
 if (0) {
 	# Write data sets to CSV
@@ -42,8 +47,10 @@ if (0) {
 form = 'elast_STD ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
 form = 'elast_STD ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff + ms'
 form = 'elast_STD ~ 1 + F_RelEst_STD + F_Knowledge_STD + F_EnergDiff_STD'
-form = 'elast ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
-form = 'coef ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
+
+
+form = 'elast ~ 1 + F_RelEstKnow + F_EnergDiff'
+form = 'coef ~ 1 + F_RelEstKnow + F_EnergDiff'
 
 form = 'coef_STD ~ 1 + ms'
 
@@ -61,6 +68,13 @@ form = 'coef_STD ~ 1 + F2_RelEstKnow + F2_EnergDiff'
 
 form = 'coef_STD ~ 1 + F_RelEstKnow + F_EnergDiff'
 
+
+#form = 'coef_STD ~ 1 + F_RelEstKnow + F_EnergDiff'
+
+form = 'elast ~ 1 + F_RelEstKnow + F_EnergDiff'
+
+form = 'elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD'
+
 #elast=elast[secondary_cat==0]
 
 #dcast(elast, )
@@ -74,7 +88,7 @@ go<-function(standardize=FALSE){
 	vars = unique(elast$var_name)
 	meta<-NULL
 	for (j in seq(along=vars)) { #as.factor(cat_name) +
-		meta[[j]] <- lm(as.formula(form), data= elast, subset= !is.na(elast)&var_name==vars[j], weights=(1/se))
+		meta[[j]] <- lm(as.formula(form), data= elast, subset= !is.na(elast)&var_name==vars[j], weights=(1/elast_se))
 		}
 	#!elast_outlier & 
 	require(car)

@@ -88,6 +88,7 @@ summ <- function(tmp_results)	{
 	#
 	#
 	# do by variable
+	if(0){
 	vars = unique(elast$var_name)
 	meta<-NULL
 	for (j in seq(along=vars)) { #as.factor(cat_name) +
@@ -107,7 +108,8 @@ summ <- function(tmp_results)	{
 		cat('\n', vars[j], '\n')
 		print(vif(meta[[j]]))
 		}
-
+	}
+	
 	###############################
 	# SUMMARY OF ALL ELASTICITIES #
 	###############################

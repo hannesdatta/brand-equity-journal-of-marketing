@@ -59,11 +59,10 @@
 			png(paste0(path, 'elast_cbbe_', i, '.png'), res=200, units='in', height=8, width=12)
 		
 			df = elast[var_name==i]
-			with(df, plot(x=elast_STD, y=F_RelEst_STD, main = paste0('Elasticities vs. CBBE: ', i),ylab='CBBE dimension'))
-			with(df, points(x=elast_STD, y=F_Knowledge_STD,col='green'))
-			with(df, points(x=elast_STD, y=F_EnergDiff_STD, col='blue'))
+			with(df, plot(y=elast_STD, x=F_RelEstKnow_STD, main = paste0('Elasticities vs. CBBE: ', i),ylab='Std. elasticities', xlab='Std. CBBE dimension'))
+			with(df, points(y=elast_STD, x=F_EnergDiff_STD, col='blue'))
 			
-			legend("topleft", legend = c("RelEst", "Knowledge", "EnergDiff"),col=c('black', 'green', 'blue'),pch=1)
+			legend("topleft", legend = c("RelEstKnow", "EnergDiff"),col=c('black', 'blue'),pch=1)
 			
 			dev.off()
 			}
@@ -78,16 +77,50 @@
 			png(paste0(path, 'elast_cbbe_', i, '.png'), res=200, units='in', height=8, width=12)
 		
 			df = elast[var_name==i]
-			with(df, plot(x=elast_STD, y=F_RelEst, main = paste0('Elasticities vs. CBBE: ', i),ylab='CBBE dimension'))
-			with(df, points(x=elast_STD, y=F_Knowledge,col='green'))
-			with(df, points(x=elast_STD, y=F_EnergDiff, col='blue'))
+			with(df, plot(y=elast_STD, x=F_RelEstKnow, main = paste0('Elasticities vs. CBBE: ', i),ylab='Std. elasticities', xlab='Non-Std. CBBE dimension'))
+			with(df, points(y=elast_STD, x=F_EnergDiff, col='blue'))
 			
-			legend("topleft", legend = c("RelEst", "Knowledge", "EnergDiff"),col=c('black', 'green', 'blue'),pch=1)
+			legend("topleft", legend = c("RelEstKnow", "EnergDiff"),col=c('black', 'blue'),pch=1)
 			
 			dev.off()
 			}
 
+	# SCATTERPLOT BY CBBE
+	path='../audit/elast__NONSTD_cbbe_NONSTD_scatter_by_cat/'
+	unlink(paste0(path,'*'))
+	dir.create(path)
+	
+	
+		for (i in unique(elast$var_name)) {
+			png(paste0(path, 'elast_cbbe_', i, '.png'), res=200, units='in', height=8, width=12)
 		
+			df = elast[var_name==i]
+			par(mfrow=c(2,1))
+			with(df, plot(y=elast, x=F_RelEstKnow, main = paste0('Elasticities vs. CBBE: ', i),ylab='Non-Std. elasticities', xlab='Non-Std. F_RelEstKnow'))
+			with(df, plot(y=elast, x=F_EnergDiff, main = paste0('Elasticities vs. CBBE: ', i),ylab='Non-Std. elasticities', xlab='Non-Std. F_EnergDiff'))
+			#with(df, points(y=elast, x=F_EnergDiff, col='blue'))
+			
+			#legend("topleft", legend = c("RelEstKnow", "EnergDiff"),col=c('black', 'blue'),pch=1)
+			
+			dev.off()
+			}
+
+			
+	# SCATTERPLOT BY CATEGORY
+	path='../audit/elast_scatter_by_cat/'
+	unlink(paste0(path,'*'))
+	dir.create(path)
+	require(lattice)
+	
+		for (i in unique(elast$var_name)) {
+			png(paste0(path, 'elast_cbbe_', i, '.png'), res=200, units='in', height=16, width=16)
+		
+			df = elast[var_name==i]
+			print(xyplot(elast~F_RelEstKnow+F_EnergDiff|cat_name,data=df,auto.key=T, main = paste0('Elasticities vs. CBBE: ', i),scales = list(y = list(relation = "free"))))
+			
+			dev.off()
+			}
+
 	########
 	# SBBE #
 	########

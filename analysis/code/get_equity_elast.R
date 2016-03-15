@@ -20,7 +20,7 @@ extract_equity <- function(tmp_results) {
 	meanequity = equity[, lapply(.SD, mean, na.rm=T), by=c('cat_name', 'brand_name'), .SDcols=grep('bav[_]', colnames(equity),value=T)]
 	setkey(meanequity, cat_name, brand_name)
 	
-	# retrieve parameter estimtaes
+	# retrieve parameter estimates
 	elast=rbindlist(lapply(tmp_results, function(x) data.frame(cat_name=x$cat_name, x$elasticities)))
 	elast[,var_name := gsub('adstock[0-9]*', 'adstock', var_name)]
 	elast = elast[!grepl('cop[_]', var_name)]
@@ -53,7 +53,8 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 		fit_scores <- cbind(mydata[, c('brand_name', 'year'),with=F], fit$scores)
 		setkey(fit_scores, brand_name, year)
 		equity[fit_scores, ':=' (F_RelEstKnow=i.PC1, F_EnergDiff=i.PC2)]
-	
+		equity[, var_name:='none']
+		
 	# Elasticities
 		setkey(elast, brand_name)
 		mydata=unique(elast)
@@ -71,16 +72,13 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 	tmp=lapply(list(equity, elast), function(df) {
 		
 		for (.var in colnames(df)) {
-			if (.var %in% c('year', 'cat_name', 'brand_name', 'var_name', grep('F[_]', colnames(df),value=TRUE), grep('bav[_]', colnames(df),value=TRUE))) next
+			if (.var %in% c('year', 'cat_name', 'brand_name', 'var_name', grep('bav[_]', colnames(df),value=TRUE))) next #grep('F[_]', colnames(df),value=TRUE)
 			# check whether column is dummy: do not meancenter
 			if (all(unique(unlist(df[, .var, with=F]))%in%c(1,0))) next
 			# varies by category
-			if (all(unlist(df[, list(N=length(unique(get(.var)))), by=c('cat_name')]$N)==1)) next
+			if (all(unlist(df[, list(N=length(unique(get(.var)))), by=c('cat_name', 'var_name')]$N)==1)) next
 			
-			df[, paste0(.var, '_STD') := stdvar(get(.var)), by=c('cat_name'),with=F]
+			df[, paste0(.var, '_STD') := stdvar(get(.var)), by=c('cat_name', 'var_name'),with=F]
 			}
 		return(df)
 		})
-
-	# do not use standardization now.
-	
