@@ -9,7 +9,7 @@ load('../output//datasets.RData')
 ### Plot: Total sales in category by brand ###
 ##############################################
 
-	path='../audit/sales_by_cat/'
+	path='../audit/sales_by_cat_brand/'
 	unlink(paste0(path,'*'))
 	dir.create(path)
 
@@ -27,6 +27,28 @@ load('../output//datasets.RData')
 		dev.off()
 
 	}
+
+##############################################
+### Plot: Total sales in category by brand ###
+##############################################
+
+	path='../audit/sales_by_cat/'
+	unlink(paste0(path,'*'))
+	dir.create(path)
+
+	for (i in seq(along=datasets)) {
+		dt = datasets[[i]]
+		catname = unique(dt$cat_name)
+		dt = dt[, list(sales_bt = sum(sales_bt)), by=c('week')][order(week)]
+		print(catname)
+		
+		png(paste0(path, 'sales_', catname, '.png'), res=200, units='in', height=8, width=12)
+		print(xyplot(sales_bt~week, data=dt, type='l', main=paste('Category: ',catname),sep=''))
+					
+		dev.off()
+
+	}
+	
 	
 ###############################################
 ### Plot: Each variable by category and brand #

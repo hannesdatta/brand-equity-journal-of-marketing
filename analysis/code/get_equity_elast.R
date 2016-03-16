@@ -2,7 +2,7 @@
 # EXTRACT DATA SET WITH EQUITY AND ELASTICITIES #
 #################################################
 
-extract_equity <- function(tmp_results) {
+extract_elast_equity <- function(tmp_results) {
 
 	equity=rbindlist(lapply(tmp_results, function(x) data.frame(cat_name=x$cat_name, x$equity)))
 	setcolorder(equity, c('cat_name','brand_name','year','sbbe', 'sbbe_se', 'bav_relevance', 'bav_esteem','bav_knowledge', 'bav_energizeddiff', 'bav_asset'))
@@ -28,12 +28,12 @@ extract_equity <- function(tmp_results) {
 	setkey(elast, cat_name, brand_name)
 	elast=meanequity[elast]
 
-	elast=elast[, !colnames(elast)%in%c('z', 'orig_var', 'mean_ms'),with=F] #'mean_var','coef','se', 
+	elast=elast[, !colnames(elast)%in%c('z', 'orig_var'),with=F] #'mean_var','coef','se',  #'mean_ms'
 	return(list(elast=elast, equity=equity, meanequity=meanequity))
 	
 	}
 
-tmp = extract_equity(all_results[selected_models$index])
+tmp = extract_elast_equity(all_results[selected_models$index])
 
 equity = tmp$equity
 elast = tmp$elast

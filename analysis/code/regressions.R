@@ -22,54 +22,38 @@
 	source('summary_plots.R')
 	
 # Write data files to disk
-if (0) {
-	# Write data sets to CSV
+	# CSV
+	dir.create('..//output//csv')
+	unlink('..//output//csv//*.csv')
+	write.table(equity[!is.na(bav_asset)], '..//output//csv//equity.csv', sep='\t', row.names=F,na = "")
+	write.table(elast[!is.na(bav_asset)], '..//output//csv//elasticities.csv', sep='\t', row.names=F,na = "")
 
-	write.table(equity, '..//output//equity.csv', sep='\t', row.names=F,na = "")
-	write.table(elast, '..//output//elasticities.csv', sep='\t', row.names=F,na = "")
+	# SPSS
+	require(sjmisc)
+	dir.create('..//output//spss')
+	unlink('..//output//spss//*.sav')
+	write_spss(equity[!is.na(bav_asset)], '..//output//spss//equity.sav')
+	write_spss(elast[!is.na(bav_asset)], '..//output//spss//elasticities.sav')
 
-	# export to SAS
+	# SAS
 	require(foreign)
 	dir.create('..//output//sas')
-	unlink('..//output//sas//*')
-	write.foreign(equity, '..//output//sas//equity.txt', '..//output//sas//equity.sas', package="SAS")
-	write.foreign(elast, '..//output//sas//elasticities.txt', '..//output//sas//elasticities.sas', package="SAS")
-	}
-	
-
-
-
+	unlink('..//output//sas//*.sas')
+	unlink('..//output//sas//*.txt')
+	write.foreign(equity[!is.na(bav_asset)], '..//output//sas//equity.txt', '..//output//sas//equity.sas', package="SAS")
+	write.foreign(elast[!is.na(bav_asset)], '..//output//sas//elasticities.txt', '..//output//sas//elasticities.sas', package="SAS")
 
 #############################
 # Regressions: Elasticities #
 #############################
 
-form = 'elast_STD ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
-form = 'elast_STD ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff + ms'
-form = 'elast_STD ~ 1 + F_RelEst_STD + F_Knowledge_STD + F_EnergDiff_STD'
+signific = c(0.001, 0.01, .050, .1)
+names(signific) <- c('****', '***', '**', '*')
+#saveopt = getOption("signif.symbols")
+options(signif.symbols=signific)
 
+elast[, newbrand := ifelse(is.na(new_brand),0,new_brand)]
 
-form = 'elast ~ 1 + F_RelEstKnow + F_EnergDiff'
-form = 'coef ~ 1 + F_RelEstKnow + F_EnergDiff'
-
-form = 'coef_STD ~ 1 + ms'
-
-	setnames(elast, 'PC1', 'F2_RelEstKnow')
-	setnames(elast, 'PC2', 'F2_EnergDiff')
-
-form = 'coef_STD ~ 1 + F_RelEst_STD + F_Knowledge_STD + F_EnergDiff_STD'
-
-form = 'coef_STD ~ 1 + F2_RelEstKnow_STD + F2_EnergDiff_STD'
-
-form = 'coef_STD ~ 1 + F_RelEst_STD + F_Knowledge_STD + F_EnergDiff_STD'
-form = 'coef_STD ~ 1 + F_RelEst + F_Knowledge + F_EnergDiff'
-
-form = 'coef_STD ~ 1 + F2_RelEstKnow + F2_EnergDiff'
-
-form = 'coef_STD ~ 1 + F_RelEstKnow + F_EnergDiff'
-
-
-#form = 'coef_STD ~ 1 + F_RelEstKnow + F_EnergDiff'
 
 form = 'elast ~ 1 + F_RelEstKnow + F_EnergDiff'
 
@@ -77,18 +61,22 @@ form = 'elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD'
 
 #elast=elast[secondary_cat==0]
 
-#dcast(elast, )
-#signific = c(0.001, 0.01, .050, .1)
-#names(signific) <- c('****', '***', '**', '*')
-#saveopt = getOption("signif.symbols")
-#options(signif.symbols=signific)
+go('coef_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/se')
+go('elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/elast_se')
 
-go<-function(standardize=FALSE){
+go('elast_STD ~ 1 + F_RelEstKnow_STD * secondary_cat + F_EnergDiff_STD * secondary_cat + F_RelEstKnow_STD * fooddrinks + F_EnergDiff_STD * fooddrinks', weights='1/elast_se')
+go('elast ~ 1 + F_RelEstKnow * secondary_cat + F_EnergDiff * secondary_cat + F_RelEstKnow * fooddrinks + F_EnergDiff * fooddrinks', weights='1/elast_se')
+
+#tmp=elast[var_name==vars[1]]
+#with(tmp, cor(data.frame(ms, coef, elast, F_RelEstKnow_STD, F_EnergDiff_STD),use='complete.obs'))
+
+go<-function(form, weights, standardize=FALSE){
 	# do by variable
+	if (!is.null(weights)) eval(parse(text=paste0('elast[, w:=', weights,']'))) else elast[, w:=1]
 	vars = unique(elast$var_name)
 	meta<-NULL
 	for (j in seq(along=vars)) { #as.factor(cat_name) +
-		meta[[j]] <- lm(as.formula(form), data= elast, subset= !is.na(elast)&var_name==vars[j], weights=(1/elast_se))
+		meta[[j]] <- lm(as.formula(form), data= elast, subset= !is.na(elast)&var_name==vars[j], weights=w)#(1/elast_se))
 		}
 	#!elast_outlier & 
 	require(car)
@@ -118,15 +106,13 @@ go<-function(standardize=FALSE){
 interact = c('ms', 'pricepos', 'dealdepth', 'relad', 'secondary_cat', 'c4', 'H', 'sales_growth')
 bav_dims = c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 
-bav_dims = c('F_RelEst' 'F_Knowledge' 'F_EnergDiff')
+bav_dims = c('F_RelEstKnow', 'F_EnergDiff')
 
 	   
-m<-lm(sbbe~as.factor(cat_name)+
-		   F2_RelEstKnow+F2_EnergDiff, data = equity, weights=1/sbbe_se)
+m<-lm(sbbe_STD~1+
+		   F_RelEstKnow_STD+F_EnergDiff_STD, data = equity, weights=1/sbbe_se)
 
 summary(m)
-
-brand_light
 
 if (0){
 

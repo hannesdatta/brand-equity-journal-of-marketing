@@ -311,4 +311,22 @@ To do:
     x clustered standard errors
 	x check VIFs in second stage, if necessary, run factor analysis
 	
+15 March 2016
+===================
 
+Estimated models:
+- Herfindahl / c4 / cat sales growth / brand sales growth / light dummy
+- Elasticities vs. coefficients
+
+To do:
+- Re-compute growth (last year sales / first year sales) ^ (1/10) (where 10 is the number of years); do it for absolute and relative
+- recompute secondary category dummy (final brand coding\allcat_brand_revenue_coded.xlsx)
+- plots for category sales
+- MCI vs. MNL
+
+x standardize 
+x no category main effects... also for continuous variables, also for c4.
+x interactions to be mean-centered.
+x WLS...? clustered standard errors...? / Random effects or clustered... / ...
+x lagged CBBE in SBBE regressions may cause too much MC
+x 
