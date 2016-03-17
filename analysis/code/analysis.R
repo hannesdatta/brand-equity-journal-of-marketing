@@ -88,6 +88,23 @@ init()
 	
 	names(all_results) <- models
 	
+	if(0){
+	set.seed(123)
+	te=cbind(rnorm(1000), rnorm(1000), rnorm(1000))
+	cov(te)
+	
+	te2=te
+	
+	te2[,1] <- te2[,1]/1000
+	
+	cov(te2)
+	
+	tex<-cov(te2)
+	tex[1,]<-tex[1,]*1000
+	tex[,1]<-tex[,1]*1000
+	tex
+	}
+	
 	if(0) { # estimation of a single category
 	
 		i=22
@@ -99,11 +116,17 @@ init()
 		
 		# add one to variables which can take on zero values
 		dt <- prepare_data(i)
-		
-		
+		dtold <- prepare_data_old(i)
+		te=cbind(dtold$pi_bt, dt$pi_bt)
+		cor(te)
+		dtsave<-dt
+			te=cbind(dtsave$pi_bt, dt$pi_bt, dtold$pi_bt)
+		cor(te)
+	
 		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
 		
-		
+		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE),silent=T)
+	
 		dt <- prepare_data(i, plus_1=TRUE)
 		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
 		

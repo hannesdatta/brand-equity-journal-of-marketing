@@ -66,7 +66,49 @@ prepare_data <- function(i, plus_1 = FALSE) {
 	dt
 	}
 
-analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'advertising_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE, testing = FALSE, model = "MNL", rescale=FALSE) {
+prepare_data_old <- function(i, standardize = TRUE) {
+	print(i)
+	print(names(datasets)[i])
+	
+	dt <- datasets[[i]]
+	
+	void<-dt[, list(obs = .N), by=c('brand_name', 'year')]	
+	
+	# compute adstock
+	adstock <- function(x, lambda) {
+		res=double(length(x))
+		res[1]=x[1]
+		for (k in seq(from=2, to=length(x))) {
+			res[k] = lambda * res[k-1] + (1-lambda) * x[k]
+			}
+		return(res)
+		}
+	
+	decays = formatC(seq(from=0.00, to=1, by=.05)*100, width=2, flag=0)
+	for (decay in decays) {
+		prec=6
+		dt[, paste0('adstock', decay, '_bt') := round(adstock(advertising_bt, lambda=as.numeric(decay)/100),prec),by=c('brand_name'),with=F]
+		}
+	
+	# kick out first 4 observations by brand
+	dt[, min_week := min(week),by=c('brand_name')]
+	dt <- dt[week>min_week+3]
+	
+	# retain only observations from year 2002 onwards (to match with BAV data)
+	dt <- dt[year>=2002]
+		
+	if(standardize==T) { # standardize between 0 and 1.
+		vars=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',grep('adstock', colnames(dt),value=T))
+		for (.var in c(vars, grep('attr[_]', colnames(dt),value=T))) {
+			if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
+			}
+		}
+
+	dt
+	}
+
+	
+analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'advertising_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE, testing = FALSE, model = "MNL", rescale=FALSE) {
 
 	####################
 	# DEFINE VARIABLES #
@@ -77,12 +119,12 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 		yvars <- c('sales_bt') 
 		# define homogenous coefficients (e.g., brand attributes)
 		if (attributes==TRUE) {
-			xvars_homog <- c(grep('attr[_]', colnames(dt),value=T)) 
+			xvars_homog <- c(grep('attr[_]', colnames(dtf),value=T)) 
 			
 			# check whether any of these attributes is zero for all brands, or is equal throughout the observation periods; then remove this column
-			attrsums = colSums(dt[, xvars_homog, with=F])
+			attrsums = colSums(dtf[, xvars_homog, with=F])
 			
-#			attrequal = dt[, lapply(.SD, function(x) length(unique(x))), by=c('week'), .SDcols=xvars_homog]
+#			attrequal = dtf[, lapply(.SD, function(x) length(unique(x))), by=c('week'), .SDcols=xvars_homog]
 
 			if(any(attrsums==0)) {
 				warning('Some of the product attributes are zero for all brands; removing variables ', paste0(names(attrsums)[which(attrsums==0)],collapse=' ,'))
@@ -103,31 +145,31 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	# check for variation in all variables by brand; if not available, set all to NA
 	for (.n in c(xvars_heterog, yvars)) {
 		prec=6
-		dt[, get_n := length(unique(round(get(.n),prec))),by=c('brand_name')]
-		dt[get_n==1, .n := NA, with=F]
+		dtf[, get_n := length(unique(round(get(.n),prec))),by=c('brand_name')]
+		dtf[get_n==1, .n := NA, with=F]
 		if (grepl('advertising|adstock', .n)) {
-			dt[, obs := length(which(round(get(.n),prec)>0)),by=c('brand_name')]
-			dt[obs<8, .n := NA, with=F]
-			dt[, obs:=NULL]
+			dtf[, obs := length(which(round(get(.n),prec)>0)),by=c('brand_name')]
+			dtf[obs<8, .n := NA, with=F]
+			dtf[, obs:=NULL]
 			}
-		dt[,':=' (get_n=NULL)]
+		dtf[,':=' (get_n=NULL)]
 		}
 	cat('Unique values\n')
-	dt[, lapply(.SD, function(x) length(unique(x[!is.na(x)]))), by=c('brand_name'), .SDcols=c(xvars_heterog, yvars)]
+	dtf[, lapply(.SD, function(x) length(unique(x[!is.na(x)]))), by=c('brand_name'), .SDcols=c(xvars_heterog, yvars)]
 	
 	################################
 	# Add Copula Correction Terms  #
 	################################
 
 	for (.var in xvars_endog) {
-		dt[, paste0('cop_', .var) := make_copula(get(.var)), by=c('brand_name'),with=F]
+		dtf[, paste0('cop_', .var) := make_copula(get(.var)), by=c('brand_name'),with=F]
 		xvars_heterog <- c(xvars_heterog, paste0('cop_',.var))
 		}
 	
 	# Add copula series to the data and verify normality
 	copula_normality=NULL
 		if (length(xvars_endog>0)) {
-			tmp=dt[, c('brand_name','week', xvars_endog),with=F][, lapply(.SD, function(x) {
+			tmp=dtf[, c('brand_name','week', xvars_endog),with=F][, lapply(.SD, function(x) {
 				if (all(is.na(x))) return(as.numeric(NA))
 				as.numeric(shapiro.test(x)$p)
 				}
@@ -144,27 +186,27 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	cat('Create data set structure\n')
 
 	# calculate market share of yvar
-	dt[, year:=as.numeric(year)]
-	dt[, nbrands := length(unique(get(it[1]))), by = c(it[2])]
-	dt[, ms := sales_bt/sum(sales_bt), by=c(it[2])]
+	dtf[, year:=as.numeric(year)]
+	dtf[, nbrands := length(unique(get(it[1]))), by = c(it[2])]
+	dtf[, ms := sales_bt/sum(sales_bt), by=c(it[2])]
 
 	# Transform data to base-brand representation
 	dtbb <- attraction_data(as.formula(paste0('ms ~ ', paste0(c(xvars_heterog, xvars_homog),collapse=' + '))), 
-					data = dt, heterogenous = as.formula(paste0(' ~ ', paste0(c(xvars_heterog),collapse=' + '))),
+					data = dtf, heterogenous = as.formula(paste0(' ~ ', paste0(c(xvars_heterog),collapse=' + '))),
 					index = ~ brand_name + week, model = model, benchmark = benchmark)
 	validObject(dtbb)
 	#show(dtbb)
 	
 	# create dummies for all brands in all years they are available
-	brands <- unique(dt$brand_name)
+	brands <- unique(dtf$brand_name)
 	benchbrand = dtbb@benchmark
 	
 	# create dummy dataset
 	dummatrix = data.table(individ=dtbb@individ, period=dtbb@period)
 	# match years
 	setkey(dummatrix,individ,period)
-	setkey(dt, brand_name, week)
-	dummatrix[dt, ':=' (year=i.year, quarter=i.quarter)]
+	setkey(dtf, brand_name, week)
+	dummatrix[dtf, ':=' (year=i.year, quarter=i.quarter)]
 	
 	for (br in brands[!brands%in%benchbrand]) {
 		# do not create dummy variable for benchmark brand
@@ -191,19 +233,21 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 
 	# rescaling
 	X=as.matrix(data.frame(dtbb@X[, -c(grep('[_]dum', colnames(dtbb@X)))]))
-	
-	if(rescale==T) { # divide by their absolute max
+	print(sum(X))
+	if(rescale==TRUE) { # divide by their absolute max
+		cat('running rescaling\n')
 		rescale_values = apply(X, 2, function(x) max(abs(x)))
 		div_matrix <- matrix(rep(rescale_values, nrow(X)), byrow=TRUE, ncol=length(rescale_values))
 		
 		X=X/div_matrix
 		}
-
+	print(sum(X))
 	if (simpleDummies==TRUE) {
 		X=as.matrix(X)
 		} else {
 		X=as.matrix(data.frame(X,dummatrix))
 		}
+		
 	Y=dtbb@y
 	index=data.table(week=dtbb@period, brand_name=dtbb@individ)
 	
@@ -220,14 +264,18 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	
 	retr_coefs <- coef(mest)$coef
 	mvarcovar=mest@varcovar
-		
+	
+	print(sum(mvarcovar))	
 	if (rescale==TRUE) {
-		retr_coefs[seq(length.out=length(rescale_values))] = retr_coefs[seq(length.out=length(rescale_values))] / rescale_values
+		cat('transforming back coefficients\n')
+		retr_coefs[seq(length.out=length(rescale_values))] = retr_coefs[seq(length.out=length(rescale_values))] * rescale_values
+		
 		for (ch in seq(length.out=length(rescale_values))) {
-			mvarcovar[ch,] <- mvarcovar[ch,] / rescale_values[ch]
-			mvarcovar[,ch] <- mvarcovar[,ch] / rescale_values[ch]
+			mvarcovar[ch,] <- mvarcovar[ch,] * rescale_values[ch]
+			mvarcovar[,ch] <- mvarcovar[,ch] * rescale_values[ch]
 			}
-	} 
+	}
+	print(sum(mvarcovar))	
 	
 	coef_sum <- data.frame(variable=coef(mest)$variable, coef=retr_coefs, se = sqrt(diag(mvarcovar)))
 	coef_sum$z = coef_sum$coef / coef_sum$se
@@ -257,12 +305,12 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	########################
 
 		# calculate means of explanatory variables
-		means <- dt[, c('brand_name', xvars_heterog),with=F][, lapply(.SD, mean), by=c('brand_name'), .SDcols=c(xvars_heterog)]
+		means <- dtf[, c('brand_name', xvars_heterog),with=F][, lapply(.SD, mean), by=c('brand_name'), .SDcols=c(xvars_heterog)]
 		meansmelt <- melt(means, id.vars=c('brand_name'))
 		setnames(meansmelt, 'value','mean_var')
 		setnames(meansmelt, 'variable','var_name')
 		
-		msaverage <- dt[, list(mean_ms = mean(ms)), by=c('brand_name')]
+		msaverage <- dtf[, list(mean_ms = mean(ms)), by=c('brand_name')]
 		
 		elasticities <- merge(meansmelt, m$coefficients, by=c('var_name', 'brand_name'), all.x=T, all.y=F)
 		elasticities <- merge(elasticities, msaverage, by=c('brand_name'))
@@ -290,15 +338,15 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	################
 		
 		# Extract coefficients
-		ind <- which(grepl('[_]dum|[_]yr[_]', mest@coefficients$variable))
-		sbbe_raw <- data.table(mest@coefficients[ind,])
+		ind <- which(grepl('[_]dum|[_]yr[_]', coef_sum$variable))
+		sbbe_raw <- data.table(coef_sum[ind,])
 		sbbe_raw[, brand_name := sapply(variable, function(x) strsplit(gsub('dummy[_]','',x),'_')[[1]][1])]
 		sbbe_raw[, year := sapply(as.character(variable), function(x) substr(x, nchar(x)-3,nchar(x)))]
 		sbbe_raw[year=='_dum', year:=as.character('0')]
 		sbbe_raw[,year:=as.numeric(year)]
 		sbbe_raw[, index:= 1:.N]
 		
-		sbbe_sigma = mest@varcovar[ind,ind]
+		sbbe_sigma = mvarcovar[ind,ind]
 		coefs=sbbe_raw$coef
 		names(coefs)<-paste0('x', sbbe_raw$index)
 		
@@ -330,14 +378,14 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 		sbbe[brand_name=="benchmark", brand_name:=dtbb@benchmark]
 
 	
-	cbbe = dt[, lapply(.SD, unique), by=c('brand_name', 'year'), .SDcols=grep('bav[_]',colnames(dt),value=T)]
+	cbbe = dtf[, lapply(.SD, unique), by=c('brand_name', 'year'), .SDcols=grep('bav[_]',colnames(dtf),value=T)]
 	brand_equity = merge(sbbe, cbbe, by=c('brand_name', 'year'), all.x=T, all.y=T)
 	
 	##################
 	# RETURN RESULTS #
 	##################		
 		
-	retobject <- list(cat_name = unique(as.character(dt$cat_name)), 
+	retobject <- list(cat_name = unique(as.character(dtf$cat_name)), 
 					  model=m, 
 					  model_type = model,
 					  benchmark=dtbb@benchmark, 
