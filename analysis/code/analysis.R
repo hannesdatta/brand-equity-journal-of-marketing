@@ -7,7 +7,7 @@
 #                                             _/ |                    
 #                                            |__/                     
 
-									  
+
 
 ### LOAD DATA SETS
 load('..//..//derived//output//datasets.RData')
@@ -90,15 +90,21 @@ init()
 	
 	if(0) { # estimation of a single category
 	
-		i=13
+		i=22
 		
 		init()
 		dt <- prepare_data(i)
 		xvars_heterog=c('pi_bt', 'rreg_pr_bt', 
 						'pct_store_skus_bt', 'adstock40_bt') #,'adstock40_bt'
-		dt[, c('adstock40_bt','adstock50_bt', 'adstock60_bt'),with=F]
-	
-		out=try(analyze_marketshares(dt, xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE),silent=T)
+		
+		# add one to variables which can take on zero values
+		dt <- prepare_data(i)
+		
+		out=try(analyze_marketshares(dt, xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MCI"),silent=T)
+		
+		out2=try(analyze_marketshares(dt, xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL"),silent=T)
+		
+		dt <- prepare_data(i, plus_1=TRUE)
 		
 		require(lattice)
 		xyplot(adstock60_bt ~ week|brand_name, data=dt,auto.key=T,type='l')

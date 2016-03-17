@@ -15,7 +15,9 @@ require(reshape2)
 require(marketingtools)
 require(car) # for delta method
 
-prepare_data <- function(i, standardize = TRUE) {
+prepare_data <- function(i, plus_1 = FALSE) {
+	# if plus_1 == TRUE, then - if standarize == TRUE, variables will be scaled between 1 and 2. 
+	
 	print(i)
 	print(names(datasets)[i])
 	
@@ -45,23 +47,30 @@ prepare_data <- function(i, standardize = TRUE) {
 	
 	# retain only observations from year 2002 onwards (to match with BAV data)
 	dt <- dt[year>=2002]
+
+	# rescale attribute levels between 0 and 100
+	for (.var in c(grep('attr[_]', colnames(dt),value=T))) {
+		scaling=c(0,100)
+		if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := scaling[1] + (scaling[2]-scaling[1])*((get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T))),with=F]
+		}
+	
+	if (plus_1==TRUE) {
+		#'pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',
+		vars=c(grep('adstock', colnames(dt),value=T))
 		
-	if(standardize==T) { # standardize between 0 and 1.
-		vars=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',grep('adstock', colnames(dt),value=T))
 		for (.var in c(vars, grep('attr[_]', colnames(dt),value=T))) {
-			if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
+		    if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := get(.var)+1,with=F]
 			}
 		}
 
 	dt
 	}
 
-analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'adstock_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE, testing = FALSE) {
+analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'advertising_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE, testing = FALSE, model = "MNL", rescale=FALSE) {
 
 	####################
 	# DEFINE VARIABLES #
 	####################
-
 
 	# define heterogenous Xs (can be potentially endogenous; copula correction terms pooled or homogenous (--> HARALD)
 		# define y variable, to be used to calculate market shares
@@ -142,7 +151,7 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	# Transform data to base-brand representation
 	dtbb <- attraction_data(as.formula(paste0('ms ~ ', paste0(c(xvars_heterog, xvars_homog),collapse=' + '))), 
 					data = dt, heterogenous = as.formula(paste0(' ~ ', paste0(c(xvars_heterog),collapse=' + '))),
-					index = ~ brand_name + week, model = "MNL", benchmark = benchmark)
+					index = ~ brand_name + week, model = model, benchmark = benchmark)
 	validObject(dtbb)
 	#show(dtbb)
 	
@@ -177,11 +186,24 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 			dummatrix[, paste0('dummy', '_', br, '_yr_', yr) := as.numeric(individ %in% br & year==yr)]
 			}
 		}
+	
 	dummatrix[, ':=' (quarter=NULL, period=NULL, individ=NULL, year=NULL)]
 
+	# rescaling
+	X=as.matrix(data.frame(dtbb@X[, -c(grep('[_]dum', colnames(dtbb@X)))]))
+	
+	if(rescale==T) { # divide by their absolute max
+		rescale_values = apply(X, 2, function(x) max(abs(x)))
+		div_matrix <- matrix(rep(rescale_values, nrow(X)), byrow=TRUE, ncol=length(rescale_values))
+		
+		X=X/div_matrix
+		}
 
-	X=as.matrix(data.frame(dtbb@X[, -c(grep('[_]dum', colnames(dtbb@X)))],dummatrix))
-	if (simpleDummies==TRUE) X=as.matrix(dtbb@X)
+	if (simpleDummies==TRUE) {
+		X=as.matrix(X)
+		} else {
+		X=as.matrix(data.frame(X,dummatrix))
+		}
 	Y=dtbb@y
 	index=data.table(week=dtbb@period, brand_name=dtbb@individ)
 	
@@ -196,11 +218,27 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	b=Sys.time()
 	cat('Finished model estimation.\n')
 	
+	retr_coefs <- coef(mest)$coef
+	mvarcovar=mest@varcovar
+		
+	if (rescale==TRUE) {
+		retr_coefs[seq(length.out=length(rescale_values))] = retr_coefs[seq(length.out=length(rescale_values))] / rescale_values
+		
+		
+		for (ch in seq(length.out=length(rescale_values))) {
+			mvarcovar[ch,] <- mvarcovar[ch,] / rescale_values[ch]
+			mvarcovar[,ch] <- mvarcovar[,ch] / rescale_values[ch]
+			}
+	} 
+	
+	coef_sum <- data.frame(variable=coef(mest)$variable, coef=retr_coefs, se = sqrt(diag(mvarcovar)))
+	coef_sum$z = coef_sum$coef / coef_sum$se
+	
 	#if (class(mest)=='try-error' & testing==TRUE) return(X)#stop('Iterative SUR procedure does not run')
 	
 	m<-NULL
-	m$coefficients <- coef(mest)
-	m$varcovar = mest@varcovar
+	m$coefficients <- coef_sum
+	m$varcovar = mvarcovar
 	m$rho = mest@rho
 	m$rho_hat = mest@rho_hat
 	m$bic = mest@bic
@@ -210,7 +248,6 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 	m$elapse_minutes = as.numeric(difftime(b,a,unit="mins"))
 	m$coefficients$orig_var=m$coefficients$variable
 	m$coefficients$variable <- NULL
-	m$coefficients$z <- m$coefficients$coef/m$coefficients$se
 	m$coefficients$brand_name<-unlist(lapply(strsplit(as.character(m$coefficients$orig_var), '_'), function(x) x[[1]][1]))
 	m$coefficients$var_name<-unlist(lapply(strsplit(as.character(m$coefficients$orig_var), '_'), function(x) paste0(x[-1], collapse='_')))
 	
@@ -231,10 +268,17 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 		
 		elasticities <- merge(meansmelt, m$coefficients, by=c('var_name', 'brand_name'), all.x=T, all.y=F)
 		elasticities <- merge(elasticities, msaverage, by=c('brand_name'))
-
-		elasticities[, elast := coef * (1-mean_ms) * mean_var]
-		elasticities[, elast_se := se * (1-mean_ms) * mean_var]
 		
+		if (model=="MNL") {
+			elasticities[, elast := coef * (1-mean_ms) * mean_var]
+			elasticities[, elast_se := se * (1-mean_ms) * mean_var]
+			}
+			
+		if (model=="MCI") {
+			elasticities[, elast := coef * (1-mean_ms)]
+			elasticities[, elast_se := se * (1-mean_ms)]
+			}
+			
 		# summary
 		selast <- elasticities[!is.na(coef), list(median_elast = median(elast), 
 												  w_elast = sum(elast/elast_se)/sum(1/elast_se), 
@@ -297,6 +341,7 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 		
 	retobject <- list(cat_name = unique(as.character(dt$cat_name)), 
 					  model=m, 
+					  model_type = model,
 					  benchmark=dtbb@benchmark, 
 					  elasticities = elasticities, 
 					  summary_elasticities=selast,
@@ -317,6 +362,7 @@ show.bav_attraction <- function(x) {
 			
 	cat('Category                      :', x$cat_name,'\n')
 	cat('\n\n')
+	cat('Model type (MNL vs. MCI): ', x$model_type,'\n')
 	cat('Estimated auto correlation in residuals:\n')
 	names(x$model$rho_hat)<-names(x$model$rho)
     print(x$model$rho_hat)
