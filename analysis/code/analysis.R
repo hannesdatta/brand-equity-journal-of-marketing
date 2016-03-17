@@ -95,16 +95,17 @@ init()
 		init()
 		dt <- prepare_data(i)
 		xvars_heterog=c('pi_bt', 'rreg_pr_bt', 
-						'pct_store_skus_bt', 'adstock40_bt') #,'adstock40_bt'
+						'pct_store_skus_bt', 'adstock70_bt') #,'adstock40_bt'
 		
 		# add one to variables which can take on zero values
 		dt <- prepare_data(i)
 		
-		out=try(analyze_marketshares(dt, xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MCI"),silent=T)
 		
-		out2=try(analyze_marketshares(dt, xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL"),silent=T)
+		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
+		
 		
 		dt <- prepare_data(i, plus_1=TRUE)
+		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
 		
 		require(lattice)
 		xyplot(adstock60_bt ~ week|brand_name, data=dt,auto.key=T,type='l')

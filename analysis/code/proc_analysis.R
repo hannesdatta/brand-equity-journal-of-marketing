@@ -223,8 +223,6 @@ analyze_marketshares <- function(dt, xvars_heterog = c('promo_bt', 'ract_pr_bt',
 		
 	if (rescale==TRUE) {
 		retr_coefs[seq(length.out=length(rescale_values))] = retr_coefs[seq(length.out=length(rescale_values))] / rescale_values
-		
-		
 		for (ch in seq(length.out=length(rescale_values))) {
 			mvarcovar[ch,] <- mvarcovar[ch,] / rescale_values[ch]
 			mvarcovar[,ch] <- mvarcovar[,ch] / rescale_values[ch]
@@ -362,7 +360,7 @@ show.bav_attraction <- function(x) {
 			
 	cat('Category                      :', x$cat_name,'\n')
 	cat('\n\n')
-	cat('Model type (MNL vs. MCI): ', x$model_type,'\n')
+	cat('Model type (MNL vs. MCI): ', x$model_type,'\n\n')
 	cat('Estimated auto correlation in residuals:\n')
 	names(x$model$rho_hat)<-names(x$model$rho)
     print(x$model$rho_hat)
