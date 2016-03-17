@@ -27,10 +27,10 @@ require(stringr)
 	bav_deletes <- sqlFetch(ch, tb_name)
 	colnames(bav_deletes) <- gsub(' ', '_', str_trim(tolower(colnames(bav_deletes))))
 	
-	#bav_deletes$brand_name = gsub('[^a-zA-Z]', '', bav_deletes$brand_name)
-	
 	odbcCloseAll()
-bav_deletes=data.table(bav_deletes)
+	
+	bav_deletes=data.table(bav_deletes)
+	bav_deletes[is.na(bav_deletes)]<-0
 
 save(bav_deletes, file='../temp//bav_deletes.RData')
 

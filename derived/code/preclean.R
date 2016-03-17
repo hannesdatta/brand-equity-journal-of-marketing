@@ -176,15 +176,12 @@ names(dat) <- names(catdata)
 # (e.g., Lipton in soup (as its major category is ice tea)          #
 #####################################################################
 
-# Verify whether data can be matched using brand_id (this requires that deletion information is completely identified using brand_id, and not brand_name)
-test=bav_deletes[, list(check=length(unique(delete))==1),by=c('cat_name', 'brand_id')]
-if(nrow(test[check==F])>0) stop('Please verify matching with BAV deletes.')
-rm(test)
-setkey(bav_deletes, cat_name, brand_id)
+setkey(bav_deletes, cat_name, brand_name)
 
 	for (i in seq(along=dat)) {
 		dt = dat[[i]]
-		
+		dt[, brand_name_charact := gsub('[^a-zA-Z]', '', brand_name)]
+
 		bav = bavdata[[i]]
 		
 		setkey(dt, cat_name, brand_name, year)
@@ -195,9 +192,9 @@ setkey(bav_deletes, cat_name, brand_id)
 					  bav_knowledge = i.Knowledge_C,
 					  bav_asset = i.Brand_Asset_C)]
 		
-		setkey(dt, cat_name, brand_id)
-		dt[bav_deletes, ':=' (delete_bav = i.delete, newbrnd_bav = i.new_brnd, dyingbrnd_bav = i.dying_brnd)]
-		dt[is.na(delete_bav), delete_bav := 0]
+		setkey(dt, cat_name, brand_name_charact)
+		dt[bav_deletes, ':=' (brnd_delete = i.delete, seccat_bav = i.bav_secondarycat, newbrnd_bav = i.bav_newbrnd, dyingbrnd_bav = i.bav_dyingbrnd)]
+		dt[is.na(brnd_delete), brnd_delete := 0]
 		
 		dat[[i]] <- dt
 		}
@@ -208,10 +205,10 @@ setkey(bav_deletes, cat_name, brand_id)
 
 # Rule: Select all brands (BAV, and NON-BAV), provided we have at least three years of consecutive data for model estimation.
 
-	brandsales <- rbindlist(lapply(dat, function(x) return(x[, c('cat_name', 'brand_name', 'brand_id', 'sales_bt', 'year', 'week', 'delete_bav'), with=F])))
+	brandsales <- rbindlist(lapply(dat, function(x) return(x[, c('cat_name', 'brand_name', 'brand_id', 'sales_bt', 'year', 'week', 'brnd_delete'), with=F])))
 	
 	# calculate year-based market shares
-	brandsales_yr <- brandsales[, list(sales = sum(sales_bt)), by = c('cat_name','brand_name','brand_id','week', 'year', 'delete_bav')]
+	brandsales_yr <- brandsales[, list(sales = sum(sales_bt)), by = c('cat_name','brand_name','brand_id','week', 'year', 'brnd_delete')]
 	brandsales_yr[, ms := sales/sum(sales), by = c('cat_name','week', 'year')]
 	
 # check whether we always have consecutive observations
@@ -224,13 +221,12 @@ setkey(bav_deletes, cat_name, brand_id)
 	
 	y=2 # minimum number of years required
 	
-	brandsales_yr[, selected := stretch_length==max(stretch_length) & stretch_length >= y*52,by=c('cat_name','brand_name')] # whether brand meets criteria in a given year
+	brandsales_yr[, selected := stretch_length==max(stretch_length) & stretch_length >= y*52 & brnd_delete==0,by=c('cat_name','brand_name')] # whether brand meets criteria in a given year
 
 	selected_brands = brandsales_yr[, list(min_ms = round(min(ms),4), max_ms=round(max(ms),4), no_months = max(stretch_length),
-										   selected = any(selected)), by=c('cat_name','brand_name', 'brand_id', 'delete_bav')]
+										   selected = any(selected)), by=c('cat_name','brand_name', 'brand_id', 'brnd_delete')]
 
-   # prepare overview
-	
+    # prepare overview
 	sel_overview = selected_brands[, list(total_brands = length(unique(brand_name)), 
 										total_brands_for_estimation = length(unique(brand_name[selected==T])),
 										total_bav_brands = length(unique(brand_name[!brand_id==''])),
