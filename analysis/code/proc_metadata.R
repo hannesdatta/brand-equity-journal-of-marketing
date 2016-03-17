@@ -36,9 +36,26 @@ cat_char = rbindlist(lapply(datasets, function(x) {
 		#	impulse = ifelse(cat_name %in% c('saltsnck'),1,0)
 		#	fooddrinks = ifelse(cat_name %in% c('beer', 'carbbev', 'coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
 	
-	data.frame(cat_name=cat_name, c4=c4, herf=H, cat_growth_abs = growth,
-			   fooddrinks, hygiene, hhclean, food, drinks, cigs)
+	data.frame(cat_name=cat_name, c4=c4, herf=H,
+			   fooddrinks, hygiene, hhclean, food, drinks, cigs, catgrowth_abs = growth)
 	}))
+
+cat_char_ms = rbindlist(lapply(datasets, function(x) {
+	dt=x[year>=2002]
+	cat_name=unique(dt$cat_name)
+	tmp=dt[, list(sales_first=sum(sales_bt[year==min(year)],na.rm=T),
+				  sales_last=sum(sales_bt[year==max(year)],na.rm=T),
+				  nyears = length(unique(year))), by=c('cat_name')]
+	}))
+	
+cat_char_ms[, ':=' (ms_first = sales_first/sum(sales_first), ms_last = sales_last/sum(sales_last))]
+cat_char_ms[, catgrowth_rel := (ms_last/ms_first)^(1/nyears)]
+
+setkey(cat_char_ms, cat_name)
+setkey(cat_char, cat_name)
+
+cat_char[cat_char_ms, catgrowth_rel := i.catgrowth_rel]
+
 
 # brand characteristics
 brand_char = rbindlist(lapply(datasets, function(x) {
@@ -47,8 +64,11 @@ brand_char = rbindlist(lapply(datasets, function(x) {
 	# mean marketing mix, and sales/market share in a year
 	tmp=dt[, list(sales=sum(sales_bt,na.rm=T), 
 				  meanprice = mean(rreg_pr_bt,na.rm=T), sdpriceindex = sd(pi_bt,na.rm=T),
-				  meanad = mean(advertising_bt,na.rm=T), secondary_category = as.numeric(unique(delete_bav)==1),
+				  meanad = mean(advertising_bt,na.rm=T),
 				  newbrnd_bav=unique(newbrnd_bav),
+				  seccat_bav=unique(seccat_bav),
+				  dyingbrnd_bav=unique(dyingbrnd_bav),
+				  
 				  sales_yrfirst = sum(sales_bt[year==min(year)], na.rm=T),
 				  sales_yrlast =  sum(sales_bt[year==max(year)], na.rm=T),
 				  growth_years = max(year)-min(year)+1),
@@ -65,17 +85,18 @@ brand_char = rbindlist(lapply(datasets, function(x) {
 				   pricepos = std_by1(meanprice), 
 				   dealdepth = sdpriceindex, 
 				   relad = std_by1(meanad), 
-				   #secondary_cat = secondary_category,
-				   new_brand = newbrnd_bav,
-				   brand_growth_abs = (sales_yrlast/sales_yrfirst)^(1/growth_years), 
-				   brand_growth_rel = (ms_yrlast/ms_yrfirst)^(1/growth_years)),
+				   seccat = seccat_bav,
+				   newbrnd = newbrnd_bav,
+				   dyingbrnd = dyingbrnd_bav,
+				   brndgrowth_abs = (sales_yrlast/sales_yrfirst)^(1/growth_years), 
+				   brndgrowth_rel = (ms_yrlast/ms_yrfirst)^(1/growth_years)),
 				   by=c('cat_name')]
 				   
 	tmp[, brand_light := ifelse(grepl('light', brand_name,ignore.case = TRUE), 1,0)]
 	return(tmp)
 	}))
 
-setkey(cat_char, cat_name)
 setkey(brand_char, cat_name) # by time, e.g., year?!
+
 meta_char = brand_char[cat_char]
 
