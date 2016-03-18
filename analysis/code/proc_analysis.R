@@ -111,7 +111,7 @@ prepare_data_old <- function(i, standardize = TRUE) {
 	}
 
 	
-analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'advertising_bt'), xvars_endog = NULL, attributes = TRUE, simpleDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE, testing = FALSE, model = "MNL", rescale=FALSE) {
+analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'advertising_bt'), xvars_endog = NULL, attributes = TRUE, yearlyDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE, testing = FALSE, model = "MNL", rescale=FALSE) {
 
 	####################
 	# DEFINE VARIABLES #
@@ -248,10 +248,10 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 		X=X/div_matrix
 		}
 	
-	if (simpleDummies==TRUE) {
-		X=as.matrix(X)
-		} else {
+	if (yearlyDummies==TRUE) {
 		X=as.matrix(data.frame(X,dummatrix))
+		} else {
+		X=as.matrix(X)
 		}
 		
 	Y=dtbb@y
@@ -341,7 +341,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	################
 	# EXTRACT SBBE #
 	################
-		
+	if (yearlyDummies==TRUE) {
 		# Extract coefficients
 		ind <- which(grepl('[_]dum|[_]yr[_]', coef_sum$variable))
 		sbbe_raw <- data.table(coef_sum[ind,])
@@ -385,6 +385,9 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	
 	cbbe = dtf[, lapply(.SD, unique), by=c('brand_name', 'year'), .SDcols=grep('bav[_]',colnames(dtf),value=T)]
 	brand_equity = merge(sbbe, cbbe, by=c('brand_name', 'year'), all.x=T, all.y=T)
+	} else {
+	brand_equity=NULL
+	}
 	
 	##################
 	# RETURN RESULTS #
@@ -427,10 +430,14 @@ show.bav_attraction <- function(x) {
 	cat('\nSummary of estimated elasticities:\n')
 	print(x$summary_elasticities[which(!grepl('cop[_]', x$summary_elasticities$var_name)),], digits=3)	
 	
+	if (!is.null(x$equity)) {
 	cat('\nBrand equity correlations:\n')
 	print(cor(x$equity[,c('sbbe', grep('bav[_]', colnames(x$equity),value=T))],use='complete.obs'))
 	cat('\nSBBE and CBBE measures are available for ', length(unique(x$equity[which(!is.na(x$equity$bav_asset)),]$brand_name)), ' brands.\n')
 	#print(dcast(melt(x$equity,id.vars=c('brand_name', 'year')), brand_name + year ~ variable),digits=3)
+	} else {
+	cat('\nBrand equity not estimated.\n')
+	}
 	
 	# run this part only if Copulas are part of the model
 	if(!is.null(x$copula_normality)) {

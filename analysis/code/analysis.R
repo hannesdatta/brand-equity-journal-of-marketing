@@ -68,10 +68,10 @@ init()
 					
 					dt <- prepare_data(i)
 					
-					if(spec=='non-copula') res=try(analyze_marketshares(dt, xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',paste0('adstock', decay, '_bt')), simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL,testing=FALSE),silent=T)
+					if(spec=='non-copula') res=try(analyze_marketshares(dt, xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',paste0('adstock', decay, '_bt')), yearlyDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL,testing=FALSE),silent=T)
 					if(spec=='copula') res=try(analyze_marketshares(dt, xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',paste0('adstock', decay, '_bt')),
 																	xvars_endog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',paste0('adstock', decay, '_bt')),
-																	simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, testing=FALSE),silent=T)
+																	yearlyDummies=TRUE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, testing=FALSE),silent=T)
 					res$category_no=i
 					res$spec = spec
 					res$adv_decay = decay
@@ -127,7 +127,7 @@ init()
 		te=cbind(dtsave$pi_bt, dt$pi_bt, dtold$pi_bt)
 		cor(te)
 	
-		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
+		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, yearlyDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
 	
 		te=cbind(dtsave$pi_bt, dt$pi_bt, dtold$pi_bt)
 		cor(te)
@@ -151,13 +151,13 @@ init()
 		dt <- prepare_data(i)
 		xvars_heterog=c('pi_bt', 'rreg_pr_bt', 
 						'pct_store_skus_bt', 'adstock70_bt') #,'adstock40_bt'
-		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, simpleDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
+		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, yearlyDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
 	
-		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, simpleDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
-		out3=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, simpleDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
+		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, yearlyDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
+		out3=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, yearlyDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
 		
-		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
-		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
+		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, yearlyDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
+		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, yearlyDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
 		show(out)
 		show(out2)
 		
@@ -168,10 +168,10 @@ init()
 	
 		unlist(lapply(datasets, function(x) max(x$advertising_bt)))
 		
-		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE),silent=T)
+		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, yearlyDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE),silent=T)
 	
 		dt <- prepare_data(i, plus_1=TRUE)
-		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
+		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, yearlyDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
 		
 		require(lattice)
 		xyplot(adstock60_bt ~ week|brand_name, data=dt,auto.key=T,type='l')
@@ -181,37 +181,12 @@ init()
 		out$model$elapse
 		
 		outendog=analyze_marketshares(dt, xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', 'adstock50_bt'),
-									 xvars_endog = c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', 'adstock50_bt'), simpleDummies=FALSE,method="FGLS-Praise-Winsten")
+									 xvars_endog = c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', 'adstock50_bt'), yearlyDummies=FALSE,method="FGLS-Praise-Winsten")
 		
 		show(out)
 		show(outendog)
 	}
 	
-
-	if(0){
-		i=7
-		
-		init()
-		dt <- prepare_data(i)
-		
-		decays = formatC(seq(from=0, to=1, by=c(.1))*100, width=2, flag=0)
-		out<-lapply(decays, function(decay) {
-				analyze_marketshares(dt, xvars_heterog=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', paste0('adstock', decay, '_bt')),
-										 xvars_endog = c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', paste0('adstock', decay, '_bt')), simpleDummies=FALSE,method="FGLS-Praise-Winsten")
-									 
-				})
-
-		par(mfrow=c(1,2))
-		plot(x=decays,y=unlist(lapply(out, function(x) x$model$bic)),type='l', main='BIC')
-		abline(v=decays[which(unlist(lapply(out, function(x) x$model$bic))==min(unlist(lapply(out, function(x) x$model$bic))))])
-		decays[which(unlist(lapply(out, function(x) x$model$bic))==min(unlist(lapply(out, function(x) x$model$bic))))]
-		which(unlist(lapply(out, function(x) x$model$bic))==min(unlist(lapply(out, function(x) x$model$bic))))
-
-		plot(x=decays,y=unlist(lapply(out, function(x) x$model$aic)),type='l',main='AIC')
-		abline(v=decays[which(unlist(lapply(out, function(x) x$model$aic))==min(unlist(lapply(out, function(x) x$model$aic))))])
-		decays[which(unlist(lapply(out, function(x) x$model$aic))==min(unlist(lapply(out, function(x) x$model$aic))))]
-		which(unlist(lapply(out, function(x) x$model$aic))==min(unlist(lapply(out, function(x) x$model$aic))))
-	}
 
 ####################
 ### SAVE RESULTS ###
