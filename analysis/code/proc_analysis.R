@@ -111,7 +111,16 @@ prepare_data_old <- function(i, standardize = TRUE) {
 	}
 
 	
-analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'advertising_bt'), xvars_endog = NULL, attributes = TRUE, yearlyDummies=TRUE, method = "FGLS-Praise-Winsten", benchmark = NULL, quarter=TRUE, testing = FALSE, model = "MNL", rescale=FALSE) {
+analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'advertising_bt'), 
+									  xvars_endog = NULL, 
+									  attributes = TRUE, 
+									  yearlyDummies=TRUE, 
+									  sur_method = "FGLS-Praise-Winsten", 
+									  benchmark = NULL, 
+									  quarterlyDummies=TRUE, 
+									  testing = FALSE, 
+									  attr_spec = "MNL", 
+									  rescale=FALSE) {
 
 	####################
 	# DEFINE VARIABLES #
@@ -163,9 +172,18 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	################################
 	# Add Copula Correction Terms  #
 	################################
-
+	if (attr_spec=='MCI') {
+		tkt <- function(x) log(x)
+		btkt <- function(x) exp(x)
+		}
+		
+	if (attr_spec=='MNL') {
+		tkt <- function(x) x
+		btkt <- function(x) x
+		}
+		
 	for (.var in xvars_endog) {
-		dtf[, paste0('cop_', .var) := make_copula(get(.var)), by=c('brand_name'),with=F]
+		dtf[, paste0('cop_', .var) := btkt(make_copula(get(.var))), by=c('brand_name'),with=F]
 		xvars_heterog <- c(xvars_heterog, paste0('cop_',.var))
 		}
 	
@@ -196,7 +214,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	# Transform data to base-brand representation
 	dtbb <- attraction_data(as.formula(paste0('ms ~ ', paste0(c(xvars_heterog, xvars_homog),collapse=' + '))), 
 					data = dtf, heterogenous = as.formula(paste0(' ~ ', paste0(c(xvars_heterog),collapse=' + '))),
-					index = ~ brand_name + week, model = model, benchmark = benchmark)
+					index = ~ brand_name + week, model = attr_spec, benchmark = benchmark)
 	validObject(dtbb)
 	#show(dtbb)
 	
@@ -217,7 +235,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 		if (br==benchbrand) next
 		
 		# create quarterly dummies
-		if (quarter==T) {
+		if (quarterlyDummies==T) {
 			for (qu in 2:4) {
 				# mean-centering for effect coding
 				dummatrix[individ==br, paste0('quarter', qu,'_', br) := ifelse(quarter==qu, 1, 0)-sum(quarter==qu)/.N]
@@ -237,14 +255,11 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 
 	# rescaling
 	X=as.matrix(data.frame(dtbb@X[, -c(grep('[_]dum', colnames(dtbb@X)))]))
+	
 	if(rescale==TRUE) { # divide variables by their absolute max
 		cat('running rescaling\n')
 		rescale_values = apply(X, 2, function(x) max(abs(x)))
-		rescale_values = rep(10, length(rescale_values))
-		#rescale_values[1] <- 100
 		div_matrix <- matrix(rep(rescale_values, nrow(X)), byrow=TRUE, ncol=length(rescale_values))
-		#browser()
-	
 		X=X/div_matrix
 		}
 	
@@ -264,9 +279,11 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 		
 	a=Sys.time()
 	cat('Starting model estimation...\n')
-	mest <- itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=method,maxiter=ifelse(testing==T, 1, 1000))
+	mest <- try(itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=sur_method,maxiter=ifelse(testing==T, 1, 1000)),silent=TRUE)
 	b=Sys.time()
 	cat('Finished model estimation.\n')
+	
+	if (class(mest)=='try-error' & testing==TRUE) return(X)#stop('Iterative SUR procedure does not run')
 	
 	retr_coefs <- coef(mest)$coef
 	mvarcovar=mest@varcovar
@@ -285,7 +302,6 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	coef_sum <- data.frame(variable=coef(mest)$variable, coef=retr_coefs, se = sqrt(diag(mvarcovar)))
 	coef_sum$z = coef_sum$coef / coef_sum$se
 	
-	#if (class(mest)=='try-error' & testing==TRUE) return(X)#stop('Iterative SUR procedure does not run')
 	
 	m<-NULL
 	m$coefficients <- coef_sum
@@ -301,9 +317,6 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	m$coefficients$variable <- NULL
 	m$coefficients$brand_name<-unlist(lapply(strsplit(as.character(m$coefficients$orig_var), '_'), function(x) x[[1]][1]))
 	m$coefficients$var_name<-unlist(lapply(strsplit(as.character(m$coefficients$orig_var), '_'), function(x) paste0(x[-1], collapse='_')))
-	
-	#print(m$sigma)
-	#m$coefficients
 
 	########################
 	# EXTRACT ELASTICITIES #
@@ -320,12 +333,12 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 		elasticities <- merge(meansmelt, m$coefficients, by=c('var_name', 'brand_name'), all.x=T, all.y=F)
 		elasticities <- merge(elasticities, msaverage, by=c('brand_name'))
 		
-		if (model=="MNL") {
+		if (attr_spec=="MNL") {
 			elasticities[, elast := coef * (1-mean_ms) * mean_var]
 			elasticities[, elast_se := se * (1-mean_ms) * mean_var]
 			}
 			
-		if (model=="MCI") {
+		if (attr_spec=="MCI") {
 			elasticities[, elast := coef * (1-mean_ms)]
 			elasticities[, elast_se := se * (1-mean_ms)]
 			}
@@ -341,6 +354,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	################
 	# EXTRACT SBBE #
 	################
+	
 	if (yearlyDummies==TRUE) {
 		# Extract coefficients
 		ind <- which(grepl('[_]dum|[_]yr[_]', coef_sum$variable))
@@ -395,7 +409,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 		
 	retobject <- list(cat_name = unique(as.character(dtf$cat_name)), 
 					  model=m, 
-					  model_type = model,
+					  attr_spec = attr_spec,
 					  benchmark=dtbb@benchmark, 
 					  elasticities = elasticities, 
 					  summary_elasticities=selast,
@@ -416,7 +430,7 @@ show.bav_attraction <- function(x) {
 			
 	cat('Category                      :', x$cat_name,'\n')
 	cat('\n\n')
-	cat('Model type (MNL vs. MCI): ', x$model_type,'\n\n')
+	cat('Model type (MNL vs. MCI): ', x$attr_spec,'\n\n')
 	cat('Estimated auto correlation in residuals:\n')
 	names(x$model$rho_hat)<-names(x$model$rho)
     print(x$model$rho_hat)
@@ -430,13 +444,13 @@ show.bav_attraction <- function(x) {
 	cat('\nSummary of estimated elasticities:\n')
 	print(x$summary_elasticities[which(!grepl('cop[_]', x$summary_elasticities$var_name)),], digits=3)	
 	
-	if (!is.null(x$equity)) {
+	if (nrow(x$equity)>0) {
 	cat('\nBrand equity correlations:\n')
 	print(cor(x$equity[,c('sbbe', grep('bav[_]', colnames(x$equity),value=T))],use='complete.obs'))
 	cat('\nSBBE and CBBE measures are available for ', length(unique(x$equity[which(!is.na(x$equity$bav_asset)),]$brand_name)), ' brands.\n')
 	#print(dcast(melt(x$equity,id.vars=c('brand_name', 'year')), brand_name + year ~ variable),digits=3)
 	} else {
-	cat('\nBrand equity not estimated.\n')
+	cat('\nBrand equity:\n\nnot estimated.\n\n')
 	}
 	
 	# run this part only if Copulas are part of the model
