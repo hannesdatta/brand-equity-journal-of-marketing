@@ -37,8 +37,8 @@ prepare_data <- function(i, plus_1 = FALSE) {
 	
 	decays = formatC(seq(from=0.00, to=1, by=.05)*100, width=2, flag=0)
 	for (decay in decays) {
-		prec=6
-		dt[, paste0('adstock', decay, '_bt') := round(adstock(advertising_bt, lambda=as.numeric(decay)/100),prec),by=c('brand_name'),with=F]
+		dt[, paste0('adstock', decay, '_bt') := adstock(advertising_bt, lambda=as.numeric(decay)/100),by=c('brand_name'),with=F]
+		dt[, paste0('adstock', decay, '_bt') := round(get(paste0('adstock', decay, '_bt')),0), with=F]
 		}
 	
 	# kick out first 4 observations by brand
@@ -156,16 +156,17 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 
 	# check for variation in all variables by brand; if not available, set all to NA
 	for (.n in c(xvars_heterog, yvars)) {
-		prec=6
-		dtf[, get_n := length(unique(round(get(.n),prec))),by=c('brand_name')]
+		dtf[, get_n := length(unique(get(.n))),by=c('brand_name')]
 		dtf[get_n==1, .n := NA, with=F]
+		
 		if (grepl('advertising|adstock', .n)) {
-			dtf[, obs := length(which(round(get(.n),prec)>0)),by=c('brand_name')]
+			dtf[, obs := length(which(get(.n)>0)),by=c('brand_name')]
 			dtf[obs<8, .n := NA, with=F]
 			dtf[, obs:=NULL]
 			}
 		dtf[,':=' (get_n=NULL)]
 		}
+
 	cat('Unique values\n')
 	dtf[, lapply(.SD, function(x) length(unique(x[!is.na(x)]))), by=c('brand_name'), .SDcols=c(xvars_heterog, yvars)]
 	

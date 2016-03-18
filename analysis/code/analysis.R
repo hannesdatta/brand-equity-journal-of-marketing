@@ -41,7 +41,7 @@ init()
 		mestim = c(7,9,10,12,13,15,16,17,18,19,21,22:23)
 		endogeneity_spec <- c('non-copula', 'copula')
 		model_type = c('MNL', 'MCI')
-		adv_decay = 50 #formatC(seq(from=0, to=.9, by=c(.1))*100, width=2, flag=0)
+		adv_decay = 90 #formatC(seq(from=0, to=.9, by=c(.1))*100, width=2, flag=0)
 		
 		
 		models=data.table(expand.grid(index=mestim, endogeneity_spec=endogeneity_spec, decay=adv_decay, model_type = model_type))
@@ -85,13 +85,15 @@ init()
 
 	if(0) { # estimation of a single category
 	
-		i=22
+		i=23
 		
 		init()
 		
 		# add one to variables which can take on zero values
-		dt <- prepare_data(i, plus_1 = TRUE)
-		#dt <- prepare_data_old(i, standardize=FALSE) # or TRUE
+		dt <- prepare_data(i, plus_1 = FALSE)
+		dt[brand_name=='MD']$adstock50_bt
+		 
+		 #dt <- prepare_data_old(i, standardize=FALSE) # or TRUE
 		
 		xvars_heterog=c('pi_bt', 'rreg_pr_bt', 
 						'pct_store_skus_bt', 'adstock50_bt') #,'adstock40_bt'
