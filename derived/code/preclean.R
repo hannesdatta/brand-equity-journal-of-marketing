@@ -310,6 +310,9 @@ for (i in seq(along=dat)) {
 	# compute market share
 	dt[, ms_bt := sales_bt/sum(sales_bt), by=c('week')]
 
+	# scale advertising expenditure from 1,000 spending to 1 US$ spending.
+	dt[, advertising_bt := advertising_bt*1000]
+	
 	# add quarterly dummies
 	dt[,quarter:=as.numeric(cut(month,c(0,3,6,9,12)))]
 	
