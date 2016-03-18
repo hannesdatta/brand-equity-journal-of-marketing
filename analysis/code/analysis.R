@@ -111,19 +111,62 @@ init()
 		
 		init()
 		dt <- prepare_data(i)
+		
 		xvars_heterog=c('pi_bt', 'rreg_pr_bt', 
 						'pct_store_skus_bt', 'adstock70_bt') #,'adstock40_bt'
 		
 		# add one to variables which can take on zero values
 		dt <- prepare_data(i)
+		setorder(dt, brand_name, week)
 		dtold <- prepare_data_old(i)
+		setorder(dtold, brand_name, week)
 		te=cbind(dtold$pi_bt, dt$pi_bt)
 		cor(te)
 		dtsave<-dt
-			te=cbind(dtsave$pi_bt, dt$pi_bt, dtold$pi_bt)
+		
+		te=cbind(dtsave$pi_bt, dt$pi_bt, dtold$pi_bt)
 		cor(te)
 	
 		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
+	
+		te=cbind(dtsave$pi_bt, dt$pi_bt, dtold$pi_bt)
+		cor(te)
+	
+		dt <- prepare_data_old(i, standardize=FALSE)
+		dtnew <- prepare_data(i)
+		setorder(dtnew, brand_name, week)
+		te=cbind(dt$pi_bt, dtnew$pi_bt)
+		
+		dt[, pi_bt := (pi_bt-min(pi_bt,na.rm=T))/(max(pi_bt,na.rm=T)-min(pi_bt,na.rm=T))]
+	
+		dt <- prepare_data_old(i, standardize=FALSE)
+		setorder(dt, brand_name, week)
+		
+		for (.var in grep('attr[_]', colnames(dt),value=T)) {
+			if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
+			}
+	
+	
+		init()
+		dt <- prepare_data(i)
+		xvars_heterog=c('pi_bt', 'rreg_pr_bt', 
+						'pct_store_skus_bt', 'adstock70_bt') #,'adstock40_bt'
+		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, simpleDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
+	
+		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, simpleDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
+		out3=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=NULL, simpleDummies=FALSE,attributes=FALSE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=FALSE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
+		
+		out=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=FALSE),silent=T)
+		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE,model="MNL",rescale=TRUE),silent=T)
+		show(out)
+		show(out2)
+		
+		head(out$model$coefficients)
+		head(out2$model$coefficients)
+
+		
+	
+		unlist(lapply(datasets, function(x) max(x$advertising_bt)))
 		
 		out2=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog, xvars_endog=xvars_heterog, simpleDummies=FALSE,attributes=TRUE,method="FGLS-Praise-Winsten", benchmark= NULL, quarter=TRUE,testing=FALSE),silent=T)
 	

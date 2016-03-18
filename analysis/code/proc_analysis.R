@@ -62,10 +62,12 @@ prepare_data <- function(i, plus_1 = FALSE) {
 		    if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := get(.var)+1,with=F]
 			}
 		}
-
+	setorder(dt, brand_name, week)
+		
 	dt
 	}
 
+# warning: the standardization in this procedure seems to be incorrect when used in an MNL model. Obtained elasticities are not the same.
 prepare_data_old <- function(i, standardize = TRUE) {
 	print(i)
 	print(names(datasets)[i])
@@ -99,11 +101,12 @@ prepare_data_old <- function(i, standardize = TRUE) {
 		
 	if(standardize==T) { # standardize between 0 and 1.
 		vars=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',grep('adstock', colnames(dt),value=T))
-		for (.var in c(vars, grep('attr[_]', colnames(dt),value=T))) {
+		for (.var in c(vars)) {#, grep('attr[_]', colnames(dt),value=T))) {
 			if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
 			}
 		}
 
+	setorder(dt, brand_name, week)
 	dt
 	}
 
@@ -200,11 +203,12 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	# create dummies for all brands in all years they are available
 	brands <- unique(dtf$brand_name)
 	benchbrand = dtbb@benchmark
-	
+
 	# create dummy dataset
 	dummatrix = data.table(individ=dtbb@individ, period=dtbb@period)
 	# match years
 	setkey(dummatrix,individ,period)
+	#dumdf = data.table(dtf)
 	setkey(dtf, brand_name, week)
 	dummatrix[dtf, ':=' (year=i.year, quarter=i.quarter)]
 	
@@ -233,15 +237,17 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 
 	# rescaling
 	X=as.matrix(data.frame(dtbb@X[, -c(grep('[_]dum', colnames(dtbb@X)))]))
-	print(sum(X))
-	if(rescale==TRUE) { # divide by their absolute max
+	if(rescale==TRUE) { # divide variables by their absolute max
 		cat('running rescaling\n')
 		rescale_values = apply(X, 2, function(x) max(abs(x)))
+		rescale_values = rep(10, length(rescale_values))
+		#rescale_values[1] <- 100
 		div_matrix <- matrix(rep(rescale_values, nrow(X)), byrow=TRUE, ncol=length(rescale_values))
-		
+		#browser()
+	
 		X=X/div_matrix
 		}
-	print(sum(X))
+	
 	if (simpleDummies==TRUE) {
 		X=as.matrix(X)
 		} else {
@@ -255,7 +261,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	# choice of base brand: put last.
 	X_without_quarter = X[,!grepl('quarter', colnames(X))]
 	if (any(colSums(X_without_quarter)==0)) stop(paste0('Problems with no variation in variables: ', paste(colnames(X_without_quarter)[which(colSums(X_without_quarter)==0)], collapse = ', ')))
-	
+		
 	a=Sys.time()
 	cat('Starting model estimation...\n')
 	mest <- itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=method,maxiter=ifelse(testing==T, 1, 1000))
@@ -265,17 +271,16 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	retr_coefs <- coef(mest)$coef
 	mvarcovar=mest@varcovar
 	
-	print(sum(mvarcovar))	
+	
 	if (rescale==TRUE) {
 		cat('transforming back coefficients\n')
-		retr_coefs[seq(length.out=length(rescale_values))] = retr_coefs[seq(length.out=length(rescale_values))] * rescale_values
+		retr_coefs[seq(length.out=length(rescale_values))] = retr_coefs[seq(length.out=length(rescale_values))] / rescale_values
 		
 		for (ch in seq(length.out=length(rescale_values))) {
-			mvarcovar[ch,] <- mvarcovar[ch,] * rescale_values[ch]
-			mvarcovar[,ch] <- mvarcovar[,ch] * rescale_values[ch]
+			mvarcovar[ch,] <- mvarcovar[ch,] / rescale_values[ch]
+			mvarcovar[,ch] <- mvarcovar[,ch] / rescale_values[ch]
 			}
 	}
-	print(sum(mvarcovar))	
 	
 	coef_sum <- data.frame(variable=coef(mest)$variable, coef=retr_coefs, se = sqrt(diag(mvarcovar)))
 	coef_sum$z = coef_sum$coef / coef_sum$se
@@ -299,7 +304,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	
 	#print(m$sigma)
 	#m$coefficients
-	
+
 	########################
 	# EXTRACT ELASTICITIES #
 	########################
