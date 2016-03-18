@@ -14,6 +14,7 @@ OUTPUT_DIR = ../output
 
 # complete build
 build: $(OUTPUT_DIR)/datasets.RData plots
+buildnp: $(OUTPUT_DIR)/datasets.RData
 
 # part builds
 raw: $(TEMP_DIR)/iri_sales.RData

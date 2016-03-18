@@ -330,3 +330,48 @@ x interactions to be mean-centered.
 x WLS...? clustered standard errors...? / Random effects or clustered... / ...
 x lagged CBBE in SBBE regressions may cause too much MC
 x 
+
+18 March 2016
+=============
+
+ADSTOCK
+=======
+
+We need to select for which brands adstock enters the model. Previously, we have settled on "non-zero advertising spending for at least 8 weeks". 
+What I actually implemented was: non-zero ADSTOCK for at least 8 weeks, measured at a precision of six digits after the comma. 
+
+Now I realize that the precision has been a black box, because I did not know in what multiples advertising was actually measured. 
+Next to that, it's weird to write it like that. Today, I learnt advertising is measured in multiples of ,000. Given that we have a lot of small brands with very little spending, 
+I suggest to openly say that we round to multiples of 1 USD.
+
+This is how I would write it up:
+ "[...] where adstock_bt is the exponentially smoothed advertising spending of brand b in period t, 
+ expressed in increments of 1US$. The smoothing parameter lambda is estimated from the data. We do not include adstock if it exceeds 1 USD in less than 8 weeks."
+
+
+SCALING OF VARIABLES
+====================
+
+In previous versions of the code, I rescaled the variables to be between 0 and 1, and then applied the transformations necessary for an attraction model. 
+When implementing the MCI model, and getting some advice by Kusum, I realize that this transformation is incorrect. I have not fully digested WHY, but I can see it in simulations.
+
+What I do now is: 
+ (1) First transform the system of equations to its corresponding MCI or MNL attraction model
+ (2) Then apply a rescaling (notably needed for advertising)
+ (3) Estimate the model via SUR
+ (4) Transform the coefficients and variance-covariance matrix, as if the model had been estimated without rescaling
+ (5) Compute elasticities
+
+ATTRIBUTES IN AN MCI MODEL
+==========================
+Our attribute variables are measured between 0 and 1. I now multiply this metric by 100, such that "adding 1" (to prevent taking the log of 0) has a negligible impact. How we write it up:
+
+"[...] where attribute_kbt indicates how many SKUs of brand b in period t are of attribute k (measured in percentage points)."
+
+When estimating the MCI model, we could further add:
+
+"We add 1 to all variables that can take on zero values".
+
+HHCLEAN
+========
+Just to keep it on the agenda, we need to decide what to do with - notably - the HHCLEAN category (sales spike in category sales in 2007). I understand that the shop selection is driving this spike.
