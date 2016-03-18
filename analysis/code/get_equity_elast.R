@@ -33,7 +33,7 @@ extract_elast_equity <- function(tmp_results) {
 	
 	}
 
-tmp = extract_elast_equity(all_results[selected_models$index])
+tmp = extract_elast_equity(all_results[sel_models])
 
 equity = tmp$equity
 elast = tmp$elast

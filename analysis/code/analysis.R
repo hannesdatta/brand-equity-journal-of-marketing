@@ -41,7 +41,7 @@ init()
 		#mestim = c(7,9,10,12,13,15,16,17,18,19,21,22:23)
 		endogeneity_spec <- c('non-copula', 'copula')
 		model_type = c('MNL', 'MCI')
-		adv_decay = formatC(seq(from=0, to=.9, by=c(.1))*100, width=2, flag=0)
+		adv_decay = 90 #formatC(seq(from=0, to=.9, by=c(.1))*100, width=2, flag=0)
 		
 		models=data.table(expand.grid(index=mestim, endogeneity_spec=endogeneity_spec, decay=adv_decay, model_type = model_type))
 		models[, sample_size := overview$nobs[match(index, overview$index)]]

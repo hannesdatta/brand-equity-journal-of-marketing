@@ -6,13 +6,15 @@
 # Get results and prepare all data sets
 	source('get_results.R')
 # Extract equity / prepare data sets to be used in meta analysis
+	sel_models = selected_models[attr_type=='MCI' & type == 'copula']$index
+	
 	source('get_equity_elast.R')
 	source('proc_metadata.R') # get meta characteristics
 	
 # Merge equity and elasticities with brand- and category-level characteristics
 	equity = merge(equity, meta_char, by=c('cat_name', 'brand_name'),all.x=T,all.y=F)
 	elast = merge(elast, meta_char, by = c('cat_name', 'brand_name'), all.x=T, all.y=F)
-
+	
 # Assertions
 	elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
 	# should be near-to-zero

@@ -21,7 +21,7 @@ for (fn in c(fn_data, fn_results)) {
 	
 # Load analysis code
 	source('proc_analysis.R')
-	
+
 	
 ###################
 # MODEL SELECTION #
@@ -37,16 +37,18 @@ for (fn in c(fn_data, fn_results)) {
 	models <- models_meta
 	
 	models[, type := sapply(model_name, function(x) strsplit(x, split='_')[[1]][2])]
+	models[, attr_type := sapply(model_name, function(x) strsplit(x, split='_')[[1]][4])]
 	models[, cat_index := sapply(model_name, function(x) strsplit(x, split='_')[[1]][1])]
 	models[, decay := as.numeric(sapply(model_name, function(x) strsplit(x, split='_')[[1]][3]))]
 	
 # Select best-fitting models (min AIC)
-	models[, ':=' (selected= max(llik) == llik), by=c('cat_index', 'type')]
+	models[, ':=' (selected= max(llik) == llik), by=c('cat_index', 'attr_type', 'type')]
 	
 # Plot decay patterns
 	path='..//audit//decay_selection//'
 	dir.create(path)
 	require(lattice)
+	
 	for (i in unique(models$cat_index)) {
 		tmp=models[cat_index==i]
 		cat_name=rownames(overview)[match(i, overview$index)]
@@ -68,10 +70,11 @@ for (fn in c(fn_data, fn_results)) {
 	source('proc_report.R')
 
 	unlink('..//output//*.txt')
+	selected_models[, type_and_attr_type := paste(attr_type,type, sep='_')]
 	
 	# Report individual model results
-	for (r in unique(selected_models$type)) {
-		sel=selected_models[type==r]
+	for (r in unique(selected_models$type_and_attr_type)) {
+		sel=selected_models[type_and_attr_type==r]
 		sink(paste0('..//output//estimates_', r, '.txt'))
 	
 		for (i in sel$index) {
