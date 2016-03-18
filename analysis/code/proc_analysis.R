@@ -173,6 +173,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	################################
 	# Add Copula Correction Terms  #
 	################################
+	
 	if (attr_spec=='MCI') {
 		tkt <- function(x) log(x)
 		btkt <- function(x) exp(x)
