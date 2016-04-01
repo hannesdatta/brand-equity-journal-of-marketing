@@ -383,7 +383,7 @@ compute_equity.bav_attraction <- function(x) {
 	brand_equity = merge(sbbe, x$cbbe, by=c('brand_name', 'year'), all.x=T, all.y=T)
 	
 	}
-	return(brand_equity)
+	return(data.frame(brand_equity))
 	}
 		
 

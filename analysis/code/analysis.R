@@ -71,7 +71,7 @@ init()
 					
 					xvars_heterog <- c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',paste0('adstock', adv_decay, '_bt'))
 					if (varspec=='5mmix') xvars_heterog <- c(xvars_heterog, 'fd_bt')
-					
+
 					if(endogeneity_spec=='copula') xvars_endog = xvars_heterog else xvars_endog = NULL
 					
 					res=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog,
@@ -97,7 +97,7 @@ init()
 
 	if(0) { # estimation of a single category
 	
-		i=23
+		i=9
 		
 		init()
 		
@@ -118,8 +118,10 @@ init()
 										 benchmark=NULL, 
 										 testing=FALSE
 										 ),silent=T)
-
 		show(out)
+		out$equity <- compute_equity(out)
+		show(out)
+		
 		
 	}
 
