@@ -47,16 +47,15 @@ prepare_data <- function(i, plus_1 = FALSE) {
 	# retain only observations from year 2002 onwards (to match with BAV data)
 	dt <- dt[year>=2002]
 	
-	# rescale attribute levels between 0 and 100
-	for (.var in c(grep('attr[_]', colnames(dt),value=T))) {
-		scaling=c(0,100)
-		if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := scaling[1] + (scaling[2]-scaling[1])*((get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T))),with=F]
+	# rescale attribute levels and fd_bt between 0 and 100 (i.e., multiply by 100)
+	for (.var in c(grep('attr[_]|fd[_]bt', colnames(dt),value=T))) {
+		dt[, .var := 100*(get(.var)),with=F]
 		}
 	
 	if (plus_1==TRUE) {
 		vars=c(grep('adstock', colnames(dt),value=T))
 		
-		for (.var in c(vars, grep('attr[_]', colnames(dt),value=T))) {
+		for (.var in c(vars, grep('attr[_]|fd[_]bt', colnames(dt),value=T))) {
 		    if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := get(.var)+1,with=F]
 			}
 		}
