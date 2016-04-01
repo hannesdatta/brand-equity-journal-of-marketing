@@ -310,7 +310,6 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	################
 	
 	if (yearlyDummies==TRUE & attr_spec == 'MNL') { # Note: SBBE can only be extracted for MNL models
-	
 		# Extract coefficients
 		ind <- which(grepl('[_]dum|[_]yr[_]', coef_sum$variable))
 		sbbe_raw <- data.table(coef_sum[ind,])
