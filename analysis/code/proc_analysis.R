@@ -309,7 +309,8 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	# EXTRACT SBBE #
 	################
 	
-	if (yearlyDummies==TRUE) {
+	if (yearlyDummies==TRUE & attr_spec == 'MNL') { # Note: SBBE can only be extracted for MNL models
+	
 		# Extract coefficients
 		ind <- which(grepl('[_]dum|[_]yr[_]', coef_sum$variable))
 		sbbe_raw <- data.table(coef_sum[ind,])
@@ -349,7 +350,6 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 			data.table(res)
 			}))
 		sbbe[brand_name=="benchmark", brand_name:=dtbb@benchmark]
-
 	
 	cbbe = dtf[, lapply(.SD, unique), by=c('brand_name', 'year'), .SDcols=grep('bav[_]',colnames(dtf),value=T)]
 	brand_equity = merge(sbbe, cbbe, by=c('brand_name', 'year'), all.x=T, all.y=T)
