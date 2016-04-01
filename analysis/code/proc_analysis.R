@@ -305,21 +305,52 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 												  perc_null = length(which(abs(z)<1.96))/.N, 
 												  perc_negative = length(which(z<=(-1.96)))/.N), by=c('var_name')]
 		
+	brand_equity=NULL
+	
+	
+	##################
+	# RETURN RESULTS #
+	##################		
+		
+	retobject <- list(cat_name = unique(as.character(dtf$cat_name)), 
+					  model=m, 
+					  attr_spec = attr_spec,
+					  benchmark=dtbb@benchmark, 
+					  elasticities = elasticities, 
+					  summary_elasticities=selast,
+					  copula_normality = copula_normality,
+					  cbbe=dtf[, lapply(.SD, unique), by=c('brand_name', 'year'), .SDcols=grep('bav[_]',colnames(dtf),value=T)],
+					  sbbe=NULL,
+					  equity=data.frame(brand_equity))
+	class(retobject) <- append(class(retobject), "bav_attraction")
+	return(retobject)
+	}
+
+show <- function(x) {
+	UseMethod("show", x)
+	}
+
+compute_equity <- function(x) {
+	UseMethod("compute_equity", x)
+	}
+	
+compute_equity.bav_attraction <- function(x) {
 	################
 	# EXTRACT SBBE #
 	################
-	
-	if (yearlyDummies==TRUE & attr_spec == 'MNL') { # Note: SBBE can only be extracted for MNL models
+	coef_sum = x$model$coefficients
+	ind <- which(grepl('[_]dum|[_]yr[_]', coef_sum$orig_var))
+		
+	if (length(ind)>0 & x$attr_spec == 'MNL') { # Note: SBBE can only be extracted for MNL models
 		# Extract coefficients
-		ind <- which(grepl('[_]dum|[_]yr[_]', coef_sum$variable))
 		sbbe_raw <- data.table(coef_sum[ind,])
-		sbbe_raw[, brand_name := sapply(variable, function(x) strsplit(gsub('dummy[_]','',x),'_')[[1]][1])]
-		sbbe_raw[, year := sapply(as.character(variable), function(x) substr(x, nchar(x)-3,nchar(x)))]
+		sbbe_raw[, brand_name := sapply(orig_var, function(x) strsplit(gsub('dummy[_]','',x),'_')[[1]][1])]
+		sbbe_raw[, year := sapply(as.character(orig_var), function(x) substr(x, nchar(x)-3,nchar(x)))]
 		sbbe_raw[year=='_dum', year:=as.character('0')]
 		sbbe_raw[,year:=as.numeric(year)]
 		sbbe_raw[, index:= 1:.N]
 		
-		sbbe_sigma = mvarcovar[ind,ind]
+		sbbe_sigma = x$model$varcovar[ind,ind]
 		coefs=sbbe_raw$coef
 		names(coefs)<-paste0('x', sbbe_raw$index)
 		
@@ -348,33 +379,14 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 			res$year=yr
 			data.table(res)
 			}))
-		sbbe[brand_name=="benchmark", brand_name:=dtbb@benchmark]
+		sbbe[brand_name=="benchmark", brand_name:=x$benchmark]
 	
-	cbbe = dtf[, lapply(.SD, unique), by=c('brand_name', 'year'), .SDcols=grep('bav[_]',colnames(dtf),value=T)]
-	brand_equity = merge(sbbe, cbbe, by=c('brand_name', 'year'), all.x=T, all.y=T)
-	} else {
-	brand_equity=NULL
+	brand_equity = merge(sbbe, x$cbbe, by=c('brand_name', 'year'), all.x=T, all.y=T)
+	
 	}
-	
-	##################
-	# RETURN RESULTS #
-	##################		
+	return(brand_equity)
+	}
 		
-	retobject <- list(cat_name = unique(as.character(dtf$cat_name)), 
-					  model=m, 
-					  attr_spec = attr_spec,
-					  benchmark=dtbb@benchmark, 
-					  elasticities = elasticities, 
-					  summary_elasticities=selast,
-					  copula_normality = copula_normality,
-					  equity=data.frame(brand_equity))
-	class(retobject) <- append(class(retobject), "bav_attraction")
-	return(retobject)
-	}
-
-show <- function(x) {
-	UseMethod("show", x)
-	}
 
 show.bav_attraction <- function(x) {
 	cat('BAV PROJECT Model summary:\n')

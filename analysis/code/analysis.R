@@ -73,10 +73,12 @@ init()
 													 benchmark= NULL,
 													 rescale=TRUE,
 													 testing=FALSE), silent=T)
-					res$category_id=i
-					res$adv_decay = adv_decay
-					res$endogeneity_spec = endogeneity_spec
-					res$model_type = model_type
+					if (!class(res)=='try-error') {
+						res$category_id=i
+						res$adv_decay = adv_decay
+						res$endogeneity_spec = endogeneity_spec
+						res$model_type = model_type
+						}
 					return(res)
 				})
 	
