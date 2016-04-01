@@ -6,7 +6,7 @@
 # Get results and prepare all data sets
 	source('get_results.R')
 # Extract equity / prepare data sets to be used in meta analysis
-	sel_models = selected_models[attr_type=='MCI' & type == 'copula']$index
+	sel_models = selected_models[attr_type=='MNL' & type == 'copula']$index
 	
 	source('get_equity_elast.R')
 	source('proc_metadata.R') # get meta characteristics
@@ -64,7 +64,10 @@ form = 'elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD'
 #elast=elast[secondary_cat==0]
 
 go('coef_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/se')
+
+
 go('elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/elast_se')
+go('elast ~ 1 + F_RelEstKnow + F_EnergDiff', weights='1/elast_se')
 
 go('elast_STD ~ 1 + F_RelEstKnow_STD * secondary_cat + F_EnergDiff_STD * secondary_cat + F_RelEstKnow_STD * fooddrinks + F_EnergDiff_STD * fooddrinks', weights='1/elast_se')
 go('elast ~ 1 + F_RelEstKnow * secondary_cat + F_EnergDiff * secondary_cat + F_RelEstKnow * fooddrinks + F_EnergDiff * fooddrinks', weights='1/elast_se')

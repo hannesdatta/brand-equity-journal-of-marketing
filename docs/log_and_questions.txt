@@ -375,3 +375,15 @@ When estimating the MCI model, we could further add:
 HHCLEAN
 ========
 Just to keep it on the agenda, we need to decide what to do with - notably - the HHCLEAN category (sales spike in category sales in 2007). I understand that the shop selection is driving this spike.
+
+
+30 March 2016
+==================
+
+Low correlations: verify correctness of MCI/MNL; convert intercepts to marketshares
+Adstock: "include only if advertising is non-zero for at least 52 weeks"
+Attributes: scale between 0 and 100, add 1 if necessary
+HHclean: Estimate with step-dummy: starting in 2007.
+
+Try fd_bt
+

@@ -37,17 +37,16 @@ prepare_data <- function(i, plus_1 = FALSE) {
 	
 	decays = formatC(seq(from=0.00, to=1, by=.05)*100, width=2, flag=0)
 	for (decay in decays) {
+		dt[, nonzero_ad := length(which(advertising_bt[year>=2002]>0)),by=c('brand_name')]
 		dt[, paste0('adstock', decay, '_bt') := adstock(advertising_bt, lambda=as.numeric(decay)/100),by=c('brand_name'),with=F]
 		dt[, paste0('adstock', decay, '_bt') := round(get(paste0('adstock', decay, '_bt')),0), with=F]
+		dt[, paste0('adstock', decay, '_bt') := ifelse(nonzero_ad>=52, get(paste0('adstock', decay, '_bt')), NA), with=F]
+		dt[, nonzero_ad := NULL]
 		}
-	
-	# kick out first 4 observations by brand
-	dt[, min_week := min(week),by=c('brand_name')]
-	dt <- dt[week>min_week+3]
-	
+
 	# retain only observations from year 2002 onwards (to match with BAV data)
 	dt <- dt[year>=2002]
-
+	
 	# rescale attribute levels between 0 and 100
 	for (.var in c(grep('attr[_]', colnames(dt),value=T))) {
 		scaling=c(0,100)
@@ -55,7 +54,6 @@ prepare_data <- function(i, plus_1 = FALSE) {
 		}
 	
 	if (plus_1==TRUE) {
-		#'pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',
 		vars=c(grep('adstock', colnames(dt),value=T))
 		
 		for (.var in c(vars, grep('attr[_]', colnames(dt),value=T))) {
@@ -66,50 +64,6 @@ prepare_data <- function(i, plus_1 = FALSE) {
 		
 	dt
 	}
-
-# warning: the standardization in this procedure seems to be incorrect when used in an MNL model. Obtained elasticities are not the same.
-prepare_data_old <- function(i, standardize = TRUE) {
-	print(i)
-	print(names(datasets)[i])
-	
-	dt <- datasets[[i]]
-	
-	void<-dt[, list(obs = .N), by=c('brand_name', 'year')]	
-	
-	# compute adstock
-	adstock <- function(x, lambda) {
-		res=double(length(x))
-		res[1]=x[1]
-		for (k in seq(from=2, to=length(x))) {
-			res[k] = lambda * res[k-1] + (1-lambda) * x[k]
-			}
-		return(res)
-		}
-	
-	decays = formatC(seq(from=0.00, to=1, by=.05)*100, width=2, flag=0)
-	for (decay in decays) {
-		prec=6
-		dt[, paste0('adstock', decay, '_bt') := round(adstock(advertising_bt, lambda=as.numeric(decay)/100),prec),by=c('brand_name'),with=F]
-		}
-	
-	# kick out first 4 observations by brand
-	dt[, min_week := min(week),by=c('brand_name')]
-	dt <- dt[week>min_week+3]
-	
-	# retain only observations from year 2002 onwards (to match with BAV data)
-	dt <- dt[year>=2002]
-		
-	if(standardize==T) { # standardize between 0 and 1.
-		vars=c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt',grep('adstock', colnames(dt),value=T))
-		for (.var in c(vars)) {#, grep('attr[_]', colnames(dt),value=T))) {
-			if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := (get(.var)-min(get(.var),na.rm=T))/(max(get(.var),na.rm=T)-min(get(.var),na.rm=T)),with=F]
-			}
-		}
-
-	setorder(dt, brand_name, week)
-	dt
-	}
-
 	
 analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt', 'pct_store_skus_bt', 'advertising_bt'), 
 									  xvars_endog = NULL, 
@@ -125,7 +79,8 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	####################
 	# DEFINE VARIABLES #
 	####################
-
+	dtf = data.table(dtf)
+	
 	# define heterogenous Xs (can be potentially endogenous; copula correction terms pooled or homogenous (--> HARALD)
 		# define y variable, to be used to calculate market shares
 		yvars <- c('sales_bt') 
@@ -218,7 +173,6 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 					data = dtf, heterogenous = as.formula(paste0(' ~ ', paste0(c(xvars_heterog),collapse=' + '))),
 					index = ~ brand_name + week, model = attr_spec, benchmark = benchmark)
 	validObject(dtbb)
-	#show(dtbb)
 	
 	# create dummies for all brands in all years they are available
 	brands <- unique(dtf$brand_name)
@@ -228,7 +182,6 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	dummatrix = data.table(individ=dtbb@individ, period=dtbb@period)
 	# match years
 	setkey(dummatrix,individ,period)
-	#dumdf = data.table(dtf)
 	setkey(dtf, brand_name, week)
 	dummatrix[dtf, ':=' (year=i.year, quarter=i.quarter)]
 	
@@ -270,7 +223,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 		} else {
 		X=as.matrix(X)
 		}
-		
+
 	Y=dtbb@y
 	index=data.table(week=dtbb@period, brand_name=dtbb@individ)
 	
@@ -278,7 +231,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	# choice of base brand: put last.
 	X_without_quarter = X[,!grepl('quarter', colnames(X))]
 	if (any(colSums(X_without_quarter)==0)) stop(paste0('Problems with no variation in variables: ', paste(colnames(X_without_quarter)[which(colSums(X_without_quarter)==0)], collapse = ', ')))
-		
+	
 	a=Sys.time()
 	cat('Starting model estimation...\n')
 	mest <- try(itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=sur_method,maxiter=ifelse(testing==T, 1, 1000)),silent=TRUE)
@@ -289,8 +242,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	
 	retr_coefs <- coef(mest)$coef
 	mvarcovar=mest@varcovar
-	
-	
+
 	if (rescale==TRUE) {
 		cat('transforming back coefficients\n')
 		retr_coefs[seq(length.out=length(rescale_values))] = retr_coefs[seq(length.out=length(rescale_values))] / rescale_values
