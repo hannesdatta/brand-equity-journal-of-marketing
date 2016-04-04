@@ -44,6 +44,11 @@ prepare_data <- function(i, plus_1 = FALSE) {
 		dt[, nonzero_ad := NULL]
 		}
 
+	# variation in fd_bt
+		dt[, nonzero_fd := length(which(fd_bt[year>=2002]>0)),by=c('brand_name')]
+		dt[, fd_bt := ifelse(nonzero_fd>=52, fd_bt, NA)]
+		dt[, nonzero_fd := NULL]
+	
 	# retain only observations from year 2002 onwards (to match with BAV data)
 	dt <- dt[year>=2002]
 	
@@ -236,8 +241,8 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	mest <- try(itersur(X=X,Y=as.matrix(dtbb@y), index=data.frame(date=dtbb@period,brand=dtbb@individ),method=sur_method,maxiter=ifelse(testing==T, 1, 1000)),silent=TRUE)
 	b=Sys.time()
 	cat('Finished model estimation.\n')
-	
-	if (class(mest)=='try-error' & testing==TRUE) return(X)#stop('Iterative SUR procedure does not run')
+
+	if (class(mest)=='try-error' | testing==TRUE) stop('Iterative SUR procedure does not run')
 	
 	retr_coefs <- coef(mest)$coef
 	mvarcovar=mest@varcovar

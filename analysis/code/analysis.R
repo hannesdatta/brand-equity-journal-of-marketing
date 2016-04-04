@@ -28,7 +28,7 @@ init()
 
 # Enable cluster estimation	
 	require(parallel)
-	cl <- makePSOCKcluster(11)
+	cl <- makePSOCKcluster(9)
 
 ####################################
 ### RUN MODEL FOR ALL CATEGORIES ###
@@ -40,13 +40,13 @@ init()
 		
 	# MODEL SPECIFICATION
 		mestim = overview$index
-		#mestim = c(7,9,10,12,13,15,16,17,18,19,21,22:23)
+		mestim = c(3, 5, 8, 21, 22)
 		#endogeneity_spec <- c('non-copula', 'copula')
 		endogeneity_spec <- c('copula')
 		
 		model_type = c('MNL')
-		#adv_decay = formatC(seq(from=0, to=.9, by=c(.1))*100, width=2, flag=0)
-		adv_decay="90"
+		adv_decay = formatC(seq(from=0, to=.9, by=c(.1))*100, width=2, flag=0)
+		#adv_decay="90"
 		
 		varspec <- c('4mmix','5mmix')
 	
@@ -74,7 +74,7 @@ init()
 
 					if(endogeneity_spec=='copula') xvars_endog = xvars_heterog else xvars_endog = NULL
 					
-					res=try(analyze_marketshares(dt, xvars_heterog=xvars_heterog,
+					res=try({analyze_marketshares(dt, xvars_heterog=xvars_heterog,
 													 xvars_endog=xvars_endog,
 													 yearlyDummies=TRUE,
 													 quarterlyDummies=TRUE,
@@ -83,12 +83,15 @@ init()
 													 attr_spec=model_type,
 													 benchmark= NULL,
 													 rescale=TRUE,
-													 testing=FALSE), silent=T)
+													 testing=FALSE)}, silent=T)
+					if (class(res)=='try-error') return('error')
+					
 					if (!class(res)=='try-error') {
 						res$category_id=i
 						res$adv_decay = adv_decay
 						res$endogeneity_spec = endogeneity_spec
 						res$model_type = model_type
+						res$varspec=varspec
 						}
 					return(res)
 				})
@@ -97,8 +100,7 @@ init()
 
 	if(0) { # estimation of a single category
 	
-		i=9
-		
+		i=3
 		init()
 		
 		# add one to variables which can take on zero values
@@ -122,7 +124,8 @@ init()
 		out$equity <- compute_equity(out)
 		show(out)
 		
-		
+	dt[, list(.N),by=c('brand_name', 'fd_bt')]
+	
 	}
 
 ####################
