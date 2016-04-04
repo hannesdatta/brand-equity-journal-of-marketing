@@ -13,12 +13,17 @@ OUTPUT_DIR = ../output
 .PHONY: build
 
 build: $(OUTPUT_DIR)/results.RData
+equity: $(OUTPUT_DIR)/equity.RData
 
 ###### DATA ANALYSIS ######
 
 # analyze data
 $(OUTPUT_DIR)/results.RData: analysis.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "analysis.R"
+
+# compute brand equity
+$(OUTPUT_DIR)/equity.RData: process_results.R
+	"$(RBIN64)Rterm.exe" --vanilla --args "" < "process_results.R"
 
 summarize: summarize.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "summarize.R"

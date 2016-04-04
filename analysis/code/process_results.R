@@ -14,15 +14,14 @@ for (fn in c(fn_data, fn_results)) {
 	cat(fn, as.character(file.info(fn)$mtime),'\n')
 	load(fn)
 	}
-
-# Data set overview
-	overview <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)))
-	print(overview)
 	
 # Load analysis code
 	source('proc_analysis.R')
 
-	
+# Data set overview
+	overview <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)))
+	print(overview)
+
 ###################
 # MODEL SELECTION #
 ###################
@@ -38,11 +37,12 @@ for (fn in c(fn_data, fn_results)) {
 	
 	models[, type := sapply(model_name, function(x) strsplit(x, split='_')[[1]][2])]
 	models[, attr_type := sapply(model_name, function(x) strsplit(x, split='_')[[1]][4])]
+	models[, varspec := sapply(model_name, function(x) strsplit(x, split='_')[[1]][5])]
 	models[, cat_index := sapply(model_name, function(x) strsplit(x, split='_')[[1]][1])]
 	models[, decay := as.numeric(sapply(model_name, function(x) strsplit(x, split='_')[[1]][3]))]
 	
 # Select best-fitting models (min AIC)
-	models[, ':=' (selected= max(llik) == llik), by=c('cat_index', 'attr_type', 'type')]
+	models[, ':=' (selected= max(llik) == llik), by=c('cat_index', 'attr_type', 'type', 'varspec')]
 	
 # Plot decay patterns
 	path='..//audit//decay_selection//'
@@ -60,39 +60,32 @@ for (fn in c(fn_data, fn_results)) {
 		dev.off()	   
 		
 		}
-		
-# Store selection
+
+# Select models for reporting
 	selected_models = models[type=='copula'&selected==TRUE]
 
-################
-# PRINT OUTPUT #
-################
-	source('proc_report.R')
 
-	unlink('..//output//*.txt')
-	selected_models[, type_and_attr_type := paste(attr_type,type, sep='_')]
-	
-	# Report individual model results
-	for (r in unique(selected_models$type_and_attr_type)) {
-		sel=selected_models[type_and_attr_type==r]
-		sink(paste0('..//output//estimates_', r, '.txt'))
-	
-		for (i in sel$index) {
-		res = all_results[[i]]
-		if (!'try-error'%in%class(res)) {
-			(show(res)) } else {
-			print(i)
-			print('error')
-			}
-		
+##################
+# COMPUTE EQUITY #
+##################
+
+	# Compute equity on selected models
+
+	require(parallel)
+	cl <- makePSOCKcluster(12)
+
+	void<-clusterEvalQ(cl, source('proc_analysis.R'))
+
+	comp_index = selected_models$index
+	equity <- clusterApplyLB(cl, all_results[comp_index], compute_equity)
+
+	for (i in seq(from=1, to=length(equity))) {
+		all_results[[comp_index[i]]]$equity <- equity[[i]]
 		}
-	
-		sink()
-		
-		sink(paste0('..//output//summary_', r, '.txt'))
-		summ(all_results[sel$index])
-		
-		
-		sink()
-	
-	}
+
+########
+# SAVE #
+########
+
+save(all_results, selected_models, file = '../output/results_processed.RData')
+

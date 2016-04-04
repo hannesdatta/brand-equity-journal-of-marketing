@@ -1,13 +1,31 @@
+### LOAD DATA SETS
+require(data.table)
+require(reshape2)
+require(marketingtools)
+require(car) # for delta method and VIFs
+library(Hmisc)
+options(width=600)
+
+fn_results = '..//..//analysis//output//results_processed.RData'
+fn_data = '..//..//derived//output//datasets.RData'
+
+for (fn in c(fn_data, fn_results)) {
+	cat(fn, as.character(file.info(fn)$mtime),'\n')
+	load(fn)
+	}
+	
+# Load analysis code
+	source('proc_analysis.R')
+
+# Data set overview
+	overview <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)))
+	print(overview)
+
+	
 ###########################
 # SUMMARIZING THE RESULTS #
 ###########################
 
-
-# Get results and prepare all data sets
-	source('get_results.R')
-# Extract equity / prepare data sets to be used in meta analysis
-	sel_models = selected_models[attr_type=='MNL' & type == 'copula']$index
-	
 	source('get_equity_elast.R')
 	source('proc_metadata.R') # get meta characteristics
 	
