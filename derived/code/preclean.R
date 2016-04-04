@@ -18,8 +18,11 @@ require(data.table)
 	load('..//temp//bav.RData')
 	load('..//temp//bav_deletes.RData')
 
-# Brand selection has already been implemented in upstream-data preparation:
+# Brand selection has already been implemented in upstream-data preparation (Kusum, sas7bdat):
 # brands are selected that account for a cumulative market share of 90%.
+
+# In the latest edition of the data, there are duplicates in three weeks for brand Quaker Oats in coldcer. These observations (three starting in 2002) will be deleted.
+	catdata$coldcer <- catdata$coldcer[!(brand_name=='Quaker Oats'&Brand_ID=='')]
 
 ################################
 # PREPARE ATTRIBUTE-LEVEL DATA #
