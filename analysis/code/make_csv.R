@@ -25,8 +25,6 @@ for (fn in c(fn_data, fn_results)) {
 # PRINT AND PROCESS OUTPUT #
 ############################
 
-	source('proc_report.R')
- 
 	unlink('..//output//*.txt')
 	
 	selected_models[, type_and_attr_type := paste(attr_type,type, varspec, sep='_')]
@@ -34,6 +32,11 @@ for (fn in c(fn_data, fn_results)) {
 	# Report individual model results
 	for (r in unique(selected_models$type_and_attr_type)) {
 		sel=selected_models[type_and_attr_type==r]
+
+		# Clean and create directory
+		fpath = paste0('..//output//', r)
+		unlink(fpath,recursive=TRUE)
+		dir.create(fpath)
 		
 		##########################################
 		# Print report with each model's results #
@@ -69,31 +72,27 @@ for (fn in c(fn_data, fn_results)) {
 			elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
 			# should be near-to-zero
 			equity[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
-			
-		# Save data
-		fpath = paste0('..//output//', r)
-		unlink(fpath,recursive=TRUE)
-		dir.create(fpath)
 		
 		# Write data files to disk
 			# CSV
 			cpath = paste0(fpath, '')
 			#cpath = paste0(fpath, '//csv')
 			dir.create(cpath)
-			write.table(equity[!is.na(bav_asset)], paste0(cpath, '//equity.csv'), sep='\t', row.names=F,na = "")
-			write.table(elast[!is.na(bav_asset)], paste0(cpath, '//elasticities.csv'), sep='\t', row.names=F,na = "")
-
+			write.table(equity, paste0(cpath, '//equity.csv'), sep='\t', row.names=F,na = "")
+			write.table(elast, paste0(cpath, '//elasticities.csv'), sep='\t', row.names=F,na = "")
+			#[!is.na(bav_asset)]
+			
 			# SPSS
 			require(sjmisc)
 			#cpath = paste0(fpath, '//spss')
 			dir.create(cpath)
-			write_spss(equity[!is.na(bav_asset)], paste0(cpath, '//equity.sav'))
-			write_spss(elast[!is.na(bav_asset)], paste0(cpath, '//elasticities.sav'))
+			write_spss(equity, paste0(cpath, '//equity.sav'))
+			write_spss(elast, paste0(cpath, '//elasticities.sav'))
 			
 			# SAS
 			require(foreign)
-			write.foreign(equity[!is.na(bav_asset)], paste0(cpath, '//equity.txt'), paste0(cpath, '//equity.sas'), package="SAS")
-			write.foreign(elast[!is.na(bav_asset)], paste0(cpath, '//elasticities.txt'), paste0(cpath, '//elasticities.sas'), package="SAS")
+			write.foreign(equity, paste0(cpath, '//equity.txt'), paste0(cpath, '//equity.sas'), package="SAS")
+			write.foreign(elast, paste0(cpath, '//elasticities.txt'), paste0(cpath, '//elasticities.sas'), package="SAS")
 			
 		
 	}

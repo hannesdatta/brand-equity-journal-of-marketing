@@ -41,7 +41,7 @@ equity = tmp$equity
 annual_ms = rbindlist(lapply(datasets, function(x) {
 	dt=x[year>=2002]
 	cat_name=unique(dt$cat_name)
-	res=dt[, list(annual_ms=mean(ms_bt,na.rm=T)),by=c('brand_name', 'year')]
+	res=dt[, list(annual_avgms=mean(ms_bt,na.rm=T)),by=c('brand_name', 'year')]
 	res[, cat_name:=cat_name]
 	return(res)
 	}))
@@ -87,7 +87,7 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 	tmp=lapply(list(equity, elast), function(df) {
 		
 		for (.var in colnames(df)) {
-			if (.var %in% c('year', 'cat_name', 'brand_name', 'var_name', grep('bav[_]', colnames(df),value=TRUE))) next #grep('F[_]', colnames(df),value=TRUE)
+			if (.var %in% c('year', 'cat_name', 'brand_name', 'var_name')) next #grep('F[_]', colnames(df),value=TRUE) grep('bav[_]', colnames(df),value=TRUE)
 			# check whether column is dummy: do not meancenter
 			if (all(unique(unlist(df[, .var, with=F]))%in%c(1,0))) next
 			# varies by category
@@ -97,3 +97,6 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 			}
 		return(df)
 		})
+
+	equity=tmp[[1]]
+	elast=tmp[[2]]
