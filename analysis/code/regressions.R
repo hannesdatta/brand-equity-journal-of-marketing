@@ -21,22 +21,64 @@ for (fn in c(fn_data, fn_results)) {
 	overview <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)))
 	print(overview)
 
+############################
+# PRINT AND PROCESS OUTPUT #
+############################
+
+	source('proc_report.R')
+ 
+	unlink('..//output//*.txt')
 	
+	selected_models[, type_and_attr_type := paste(attr_type,type, varspec, sep='_')]
+	
+	# Report individual model results
+	for (r in unique(selected_models$type_and_attr_type)) {
+		sel=selected_models[type_and_attr_type==r]
+		
+		##########################################
+		# Print report with each model's results #
+		##########################################
+		
+		sink(paste0('..//output//estimates_', r, '.txt'))
+	
+		for (i in sel$index) {
+		res = all_results[[i]]
+		if (!'try-error'%in%class(res)) {
+				(show(res)) } else {
+				print(i)
+				print('error')
+				}
+			}
+		sink()
+		
+		
+		###########################
+		# Summarizing all results #
+		###########################
+		
+		sel_models=sel$index
+		
+		source('get_equity_elast.R')
+		source('proc_metadata.R') # get meta characteristics
+	
+		# Merge equity and elasticities with brand- and category-level characteristics
+			equity = merge(equity, meta_char, by=c('cat_name', 'brand_name'),all.x=T,all.y=F)
+			elast = merge(elast, meta_char, by = c('cat_name', 'brand_name'), all.x=T, all.y=F)
+			
+		# Assertions
+			elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
+			# should be near-to-zero
+			equity[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
+			
+		# Save data
+		
+	}
+
 ###########################
 # SUMMARIZING THE RESULTS #
 ###########################
 
-	source('get_equity_elast.R')
-	source('proc_metadata.R') # get meta characteristics
-	
-# Merge equity and elasticities with brand- and category-level characteristics
-	equity = merge(equity, meta_char, by=c('cat_name', 'brand_name'),all.x=T,all.y=F)
-	elast = merge(elast, meta_char, by = c('cat_name', 'brand_name'), all.x=T, all.y=F)
-	
-# Assertions
-	elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
-	# should be near-to-zero
-	equity[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
+
 	
 # Make summary plots
 	source('summary_plots.R')
@@ -63,6 +105,10 @@ for (fn in c(fn_data, fn_results)) {
 	write.foreign(equity[!is.na(bav_asset)], '..//output//sas//equity.txt', '..//output//sas//equity.sas', package="SAS")
 	write.foreign(elast[!is.na(bav_asset)], '..//output//sas//elasticities.txt', '..//output//sas//elasticities.sas', package="SAS")
 
+	
+	
+	
+	
 #############################
 # Regressions: Elasticities #
 #############################

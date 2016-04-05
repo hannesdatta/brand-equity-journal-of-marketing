@@ -44,7 +44,7 @@ summ <- function(tmp_results)	{
 	# Cross-section time-series pooled correlations #
 	#################################################
 	
-	std_equity = equity[, lapply(.SD, function(x) (x-mean(x, na.rm=T))/sd(x, na.rm=T)),by=c('cat_name', 'brand_name'), .SDcols=c('sbbe', 'unitsales','revenue','price',grep('bav[_]', colnames(equity),value=T))]
+	std_equity = equity[, lapply(.SD, function(x) (x-mean(x, na.rm=T))/sd(x, na.rm=T)),by=c('cat_name', 'brand_name'), .SDcols=c('sbbe', 'unitsales','ms','revenue','price',grep('bav[_]', colnames(equity),value=T))]
 	std_equity=std_equity[complete.cases(std_equity)]
 	
 	tmp=cor(as.matrix(std_equity[,-(1:2),with=F]))
