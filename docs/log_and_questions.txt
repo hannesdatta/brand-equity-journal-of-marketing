@@ -385,5 +385,5 @@ Adstock: "include only if advertising is non-zero for at least 52 weeks"
 Attributes: scale between 0 and 100, add 1 if necessary
 HHclean: Estimate with step-dummy: starting in 2007.
 
-Try fd_bt
+Try fd_bt: add only if it has variation in more than 52 weeks.
 
