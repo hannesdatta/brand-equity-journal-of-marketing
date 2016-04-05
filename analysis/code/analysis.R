@@ -39,7 +39,7 @@ init()
 		
 	# MODEL SPECIFICATION
 		mestim = overview$index
-		#mestim = c(3, 5, 8, 21, 22)
+		#mestim = c(3)#, 5, 8, 21, 22)
 		#endogeneity_spec <- c('non-copula', 'copula')
 		endogeneity_spec <- c('copula')
 		
