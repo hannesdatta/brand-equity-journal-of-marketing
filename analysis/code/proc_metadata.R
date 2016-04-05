@@ -81,7 +81,7 @@ brand_char = rbindlist(lapply(datasets, function(x) {
 		-1+2*(x/max(x,na.rm=T))
 		}
 		
-	tmp=tmp[, list(brand_name=brand_name, ms=ms, 
+	tmp=tmp[, list(brand_name=brand_name, avg_ms=ms, 
 				   pricepos = std_by1(meanprice), 
 				   dealdepth = sdpriceindex, 
 				   relad = std_by1(meanad), 

@@ -8,7 +8,6 @@
 #                                            |__/                     
 
 
-
 ### LOAD DATA SETS
 load('..//..//derived//output//datasets.RData')
 
@@ -28,7 +27,7 @@ init()
 
 # Enable cluster estimation	
 	require(parallel)
-	cl <- makePSOCKcluster(9)
+	cl <- makePSOCKcluster(10)
 
 ####################################
 ### RUN MODEL FOR ALL CATEGORIES ###
@@ -40,7 +39,7 @@ init()
 		
 	# MODEL SPECIFICATION
 		mestim = overview$index
-		mestim = c(3, 5, 8, 21, 22)
+		#mestim = c(3, 5, 8, 21, 22)
 		#endogeneity_spec <- c('non-copula', 'copula')
 		endogeneity_spec <- c('copula')
 		
