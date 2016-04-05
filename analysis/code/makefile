@@ -12,7 +12,7 @@ OUTPUT_DIR = ../output
 
 .PHONY: build
 
-build: $(OUTPUT_DIR)/results.RData
+analyze: $(OUTPUT_DIR)/results.RData
 equity: $(OUTPUT_DIR)/equity.RData
 
 ###### DATA ANALYSIS ######
@@ -22,8 +22,11 @@ $(OUTPUT_DIR)/results.RData: analysis.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "analysis.R"
 
 # compute brand equity
-$(OUTPUT_DIR)/equity.RData: process_results.R
-	"$(RBIN64)Rterm.exe" --vanilla --args "" < "process_results.R"
+$(OUTPUT_DIR)/equity.RData: modelselection_equity.R
+	"$(RBIN64)Rterm.exe" --vanilla --args "" < "modelselection_equity.R"
+
+csv: make_csv.R
+	"$(RBIN64)Rterm.exe" --vanilla --args "" < "make_csv.R"
 
 summarize: summarize.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "summarize.R"

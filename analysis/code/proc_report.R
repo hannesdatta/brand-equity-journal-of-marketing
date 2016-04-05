@@ -9,7 +9,7 @@ summ <- function(tmp_results)	{
 	# standarize sbbe by category
 	
 	# extract extra variables
-		othervars=rbindlist(lapply(datasets, function(x) x[year>=2002, list(unitsales=sum(sales_bt,na.rm=T), revenue=sum(rev_bt,na.rm=T), price = mean(act_pr_bt,na.rm=T)),by=c('cat_name','brand_name', 'year')]))
+		othervars=rbindlist(lapply(datasets, function(x) x[year>=2002, list(marketshare = mean(ms_bt, na.rm=T), unitsales=sum(sales_bt,na.rm=T), revenue=sum(rev_bt,na.rm=T), price = mean(act_pr_bt,na.rm=T)),by=c('cat_name','brand_name', 'year')]))
 		othervars[, brand_name := gsub('[^a-zA-Z]', '', brand_name)]
 	
 	equity <- merge(equity, othervars,by=c('cat_name','brand_name', 'year'),all.x=T,all.y=F)
@@ -25,7 +25,7 @@ summ <- function(tmp_results)	{
 	#################################################
 	
 	
-	std_equity = cbind(brand_name=equity$brand_name, equity[, lapply(.SD, function(x) (x-mean(x, na.rm=T))/sd(x, na.rm=T)),by=c('cat_name'), .SDcols=c('sbbe', 'unitsales','revenue','price',grep('bav[_]', colnames(equity),value=T))])
+	std_equity = cbind(brand_name=equity$brand_name, equity[, lapply(.SD, function(x) (x-mean(x, na.rm=T))/sd(x, na.rm=T)),by=c('cat_name'), .SDcols=c('sbbe', 'marketshare', 'unitsales','revenue','price',grep('bav[_]', colnames(equity),value=T))])
 	std_equity=std_equity[complete.cases(std_equity)]
 	
 	#tmp = corstars(as.matrix(std_equity[,-(1:2),with=F]), method=c("pearson"), removeTriangle=c("lower"),
@@ -44,7 +44,7 @@ summ <- function(tmp_results)	{
 	# Cross-section time-series pooled correlations #
 	#################################################
 	
-	std_equity = equity[, lapply(.SD, function(x) (x-mean(x, na.rm=T))/sd(x, na.rm=T)),by=c('cat_name', 'brand_name'), .SDcols=c('sbbe', 'unitsales','ms','revenue','price',grep('bav[_]', colnames(equity),value=T))]
+	std_equity = equity[, lapply(.SD, function(x) (x-mean(x, na.rm=T))/sd(x, na.rm=T)),by=c('cat_name', 'brand_name'), .SDcols=c('sbbe','marketshare', 'unitsales','revenue','price',grep('bav[_]', colnames(equity),value=T))]
 	std_equity=std_equity[complete.cases(std_equity)]
 	
 	tmp=cor(as.matrix(std_equity[,-(1:2),with=F]))
@@ -88,28 +88,7 @@ summ <- function(tmp_results)	{
 	#
 	#
 	# do by variable
-	if(0){
-	vars = unique(elast$var_name)
-	meta<-NULL
-	for (j in seq(along=vars)) { #as.factor(cat_name) +
-		meta[[j]] <- lm(elast ~ 1 + bav_relevance + bav_energizeddiff +  bav_esteem + bav_knowledge, data= elast,weights=1/elast_se, subset=!is.na(elast)&var_name==vars[j])
-		}
-	
-	require(car)
-	require(memisc)
-	
-	m_all = paste0(paste0('\"',vars,'\"'),'=meta[[',seq(along=vars),']]')
-	
-	cat('\n\n\nMeta analysis')
-	print(eval(parse(text=paste0('mtable(', paste0(m_all, collapse=','), ')'))))
-	
-	cat('\nVIF values\n')
-	for (j in seq(along=meta)) {
-		cat('\n', vars[j], '\n')
-		print(vif(meta[[j]]))
-		}
-	}
-	
+
 	###############################
 	# SUMMARY OF ALL ELASTICITIES #
 	###############################
@@ -167,7 +146,6 @@ summ <- function(tmp_results)	{
 
 	cat('\n\nSUMMARY OF ELASTICITIES FOR BAV BRANDS\n')
 	print(tmp)
-	
 
 	cat('\n\nSELECTED DECAY PARAMETERS FOR ADVERTISING\n')
 	decay=rbindlist(lapply(tmp_results, function(x) data.frame(cat_name=x$cat_name, adv_decay=.01*as.numeric(x$adv_decay))))
@@ -176,5 +154,4 @@ summ <- function(tmp_results)	{
 	print(decay)
 	
 	
-
 	}	

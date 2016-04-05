@@ -36,6 +36,21 @@ extract_elast_equity <- function(tmp_results) {
 tmp = extract_elast_equity(all_results[sel_models])
 
 equity = tmp$equity
+
+# yearly market shares
+annual_ms = rbindlist(lapply(datasets, function(x) {
+	dt=x[year>=2002]
+	cat_name=unique(dt$cat_name)
+	res=dt[, list(annual_ms=mean(ms_bt,na.rm=T)),by=c('brand_name', 'year')]
+	res[, cat_name:=cat_name]
+	return(res)
+	}))
+	
+setkey(annual_ms, cat_name, brand_name, year)
+setkey(equity, cat_name, brand_name, year)
+
+equity = merge(equity, annual_ms, all.x=T, all.y=F, by=c('cat_name', 'brand_name', 'year'))
+
 elast = tmp$elast
 
 ###################
