@@ -4,7 +4,7 @@ summarize_equity <- function(equity) {
 	#################################################
 	# Cross-section time-series pooled correlations #
 	#################################################
-	vars=c('sbbe_STD', 'annual_avgms_STD', 'unitsales_STD','revenue_STD','price_STD',grep('bav[_].*[_]STD', colnames(equity),value=T))
+	vars=c('sbbe_STD', 'sbbems', 'sbbems_STD', 'annual_avgms_STD', 'unitsales_STD','revenue_STD','price_STD',grep('bav[_].*[_]STD', colnames(equity),value=T))
 	tmp = equity[, c('cat_name', 'brand_name', vars),with=F]
 	tmp=tmp[complete.cases(tmp)]
 	
@@ -13,7 +13,7 @@ summarize_equity <- function(equity) {
 	
 	cat('\n\nPooled Cross Section - Time Series Correlations Across Brands and Time\n\n')
 	print(tmpcor)
-	cat(paste0('\nNote: Measured for ', length(unique(tmp$brand_name)), ' unique BAV brands\n'))
+	cat(paste0('\nNote: Measured for ', length(unique(paste0(tmp$brand_name,tmp$cat_name))), ' unique BAV brands\n'))
 	
 	#################################################
 	# Cross-section time-series pooled correlations #
@@ -26,8 +26,7 @@ summarize_equity <- function(equity) {
 		
 	cat('\n\nTime Series Correlations Within Brands Over Time\n')
 	print(tmp)
-	cat(paste0('\nNote: Measured for ', length(unique(std_equity$brand_name)), ' unique BAV brands\n'))
-	
+	cat(paste0('\nNote: Measured for ', length(unique(paste0(std_equity$brand_name, std_equity$cat_name))), ' unique BAV brands\n'))
 	}
 	
 summ <- function(tmp_results)	{

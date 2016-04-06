@@ -18,8 +18,14 @@ for (r in models) {
 	# Regressions: SBBE #
 	#####################
 	
-	cat('\n\n======================================\nSBBE regressed on BAV Factors\n======================================\n')
+	cat('\n\n======================================\nSBBE (intercepts) regressed on BAV Factors\n======================================\n')
 	m<-lm(sbbe_STD~1+
+			   F_RelEstKnow_STD+F_EnergDiff_STD, data = equity, weights=1/sbbe_se)
+
+	print(summary(m))
+
+	cat('\n\n======================================\nSBBE (market shares, not standardized) regressed on BAV Factors\n======================================\n')
+	m<-lm(sbbems~1+
 			   F_RelEstKnow_STD+F_EnergDiff_STD, data = equity, weights=1/sbbe_se)
 
 	print(summary(m))
@@ -62,11 +68,14 @@ for (r in models) {
 	}
 
 	cat('\n\n======================================\nElasticities regressed on BAV Factors\n======================================\n')
+	
+	cat('\n\nElasticities regressed on BAV Factors for main-category BAV brands only\n======================================\n')
 	uniq_br=elast[seccat==0 & !is.na(bav_asset)][, list(.N),by=c('cat_name', 'brand_name')]
 	elastreg('elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/elast_se', dt=elast[seccat==0& !is.na(bav_asset)], msg=paste0('Models estimated with ', nrow(uniq_br), ' brands in their main categories (seccat==0).'))
 	
+	cat('\n\nElasticities regressed on BAV Factors for all BAV brands\n======================================\n')
 	uniq_br=elast[!is.na(bav_asset)][, list(.N),by=c('cat_name', 'brand_name')]
-	elastreg('elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/elast_se', dt=elast[seccat==0& !is.na(bav_asset)], msg=paste0('Models estimated with all ', nrow(uniq_br), ' BAV brands.'))
+	elastreg('elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/elast_se', dt=elast[!is.na(bav_asset)], msg=paste0('Models estimated with all ', nrow(uniq_br), ' BAV brands.'))
 	
 	sink()
 	
