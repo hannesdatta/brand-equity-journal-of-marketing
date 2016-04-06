@@ -358,19 +358,42 @@ compute_equity.bav_attraction <- function(x) {
 		coefs=sbbe_raw$coef
 		names(coefs)<-paste0('x', sbbe_raw$index)
 		
-		# Delta Method to compute SE for SBBE
-		deltaCall <- function(index) {
-			forms <- sapply(index, function(x) {
+		# SBBE Computation: NORMALIZED INTERCEPTS
+		# SEs computed using the Delta Method (requiring package 'car' to be loaded)
+		computeSBBE <- function(index) {
+			# for non-benchmark brands
+			forms <- sapply(index, function(x) { # build formulas
 				paste0('(1/',length(index)+1, ') * (', length(index), ' * x', x, '-', paste0('x', setdiff(index,x), collapse='-'), ')')
 				})
-			eq1 = sapply(forms, function(f) deltaMethod(coefs, f, sbbe_sigma))
-			eqbbf = paste0('(1/',length(index)+1, ') * (-', paste0('x', index, collapse='-'), ')')
+			eq1 = sapply(forms, function(f) deltaMethod(coefs, f, sbbe_sigma)) # compute
 			
-			eqbb = deltaMethod(coefs, eqbbf,sbbe_sigma)
+			# for benchmark brand
+			eqbbf = paste0('(1/',length(index)+1, ') * (-', paste0('x', index, collapse='-'), ')') # formula
+			eqbb = deltaMethod(coefs, eqbbf, sbbe_sigma) # compute
 			
+			# assign names
 			ret = t(matrix(c(as.numeric(eq1),as.numeric(eqbb)),nrow=2))
 			rownames(ret) = c(names(index), "benchmark")
 			colnames(ret) = c('sbbe', 'sbbe_se')
+			ret
+			}
+
+		# SBBE Computation: exp(alpha0i)/sum(exp(alpha0j)) for all brands j and focal brand i (which is its market share representation)
+		computeSBBEms <- function(index) {
+			# for non-benchmark brands
+			forms <- sapply(index, function(x) { # build formulas
+				paste0('exp(x', x, ')/(1+', paste0(paste0('exp(', paste0('x', index), ')'), collapse='+'),')')
+				})
+			eq1 = sapply(forms, function(f) deltaMethod(coefs, f, sbbe_sigma)) # compute
+			
+			# for benchmark brand
+			eqbbf = paste0('exp(1)/(1+', paste0(paste0('exp(', paste0('x', index), ')'), collapse='+'),')') # formula
+			eqbb = deltaMethod(coefs, eqbbf, sbbe_sigma) # compute
+			
+			# assign names
+			ret = t(matrix(c(as.numeric(eq1),as.numeric(eqbb)),nrow=2))
+			rownames(ret) = c(names(index), "benchmark")
+			colnames(ret) = c('sbbems', 'sbbems_se')
 			ret
 			}
 
@@ -378,7 +401,7 @@ compute_equity.bav_attraction <- function(x) {
 			tmp=sbbe_raw[year==yr]
 			index=tmp$index
 			names(index) <- tmp$brand_name
-			res=data.frame(deltaCall(index))
+			res=data.frame(computeSBBE(index),computeSBBEms(index))
 			res$brand_name=rownames(res)
 			res$year=yr
 			data.table(res)
