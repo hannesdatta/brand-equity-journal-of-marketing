@@ -281,7 +281,7 @@ for (i in seq(along=dat)) {
 	dat[[i]] <- dat[[i]][selected_brand==T]
 	dat[[i]][, selected_brand := NULL]
 	
-	dat[[i]][, ':=' (brand_name = as.factor(as.character(brand_name)), brand_id = as.factor(as.character(brand_id)))]
+	dat[[i]][, ':=' (brand_name = as.factor(tolower(as.character(brand_name))), brand_id = as.factor(tolower(as.character(brand_id))))]
 	
 	tmp <- split(dat[[i]], paste0(dat[[i]]$cat_name, '_', dat[[i]]$brand_name))
 
@@ -317,7 +317,7 @@ for (i in seq(along=dat)) {
 	dt[, advertising_bt := advertising_bt*1000]
 	
 	# add quarterly dummies
-	dt[,quarter:=as.numeric(cut(month,c(0,3,6,9,12)))]
+	dt[, quarter:=as.numeric(cut(month,c(0,3,6,9,12)))]
 	
 	dat[[i]] <- dt
 	}
