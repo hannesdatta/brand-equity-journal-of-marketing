@@ -63,8 +63,10 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 	# Equity brand-value metrics (i.e., by year and brand)
 		setkey(equity, brand_name, year)
 		mydata=unique(equity)
-	
+		
 		fit <- principal(mydata[, bav_dims,with=F], nfactors=2, rotate="varimax")
+		summary(fit)
+		print(fit)
 		fit_scores <- cbind(mydata[, c('brand_name', 'year'),with=F], fit$scores)
 		setkey(fit_scores, brand_name, year)
 		equity[fit_scores, ':=' (F_RelEstKnow=i.PC1, F_EnergDiff=i.PC2)]
