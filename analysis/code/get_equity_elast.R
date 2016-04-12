@@ -71,7 +71,7 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 		equity[, var_name:='none']
 		
 	# Elasticities
-		setkey(elast, brand_name)
+		setkey(elast, cat_name, brand_name)
 		mydata=unique(elast)
 		fit2 <- principal(mydata[, bav_dims,with=F], nfactors=2, rotate="varimax")
 		fit_scores2 <- cbind(mydata[, c('brand_name'),with=F], fit2$scores)

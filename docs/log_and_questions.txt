@@ -387,3 +387,17 @@ HHclean: Estimate with step-dummy: starting in 2007.
 
 Try fd_bt: add only if it has variation in more than 52 weeks.
 
+12 April 2016
+=============
+
+- pending
+  o COMPUTATION OF AVERAGE CBBE
+  o MISSING BAVs FOR "LAND O LAKES" IN MILK
+  o SPSS files, save properly with missings
+
+- done:
+  (1) I verified the C4 and Herfindahl metrics; they have been computed correctly.
+  (2) Harald pointed out I had two copies of WeightWatchers in the data set, one with capital letters, and one without. This is a very good observation. I now put all brands into lower case. Note that this results in a slight change in factor scores, as these are computed for unique brands.
+  (3) In the course of looking at the raw data, I realized that I have taken simple means for the BAV metrics. This seems incorrect, as the same brands have different values for these variables, depending on whether they have more or less data coverage in a given year. Instead, I should compute yearly means first, and then average over the years by brand.
+  (4) I redefined the light dummy, incorporating light, diet and weight watcher brands.
+

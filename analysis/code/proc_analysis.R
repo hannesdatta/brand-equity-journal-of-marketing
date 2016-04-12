@@ -21,7 +21,7 @@ prepare_data <- function(i, plus_1 = FALSE) {
 	print(i)
 	print(names(datasets)[i])
 	
-	dt <- datasets[[i]]
+	#dt <- datasets[[i]][selected == T]
 	
 	void<-dt[, list(obs = .N), by=c('brand_name', 'year')]	
 	

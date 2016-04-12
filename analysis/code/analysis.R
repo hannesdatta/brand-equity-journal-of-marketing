@@ -27,7 +27,7 @@ init()
 
 # Enable cluster estimation	
 	require(parallel)
-	cl <- makePSOCKcluster(10)
+	cl <- makePSOCKcluster(8)
 
 ####################################
 ### RUN MODEL FOR ALL CATEGORIES ###

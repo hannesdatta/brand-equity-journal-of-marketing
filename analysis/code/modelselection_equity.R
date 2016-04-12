@@ -72,7 +72,7 @@ for (fn in c(fn_data, fn_results)) {
 	# Compute equity on selected models
 
 	require(parallel)
-	cl <- makePSOCKcluster(12)
+	cl <- makePSOCKcluster(4)
 
 	void<-clusterEvalQ(cl, source('proc_analysis.R'))
 

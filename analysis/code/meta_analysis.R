@@ -26,7 +26,7 @@ for (r in models) {
 
 	cat('\n\n======================================\nSBBE (market shares, not standardized) regressed on BAV Factors\n======================================\n')
 	m<-lm(sbbems~1+
-			   F_RelEstKnow_STD+F_EnergDiff_STD, data = equity, weights=1/sbbe_se)
+			   F_RelEstKnow_STD+F_EnergDiff_STD, data = equity, weights=1/sbbems_se)
 
 	print(summary(m))
 

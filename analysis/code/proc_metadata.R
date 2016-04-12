@@ -12,6 +12,8 @@ cat_char = rbindlist(lapply(datasets, function(x) {
 		tmp[, ms := sales/sum(sales)]
 		setorderv(tmp, 'sales',order=-1L)
 		
+		c2= sum(tmp$sales[1:2])/sum(tmp$sales)
+		c3= sum(tmp$sales[1:3])/sum(tmp$sales)
 		c4= sum(tmp$sales[1:4])/sum(tmp$sales)
 		H = sum(tmp$ms^2)
 		
@@ -36,7 +38,7 @@ cat_char = rbindlist(lapply(datasets, function(x) {
 		#	impulse = ifelse(cat_name %in% c('saltsnck'),1,0)
 		#	fooddrinks = ifelse(cat_name %in% c('beer', 'carbbev', 'coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
 	
-	data.frame(cat_name=cat_name, c4=c4, herf=H,
+	data.frame(cat_name=cat_name, c2=c2, c3=c3, c4=c4, herf=H,
 			   fooddrinks, hygiene, hhclean, food, drinks, cigs, catgrowth_abs = growth)
 	}))
 
@@ -55,7 +57,6 @@ setkey(cat_char_ms, cat_name)
 setkey(cat_char, cat_name)
 
 cat_char[cat_char_ms, catgrowth_rel := i.catgrowth_rel]
-
 
 # brand characteristics
 brand_char = rbindlist(lapply(datasets, function(x) {
@@ -92,7 +93,7 @@ brand_char = rbindlist(lapply(datasets, function(x) {
 				   brndgrowth_rel = (ms_yrlast/ms_yrfirst)^(1/growth_years)),
 				   by=c('cat_name')]
 				   
-	tmp[, brand_light := ifelse(grepl('light', brand_name,ignore.case = TRUE), 1,0)]
+	tmp[, brand_light := ifelse(grepl('light|diet|weightwatch', brand_name,ignore.case = TRUE), 1,0)]
 	return(tmp)
 	}))
 
