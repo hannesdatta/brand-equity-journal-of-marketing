@@ -76,8 +76,8 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 		setkey(elast, cat_name, brand_name)
 		mydata=unique(elast)
 		fit2 <- principal(mydata[, bav_dims,with=F], nfactors=2, rotate="varimax")
-		fit_scores2 <- cbind(mydata[, c('brand_name'),with=F], fit2$scores)
-		setkey(fit_scores2, brand_name)
+		fit_scores2 <- cbind(mydata[, c('cat_name', 'brand_name'),with=F], fit2$scores)
+		setkey(fit_scores2, cat_name, brand_name)
 		elast[fit_scores2, ':=' (F_RelEstKnow=i.PC1, F_EnergDiff=i.PC2)]
 	
 
