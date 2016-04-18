@@ -21,9 +21,9 @@ prepare_data <- function(i, plus_1 = FALSE) {
 	print(i)
 	print(names(datasets)[i])
 	
-	#dt <- datasets[[i]][selected == T]
+	dt <- datasets[[i]] #[selected == T]
 	
-	void<-dt[, list(obs = .N), by=c('brand_name', 'year')]	
+	#void<-dt[, list(obs = .N), by=c('brand_name', 'year')]	
 	
 	# compute adstock
 	adstock <- function(x, lambda) {
