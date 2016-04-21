@@ -18,22 +18,37 @@ for (r in models) {
 	# Regressions: SBBE #
 	#####################
 	
-	cat('\n\n======================================\nSBBE (intercepts) regressed on BAV Factors\n======================================\n')
+	cat('\n\n===========================================================\nMode 1: SBBE (intercepts) regressed on BAV Factors\n===========================================================\n')
 	m<-lm(sbbe_STD~1+
-			   F_RelEstKnow_STD+F_EnergDiff_STD, data = equity, weights=1/sbbe_se)
+			   F_RelEstKnow_STD+F_EnergDiff_STD, data = equity, subset = !is.na(F_RelEstKnow), weights=1/sbbe_se)
+
+	print(summary(m))
+	
+	equity[, ':=' (seccat_mc = seccat - mean(ifelse(is.na(F_RelEstKnow_STD),NA, seccat),na.rm=T),
+				   newbrnd_mc = newbrnd - mean(ifelse(is.na(F_RelEstKnow_STD),NA, newbrnd),na.rm=T))]
+	
+	
+	cat('\n\n===========================================================\nModel 2: SBBE (intercepts) regressed on BAV Factors and brand characteristics\n===========================================================\n')
+	m<-lm(sbbe_STD~1+
+			   F_RelEstKnow_STD+F_EnergDiff_STD + seccat + newbrnd, data = equity, subset = !is.na(F_RelEstKnow), weights=1/sbbe_se)
 
 	print(summary(m))
 
-	cat('\n\n======================================\nSBBE (market shares, not standardized) regressed on BAV Factors\n======================================\n')
-	m<-lm(sbbems~1+
-			   F_RelEstKnow_STD+F_EnergDiff_STD, data = equity, weights=1/sbbems_se)
-
+	cat('\n\n===========================================================\nModel 3: SBBE (intercepts) regressed on BAV Factors and brand characteristics with interactions\n===========================================================\n')
+	m<-lm(sbbe_STD~1+
+			   F_RelEstKnow_STD+F_EnergDiff_STD + seccat_mc + newbrnd_mc +
+			   F_RelEstKnow_STD * seccat_mc + F_EnergDiff_STD * seccat_mc +
+			   F_RelEstKnow_STD * newbrnd_mc + F_EnergDiff_STD * newbrnd_mc, data = equity, subset = !is.na(F_RelEstKnow), weights=1/sbbe_se)
+ 
 	print(summary(m))
 
 	#############################
 	# Regressions: Elasticities #
 	#############################
-
+	
+	# select BAV brands only
+	# compute mean-centered interaction effects
+	
 	signific = c(0.001, 0.01, .050, .1)
 	names(signific) <- c('****', '***', '**', '*')
 	options(signif.symbols=signific)
@@ -67,15 +82,17 @@ for (r in models) {
 			}
 	}
 
-	cat('\n\n======================================\nElasticities regressed on BAV Factors\n======================================\n')
+	cat('\n\n======================================\n')
+	cat('======================================\nElasticities regressed on BAV Factors\n======================================\n')
+	cat('======================================\n\n\n')
 	
-	cat('\n\nElasticities regressed on BAV Factors for main-category BAV brands only\n======================================\n')
-	uniq_br=elast[seccat==0 & !is.na(bav_asset)][, list(.N),by=c('cat_name', 'brand_name')]
-	elastreg('elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/elast_se', dt=elast[seccat==0& !is.na(bav_asset)], msg=paste0('Models estimated with ', nrow(uniq_br), ' brands in their main categories (seccat==0).'))
-	
-	cat('\n\nElasticities regressed on BAV Factors for all BAV brands\n======================================\n')
+	cat('\n\nElasticities regressed on BAV Factors for all BAV brands\n=========================================================\n')
 	uniq_br=elast[!is.na(bav_asset)][, list(.N),by=c('cat_name', 'brand_name')]
 	elastreg('elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/elast_se', dt=elast[!is.na(bav_asset)], msg=paste0('Models estimated with all ', nrow(uniq_br), ' BAV brands.'))
+	
+	#cat('\n\nElasticities regressed on BAV Factors for main-category BAV brands only\n=========================================================\n')
+	#uniq_br=elast[seccat==0 & !is.na(bav_asset)][, list(.N),by=c('cat_name', 'brand_name')]
+	#elastreg('elast_STD ~ 1 + F_RelEstKnow_STD + F_EnergDiff_STD', weights='1/elast_se', dt=elast[seccat==0& !is.na(bav_asset)], msg=paste0('Models estimated with ', nrow(uniq_br), ' brands in their main categories #(seccat==0).'))
 	
 	sink()
 	
