@@ -16,14 +16,10 @@ require(marketingtools)
 require(car) # for delta method
 
 prepare_data <- function(i, plus_1 = FALSE) {
-	# if plus_1 == TRUE, then - if standarize == TRUE, variables will be scaled between 1 and 2. 
-	
 	print(i)
 	print(names(datasets)[i])
 	
-	dt <- datasets[[i]] #[selected == T]
-	
-	#void<-dt[, list(obs = .N), by=c('brand_name', 'year')]	
+	dt <- datasets[[i]]
 	
 	# compute adstock
 	adstock <- function(x, lambda) {
@@ -184,10 +180,13 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 
 	# create dummy dataset
 	dummatrix = data.table(individ=dtbb@individ, period=dtbb@period)
-	# match years
-	setkey(dummatrix,individ,period)
-	setkey(dtf, brand_name, week)
-	dummatrix[dtf, ':=' (year=i.year, quarter=i.quarter)]
+	# merge years and quarters to dummy matrix
+	dummatrix[, index:=1:nrow(dummatrix)] # keep order
+	yearperiods = dtf[, list(.N), by=c('week', 'year', 'quarter')][, N:=NULL]
+	setnames(yearperiods, 'week', 'period')
+	dummatrix <- merge(dummatrix, yearperiods, by=c('period'))
+	dummatrix <- dummatrix[order(index)] # put in initial order
+	dummatrix[, index:=NULL]
 	
 	for (br in brands[!brands%in%benchbrand]) {
 		# do not create dummy variable for benchmark brand
@@ -211,10 +210,10 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 		}
 	
 	dummatrix[, ':=' (quarter=NULL, period=NULL, individ=NULL, year=NULL)]
-
-	# rescaling
+	
 	X=as.matrix(data.frame(dtbb@X[, -c(grep('[_]dum', colnames(dtbb@X)))]))
 	
+	# rescaling
 	if(rescale==TRUE) { # divide variables by their absolute max
 		cat('running rescaling\n')
 		rescale_values = apply(X, 2, function(x) max(abs(x)))
@@ -227,7 +226,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 		} else {
 		X=as.matrix(X)
 		}
-
+	
 	Y=dtbb@y
 	index=data.table(week=dtbb@period, brand_name=dtbb@individ)
 	

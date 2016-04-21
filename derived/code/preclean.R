@@ -318,7 +318,7 @@ for (i in seq(along=dat)) {
 	
 	# add quarterly dummies
 	dt[, quarter:=as.numeric(cut(month,c(0,3,6,9,12)))]
-	
+	setkey(dt, brand_name, week)
 	dat[[i]] <- dt
 	}
 
