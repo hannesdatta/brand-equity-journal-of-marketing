@@ -42,6 +42,20 @@ for (r in models) {
  
 	print(summary(m))
 
+	cat('\n\n===========================================================\nModel 4: Averaged SBBE intercepts, regressed on average BAV Factors and brand characteristics with interactions\n===========================================================\n')
+	
+	equity_avg = equity[!is.na(F_RelEstKnow_STD), lapply(.SD, mean), by=c('cat_name', 'brand_name'), .SDcols=c('sbbe_STD', 'F_RelEstKnow_STD', 'F_EnergDiff_STD', 'sbbe_se', 'seccat', 'newbrnd')]
+	
+	equity_avg[, ':=' (seccat_mc = seccat - mean(seccat),
+				   newbrnd_mc = newbrnd - mean(F_RelEstKnow_STD))]
+	
+	m<-lm(sbbe_STD~1+
+			   F_RelEstKnow_STD+F_EnergDiff_STD + seccat_mc + newbrnd_mc +
+			   F_RelEstKnow_STD * seccat_mc + F_EnergDiff_STD * seccat_mc +
+			   F_RelEstKnow_STD * newbrnd_mc + F_EnergDiff_STD * newbrnd_mc, data = equity_avg, weights=1/sbbe_se)
+ 
+	print(summary(m))
+
 	#############################
 	# Regressions: Elasticities #
 	#############################
@@ -96,16 +110,11 @@ for (r in models) {
 	
 	sink()
 	
+	############
+	# PLOTTING #
+	############
+	
+	source('summary_plots.R')
+
+	
 	}
-
-# Make summary plots
-#	source('summary_plots.R')
-
-
-#elastreg('elast ~ 1 + F_RelEstKnow + F_EnergDiff', weights='1/elast_se')
-
-#elastreg('elast_STD ~ 1 + F_RelEstKnow_STD * secondary_cat + F_EnergDiff_STD * secondary_cat + F_RelEstKnow_STD * fooddrinks + F_EnergDiff_STD * fooddrinks', weights='1/elast_se')
-#elastreg('elast ~ 1 + F_RelEstKnow * secondary_cat + F_EnergDiff * secondary_cat + F_RelEstKnow * fooddrinks + F_EnergDiff * fooddrinks', weights='1/elast_se')
-
-#tmp=elast[var_name==vars[1]]
-#with(tmp, cor(data.frame(ms, coef, elast, F_RelEstKnow_STD, F_EnergDiff_STD),use='complete.obs'))

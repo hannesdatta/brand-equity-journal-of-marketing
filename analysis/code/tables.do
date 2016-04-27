@@ -33,10 +33,12 @@ set scheme s2mono
 
 /* Estimate elasticities using the same specification */
 
-
+local mlist = "MNL_copula_5mmix "
+local path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
 
 program equity
-	insheet using "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\MNL_copula_5mmix\equity.csv", clear 
+	syntax, fn(string)
+	insheet using "`fn'", clear 
 	*drop if bav_asset == .
 	drop if f_relestknow_std == .
 	
@@ -52,12 +54,21 @@ program equity
 	
 	eststo m2: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd [pw = weights]
 	
-	eststo m3: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd f_relestknow_stdXseccat f_relestknow_stdXnewbrnd f_energdiff_stdXseccat f_energdiff_stdXnewbrnd [pw=weights]
-	
 	local varlist sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd f_relestknow_stdXseccat f_relestknow_stdXnewbrnd f_energdiff_stdXseccat f_energdiff_stdXnewbrnd
+	xtset cat_brand_num
+	eststo m3: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd f_relestknow_stdXseccat f_relestknow_stdXnewbrnd f_energdiff_stdXseccat f_energdiff_stdXnewbrnd [pw=weights]
+	*eststo m3: quietly xtreg `varlist' [pw=weights], vce(cluster cat_brand_num)
+	
 	eststo m4: quietly xtmixed `varlist' [pw=weights] || cat_brand_num:, mle vce(cluster cat_brand_num)
 	
-	esttab m*, mtitles("WLS" "WLS" "WLS" "RE robust") nodepvar label addnote("") title("Equity") wide
+	local varlist sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd f_relestknow_stdXseccat f_relestknow_stdXnewbrnd f_energdiff_stdXseccat f_energdiff_stdXnewbrnd
+	
+	eststo m5: quietly xtreg `varlist', fe
+	eststo m6: quietly xtreg `varlist', be
+	
+	capture erase "$rtf_out"
+	esttab m* using "$rtf_out", mtitles("WLS" "WLS" "WLS" "RE robust" "Within (FE, no weight)" "Between (no weights)") nodepvar label addnote("") title("Equity") modelwidth(7 7 7 7 7 7 7 7 7)  varwidth(10)
+	
 	
 end
 
@@ -83,7 +94,8 @@ program meancenter
 end
 
 program load_elasticity
-	insheet using "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\MNL_copula_5mmix\elasticities.csv", clear 
+	syntax, fn(string)
+	insheet using "`fn'", clear 
 	drop if f_relestknow_std == . | elast_std == .
 	generate cat_brand = cat_name+ "_" +brand_name
 	egen cat_brand_num = group(cat_brand)
@@ -92,45 +104,58 @@ program load_elasticity
 end
 	
 program elasticity
+	syntax, fn(string)
 	
 	local varlist elast_std f_relestknow_std f_energdiff_std seccat newbrnd f_relestknow_stdXseccat f_relestknow_stdXnewbrnd f_energdiff_stdXseccat f_energdiff_stdXnewbrnd
 	
 	eststo clear
 	
 	/* ad */
-	load_elasticity
+	load_elasticity, fn("`fn'")
 	keep if var_name=="adstock_bt"
 	meancenter
 	eststo m1: quietly reg `varlist' [pw=weights] 
 	
 	/* fd_bt */
-	load_elasticity
+	load_elasticity, fn("`fn'")
 	keep if var_name=="fd_bt"
 	meancenter
 	eststo m2: quietly reg `varlist' [pw=weights] 
 	
 	/* pct_store_skus_bt */
-	load_elasticity
+	load_elasticity, fn("`fn'")
 	keep if var_name=="pct_store_skus_bt"
 	meancenter
 	eststo m3: quietly reg `varlist' [pw=weights]
 	
 	/* pi_bt */
-	load_elasticity
+	load_elasticity, fn("`fn'")
 	keep if var_name=="pi_bt"
 	meancenter
 	eststo m4: quietly reg `varlist' [pw=weights] 
 	
 	/* rreg_bt */
-	load_elasticity
+	load_elasticity, fn("`fn'")
 	keep if var_name=="rreg_pr_bt"
 	meancenter
 	eststo m5: quietly reg `varlist' [pw=weights] 
 	
-
-	esttab m*, mtitles("ad" "fd" "pct_store_skus" "pi" "rreg") nodepvar label addnote("All estimated with WLS.") title("Elasticities")
+	capture erase "$rtf_out"
+	esttab m* using "$rtf_out", mtitles("ad" "fd" "pct_store_skus" "pi" "rreg") nodepvar label addnote("All estimated with WLS.") title("Elasticities") modelwidth(8 8 8 8 8) varwidth(20)
 	
 end
 
+*equity
+*elasticity
+foreach m of local mlist {
+ *main, wtchoice("`wt'")
+ local equityfn = "`path'\`m'\equity.csv"
+ local elastfn = "`path'\`m'\elasticities.csv"
+ *display "`equityfn'"
+ global rtf_out "`path'\`m'\stata_equity.rtf"
+ equity, fn("`equityfn'")
+ 
+ global rtf_out "`path'\`m'\stata_elasticities.rtf"
+ elasticity, fn("`elastfn'")
+ }	
 
-elasticity
