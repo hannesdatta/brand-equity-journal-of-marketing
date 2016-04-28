@@ -8,7 +8,7 @@
 	##########################
 	elast[!is.na(bav_asset)]
 	## HISTOGRAM
-
+	if (0){
 	path=paste0('../output/', r, '/elast_hist/')
 	unlink(paste0(path,'*'))
 	dir.create(path)
@@ -94,7 +94,8 @@
 
 	}
 
-
+	}
+	
 	# SCATTERPLOT SBBE vs. CBBE
 	path=paste0('../output/', r, '/sbbe_vs_cbbe/')
 	unlink(paste0(path,'*'))
@@ -107,10 +108,27 @@
 		df = equity[cat_name==j][!is.na(bav_asset)]
 		
 		par(mfrow=c(1,2))
-		with(df, plot(y=sbbe, x=F_RelEstKnow, main = paste0('SBBE vs. CBBE (RelEstKnow): ', j),ylab='SBBE', xlab='F_RelEstKnow (year 2011 in red)', col = 'darkgrey'))
-		with(df[year==2011], points(y=sbbe, x=F_RelEstKnow, col = 'red'))
-		with(df, plot(y=sbbe, x=F_EnergDiff, main = paste0('SBBE vs. CBBE (EnergDiff): ', j),ylab='SBBE', xlab='F_EnergDiff (year 2011 in red)', col = 'darkgrey'))
-		with(df[year==2011], points(y=sbbe, x=F_EnergDiff, col = 'red'))
+		
+		# RelEstKnow
+		for (.var in c('F_RelEstKnow_STD', 'F_EnergDiff_STD')) {
+			df[, xvar := get(.var)]
+			with(df[year==2011], plot(y=sbbe_STD, x=xvar, main = paste0(j,': ', .var, ' vs. SBBE'),ylab='SBBE', xlab='F_RelEstKnow (year 2011)\ngreen: new brands, red: secondary categories, black: all other brands', col = 'black', pch=20))
+			if (nrow(df[year==2011&newbrnd==1])>0) with(df[year==2011&newbrnd==1], points(y=sbbe_STD, x=xvar, col = 'green', pch=20))
+			if (nrow(df[year==2011&seccat==1])>0) with(df[year==2011&seccat==1], points(y=sbbe_STD, x=xvar, col = 'red', pch=20))
+			with(df[year==2011], text(y=sbbe_STD, x=xvar, labels = brand_name, cex=.6,pos=1))
+			
+			# regresion line
+			mpred <- lm(sbbe_STD~1+xvar, data = df[year==2011])
+			newdat = data.table(xvar = seq(from = min(df[year==2011]$xvar,na.rm=T), to=max(df[year==2011]$xvar,na.rm=T), by=.1))
+			pred=data.table(predict(mpred, newdat, interval= 'confidence'))
+			newdat[, ':=' (sbbe_STD = pred$fit, lwr=pred$lwr, upr=pred$upr)]
+			
+			with(newdat, lines(xvar, sbbe_STD))
+			with(newdat, lines(xvar, lwr,lty=2))
+			with(newdat, lines(xvar, upr,lty=2))
+			mtext(paste0('R2: ', formatC(summary(mpred)$r.squared,digits=4)), cex=.6)
+			
+		}
 		
 		dev.off()
 		}

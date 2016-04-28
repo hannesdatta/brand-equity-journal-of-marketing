@@ -1,7 +1,7 @@
 
 
 # Load data as CSV
-models <- c('MNL_copula_4mmix', 'MNL_copula_5mmix')
+models <- c('MNL_copula_5mmix') #'MNL_copula_4mmix', 
 
 for (r in models) {
 	require(data.table)
@@ -52,7 +52,7 @@ for (r in models) {
 	m<-lm(sbbe_STD~1+
 			   F_RelEstKnow_STD+F_EnergDiff_STD + seccat_mc + newbrnd_mc +
 			   F_RelEstKnow_STD * seccat_mc + F_EnergDiff_STD * seccat_mc +
-			   F_RelEstKnow_STD * newbrnd_mc + F_EnergDiff_STD * newbrnd_mc, data = equity_avg, weights=1/sbbe_se)
+			   F_RelEstKnow_STD * newbrnd_mc + F_EnergDiff_STD * newbrnd_mc, data = equity_avg)#, weights=1/sbbe_se)
  
 	print(summary(m))
 
