@@ -8,7 +8,7 @@
 	##########################
 	elast[!is.na(bav_asset)]
 	## HISTOGRAM
-	if (0){
+
 	path=paste0('../output/', r, '/elast_hist/')
 	unlink(paste0(path,'*'))
 	dir.create(path)
@@ -94,7 +94,6 @@
 
 	}
 
-	}
 	
 	# SCATTERPLOT SBBE vs. CBBE
 	path=paste0('../output/', r, '/sbbe_vs_cbbe/')

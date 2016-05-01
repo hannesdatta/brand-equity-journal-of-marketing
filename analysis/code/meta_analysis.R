@@ -1,7 +1,7 @@
 
 
 # Load data as CSV
-models <- c('MNL_copula_5mmix') #'MNL_copula_4mmix', 
+models <- c('MNL_copula_5mmix','MNL_copula_4mmix')
 
 for (r in models) {
 	require(data.table)
