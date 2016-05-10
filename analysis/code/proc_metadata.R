@@ -101,8 +101,8 @@ setkey(brand_char, cat_name) # by time, e.g., year?!
 
 meta_char = brand_char[cat_char]
 
-meta_char[, retail_chain_seccat := 0]
-meta_char[cat_name=='coffee' & seccat==1, retail_chain_seccat:=1]
-meta_char[cat_name=='yogurt' & seccat==1 & brand_name=='weightwatchers', retail_chain_seccat:=1]
-meta_char[cat_name=='sugarsub' & seccat==1 & brand_name=='weightwatchers', retail_chain_seccat:=1]
-meta_char[, fmcg_seccat := ifelse(seccat==1&retail_chain_seccat==0, 1,0)]
+meta_char[, retail_seccat := 0]
+meta_char[cat_name=='coffee' & seccat==1, retail_seccat:=1]
+meta_char[cat_name=='yogurt' & seccat==1 & brand_name=='weightwatchers', retail_seccat:=1]
+meta_char[cat_name=='sugarsub' & seccat==1 & brand_name=='weightwatchers', retail_seccat:=1]
+meta_char[, fmcg_seccat := ifelse(seccat==1&retail_seccat==0, 1,0)]
