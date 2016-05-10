@@ -61,7 +61,10 @@ for (fn in c(fn_data, fn_results)) {
 		
 		sel_models=sel$index
 		
+		sink(paste0('..//output//', r, '//factoranalysis_', r, '.txt'))
 		source('get_equity_elast.R')
+		sink()
+		
 		source('proc_metadata.R') # get meta characteristics
 	
 		# Merge equity and elasticities with brand- and category-level characteristics
