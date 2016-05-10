@@ -139,31 +139,31 @@ program elasticity
 	load_elasticity, fn("`fn'")
 	keep if var_name=="adstock_bt"
 	meancenter_interact
-	eststo m1: quietly reg elast_std $vars [pw=weights] 
+	eststo m1: quietly reg elast_std $elast_vars [pw=weights] 
 	
 	/* fd_bt */
 	load_elasticity, fn("`fn'")
 	keep if var_name=="fd_bt"
 	meancenter_interact
-	eststo m2: quietly reg elast_std $vars [pw=weights] 
+	eststo m2: quietly reg elast_std $elast_vars [pw=weights] 
 	
 	/* pct_store_skus_bt */
 	load_elasticity, fn("`fn'")
 	keep if var_name=="pct_store_skus_bt"
 	meancenter_interact
-	eststo m3: quietly reg elast_std $vars [pw=weights]
+	eststo m3: quietly reg elast_std $elast_vars [pw=weights]
 	
 	/* pi_bt */
 	load_elasticity, fn("`fn'")
 	keep if var_name=="pi_bt"
 	meancenter_interact
-	eststo m4: quietly reg elast_std $vars [pw=weights] 
+	eststo m4: quietly reg elast_std $elast_vars [pw=weights] 
 	
 	/* rreg_bt */
 	load_elasticity, fn("`fn'")
 	keep if var_name=="rreg_pr_bt"
 	meancenter_interact
-	eststo m5: quietly reg elast_std $vars [pw=weights] 
+	eststo m5: quietly reg elast_std $elast_vars [pw=weights] 
 	
 	* capture erase "$rtf_out"
 	esttab m* using "$rtf_out", append mtitles("ad" "fd" "pct_store_skus" "pi" "rreg") nodepvar label ///
@@ -181,13 +181,46 @@ foreach m of local mlist {
  local elastfn = "`path'\`m'\elasticities.csv"
  
  insheet using "`equityfn'", clear 
-	
+
+ global elast_vars f_relestknow_std f_energdiff_std
+ 
  * m11
  global rtf_out "`path'\`m'\stata_M11.rtf"
  global vars f_relestknow_std f_energdiff_std fmcg_seccat c4 f_relestknow_std_sq f_energdiff_std_sq f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4
  equity, fn("`equityfn'")
  elasticity, fn("`elastfn'")
+ 
+ * m12
+ global rtf_out "`path'\`m'\stata_M12.rtf"
+ global vars f_relestknow_std f_energdiff_std fmcg_seccat c4 f_relestknow_std_sq f_energdiff_std_sq f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
+ equity, fn("`equityfn'")
+ elasticity, fn("`elastfn'")
 
+  * m12 + seccat
+ global rtf_out "`path'\`m'\stata_M12B_seccat.rtf"
+ global vars f_relestknow_std f_energdiff_std seccat c4 f_relestknow_std_sq f_energdiff_std_sq f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
+ equity, fn("`equityfn'")
+ elasticity, fn("`elastfn'")
+
+  * m12 + without seccat
+ global rtf_out "`path'\`m'\stata_M12C_without_seccat.rtf"
+ global vars f_relestknow_std f_energdiff_std seccat c4 f_relestknow_std_sq f_energdiff_std_sq f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
+ equity, fn("`equityfn'")
+ elasticity, fn("`elastfn'")
+
+  * m12 wihtout squared
+ global rtf_out "`path'\`m'\stata_M12D_nosquared_fmcg.rtf"
+ global vars f_relestknow_std f_energdiff_std fmcg_seccat c4 f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
+ equity, fn("`equityfn'")
+ elasticity, fn("`elastfn'")
+
+  * m12 wihtout squared
+ global rtf_out "`path'\`m'\stata_M12DE_nosquared_seccat.rtf"
+ global vars f_relestknow_std f_energdiff_std seccat c4 f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
+ equity, fn("`equityfn'")
+ elasticity, fn("`elastfn'")
+
+ 
   * m4
  global rtf_out "`path'\`m'\stata_M4.rtf"
  global vars f_relestknow_std f_energdiff_std f_relestknow_std_sq f_energdiff_std_sq
