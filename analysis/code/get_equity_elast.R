@@ -96,11 +96,14 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 			# varies by category
 			if (all(unlist(df[, list(N=length(unique(get(.var)))), by=c('cat_name', 'var_name')]$N)==1)) next
 			
-			df[, paste0(.var, '_STD') := stdvar(get(.var)), by=c('cat_name', 'var_name'),with=F]
+			# only standardize for bav brands (!)
+			df[!is.na(bav_asset), paste0(.var, '_STD') := stdvar(get(.var)), by=c('cat_name', 'var_name'),with=F]
 			
-			if (grepl('sbbe_se|sbbems_se|elast_se', .var)) df[, paste0(.var, '_STD') := std_without_mean(get(.var)), by=c('cat_name', 'var_name'),with=F]
+			if (grepl('sbbe_se|sbbems_se|elast_se', .var)) {
+				df[!is.na(bav_asset), paste0(.var, '_SDcat') := sd(get(.var),na.rm=T), by=c('cat_name', 'var_name'),with=F]
+				df[!is.na(bav_asset), paste0(.var, '_STD') := std_without_mean(get(.var)), by=c('cat_name', 'var_name'),with=F]
+				}
 			}
-			
 		return(df)
 		})
 
