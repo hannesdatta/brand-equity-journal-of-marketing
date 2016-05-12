@@ -66,13 +66,78 @@ program equity
 	
 end
 
+program equity_sensitivity
+	syntax, ttitle(string)
+	eststo clear
+	
+	xtset cat_brand_num
+	
+	eststo m1: quietly reg sbbe_std f_relestknow_std f_energdiff_std fmcg_seccat c4 ///
+						   f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff [pw=weights], vce(cluster cat_brand_num)
+	eststo m2: quietly reg sbbe_std f_relestknow_std f_energdiff_std fmcg_seccat c4 f_relestknow_std_sq f_energdiff_std_sq ///
+						   f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff [pw=weights], vce(cluster cat_brand_num)
+	eststo m3: quietly reg sbbe_std f_relestknow_std f_energdiff_std fmcg_seccat c4 food_drink_cigs f_relestknow_std_sq f_energdiff_std_sq ///
+						   f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
+						   f_relestknow_stdXfood_drink_cigs f_energdiff_stdXfood_drink_cigs [pw=weights], vce(cluster cat_brand_num)
+	eststo m4: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 ///
+						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff [pw=weights], vce(cluster cat_brand_num)
+	eststo m5: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 f_relestknow_std_sq f_energdiff_std_sq ///
+						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff [pw=weights], vce(cluster cat_brand_num)
+	eststo m6: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 food_drink_cigs f_relestknow_std_sq f_energdiff_std_sq ///
+						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
+						   f_relestknow_stdXfood_drink_cigs f_energdiff_stdXfood_drink_cigs [pw=weights], vce(cluster cat_brand_num)
+						   
+	capture erase "$rtf_out"
+	esttab m* using "$rtf_out", nodepvar label ///
+	addnote("") title("`ttitle'") modelwidth(5 5 5 5 5 5 5 5 5)  varwidth(22) ///
+	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations) fmt(a2 a2 3 0 0)) ///
+	onecell nogap star(+ 0.10 * 0.05 ** .01 *** .001) replace b(a2)
+	*mtitles("OLS" "WLS" "RE" "Between (no weights)" "FE (no weights)")
+end
+
+program analysis2
+	syntax, path(string)
+	
+	local equityfn = "`path'\equity.csv"
+	local elastfn = "`path'\elasticities.csv"
+	
+	insheet using "`equityfn'", clear 
+	drop if f_relestknow == .
+	meancenter_interact
+	generate cat_brand = cat_name+ "_" +brand_name
+	egen cat_brand_num = group(cat_brand)
+
+	gen weights = 1/sbbe_se_std
+	* equity
+	global rtf_out "`path'\stata_equity_stdweights.rtf"
+	equity_sensitivity, ttitle("Equity with weights = 1/sbbe_se_std")
+	
+	global rtf_out "`path'\stata_equity_nostdweights.rtf"
+	drop weights
+	gen weights = 1/sbbe_se
+	equity_sensitivity, ttitle("Equity with weights = 1/sbbe_se")
+
+end
+
+program go
+	local path = "$path\MNL_copula_5mmix\"
+	local equityfn = "`path'\equity.csv"
+	insheet using "`equityfn'", clear 
+	drop if f_relestknow == .
+end
+
+program main2
+	analysis2, path("$path\MNL_copula_5mmix\")
+end
+	
 program meancenter_interact
 	local mcvars c2 c3 c4 herf catgrowth_rel catgrowth_abs 
-	local otherinteract_vars seccat newbrnd fmcg_seccat retail_seccat
+	local otherinteract_vars seccat newbrnd fmcg_seccat retail_seccat food_drink_cigs
 	
 	label var seccat "Brand in second. cat."
 	label var retail_seccat "Retail chain second. cat."
 	label var fmcg_seccat "FMCG second. cat."
+	label var food_drink_cigs "Food/Drink/Cigs"
 	
 	label var newbrnd "New brand"
 	label var c2 "C2"
@@ -240,7 +305,7 @@ program main
 									 
 end
 
-main
+*main
 
 program main_old
 
@@ -295,3 +360,5 @@ program main_old
 
 end
 
+main
+main2
