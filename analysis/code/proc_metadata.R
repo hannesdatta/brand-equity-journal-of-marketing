@@ -39,7 +39,7 @@ cat_char = rbindlist(lapply(datasets, function(x) {
 		#	fooddrinks = ifelse(cat_name %in% c('beer', 'carbbev', 'coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
 	
 	data.frame(cat_name=cat_name, c2=c2, c3=c3, c4=c4, herf=H,
-			   fooddrinks, hygiene, hhclean, food, drinks, cigs, catgrowth_abs = growth)
+			   fooddrinks, hygiene, hhclean, food, drinks, cigs, foot_drink_cigs = as.numeric(food|drinks|cigs), catgrowth_abs = growth)
 	}))
 
 cat_char_ms = rbindlist(lapply(datasets, function(x) {
