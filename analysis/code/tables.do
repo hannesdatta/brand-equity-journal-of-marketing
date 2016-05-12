@@ -29,34 +29,34 @@ set sortseed 04251963
 set scheme s2mono
 
 
-local mlist = "MNL_copula_5mmix "
-local path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
+global mlist = "MNL_copula_5mmix "
+global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
 
 program equity
-	syntax, fn(string)
+	syntax, fn(string) vars(varlist)
 	
 	insheet using "`fn'", clear 
 	*drop if bav_asset == .
-	drop if f_relestknow_std == .
-	
+	drop if f_relestknow == .
+
 	generate cat_brand = cat_name+ "_" +brand_name
 	egen cat_brand_num = group(cat_brand)
 	gen weights = 1/sbbe_se_std
-	
+
 	meancenter_interact
-		
+
 	eststo clear
 	
 	xtset cat_brand_num
 	
-	eststo m1: quietly reg sbbe_std $vars, vce(cluster cat_brand_num)
+	eststo m1: quietly reg sbbe_std `vars', vce(cluster cat_brand_num)
 	
-	eststo m2: quietly reg sbbe_std $vars [pw=weights], vce(cluster cat_brand_num)
+	eststo m2: quietly reg sbbe_std `vars' [pw=weights], vce(cluster cat_brand_num)
 	
-	eststo m3: quietly xtmixed sbbe_std $vars [pw=weights] || cat_brand_num:, mle vce(cluster cat_brand_num)
+	eststo m3: quietly xtmixed sbbe_std `vars' [pw=weights] || cat_brand_num:, mle vce(cluster cat_brand_num)
 	
-	eststo m4: quietly xtreg sbbe_std $vars, be
-	eststo m5: quietly xtreg sbbe_std $vars, fe vce(cluster cat_brand_num)
+	eststo m4: quietly xtreg sbbe_std `vars', be
+	eststo m5: quietly xtreg sbbe_std `vars', fe vce(cluster cat_brand_num)
 	
 	capture erase "$rtf_out"
 	esttab m* using "$rtf_out", mtitles("OLS" "WLS" "RE" "Between (no weights)" "FE (no weights)") nodepvar label ///
@@ -129,9 +129,10 @@ program load_elasticity
 	gen weights = 1/elast_se_std
 	
 end
-	
+
+
 program elasticity
-	syntax, fn(string)
+	syntax, fn(string) elast_vars(varlist)
 	
 	eststo clear
 	
@@ -139,35 +140,35 @@ program elasticity
 	load_elasticity, fn("`fn'")
 	keep if var_name=="adstock_bt"
 	meancenter_interact
-	eststo m1: quietly reg elast_std $elast_vars [pw=weights] 
+	eststo m1: quietly reg elast_std `elast_vars' [pw=weights] 
 	
 	/* fd_bt */
 	load_elasticity, fn("`fn'")
 	keep if var_name=="fd_bt"
 	meancenter_interact
-	eststo m2: quietly reg elast_std $elast_vars [pw=weights] 
+	eststo m2: quietly reg elast_std `elast_vars' [pw=weights] 
 	
 	/* pct_store_skus_bt */
 	load_elasticity, fn("`fn'")
 	keep if var_name=="pct_store_skus_bt"
 	meancenter_interact
-	eststo m3: quietly reg elast_std $elast_vars [pw=weights]
+	eststo m3: quietly reg elast_std `elast_vars' [pw=weights]
 	
 	/* pi_bt */
 	load_elasticity, fn("`fn'")
 	keep if var_name=="pi_bt"
 	meancenter_interact
-	eststo m4: quietly reg elast_std $elast_vars [pw=weights] 
+	eststo m4: quietly reg elast_std `elast_vars' [pw=weights] 
 	
 	/* rreg_bt */
 	load_elasticity, fn("`fn'")
 	keep if var_name=="rreg_pr_bt"
 	meancenter_interact
-	eststo m5: quietly reg elast_std $elast_vars [pw=weights] 
+	eststo m5: quietly reg elast_std `elast_vars' [pw=weights] 
 	
-	* capture erase "$rtf_out"
+	* capture erase "$rtf_out" *append
 	esttab m* using "$rtf_out", append mtitles("ad" "fd" "pct_store_skus" "pi" "rreg") nodepvar label ///
-	   addnote("All estimated with WLS.") title("Elasticities") modelwidth(6 6 6 6 6) varwidth(24) ///
+	   addnote("All estimated with WLS.") title("Elasticities, 1/elast_se_std as weights") modelwidth(6 6 6 6 6) varwidth(24) ///
 	   stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)  fmt(a2 a2 3 0 0)) ///
 	   onecell nogap star(+ 0.10 * 0.05 ** .01 *** .001) replace b(a2)
 				
@@ -176,88 +177,121 @@ end
 *equity
 *elasticity
 
-foreach m of local mlist {
- local equityfn = "`path'\`m'\equity.csv"
- local elastfn = "`path'\`m'\elasticities.csv"
- 
- insheet using "`equityfn'", clear 
+program analysis
+	syntax, path(string) save_fn(string) [maineffects(varlist) interactions(varlist)]
+	
+	local equityfn = "`path'\equity.csv"
+	local elastfn = "`path'\elasticities.csv"
+	insheet using "`equityfn'", clear 
+	meancenter_interact
+	
+	global rtf_out "`path'\stata_`save_fn'.rtf"
+	
+	* equity
+	equity, fn("`equityfn'") vars(f_relestknow_std f_energdiff_std `maineffects' `interactions')
+	
+	* main effects only
+	elasticity, fn("`elastfn'") elast_vars(f_relestknow_std f_energdiff_std)
+	
+	* main effects only with interaction
+	elasticity, fn("`elastfn'") elast_vars(f_relestknow_std f_energdiff_std f_relestknowXf_energdiff)
+	
+	* main effects plus additional variables
+	elasticity, fn("`elastfn'") elast_vars(f_relestknow_std f_energdiff_std `maineffects' f_relestknowXf_energdiff )
+	
+	* main effects plus interactions and additional variables
+	elasticity, fn("`elastfn'") elast_vars(f_relestknow_std f_energdiff_std `maineffects' `interactions' f_relestknowXf_energdiff )
+	
+end
 
- global elast_vars f_relestknow_std f_energdiff_std
- 
- * m11
- global rtf_out "`path'\`m'\stata_M11.rtf"
- global vars f_relestknow_std f_energdiff_std fmcg_seccat c4 f_relestknow_std_sq f_energdiff_std_sq f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
- 
- * m12
- global rtf_out "`path'\`m'\stata_M12.rtf"
- global vars f_relestknow_std f_energdiff_std fmcg_seccat c4 f_relestknow_std_sq f_energdiff_std_sq f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
+program main
+	
+	local m = "MNL_copula_5mmix"
+	local fpath = "$path\`m'\"
+	local equityfn "`fpath'\equity.csv"
+	local elastfn = "`fpath'\elasticities.csv"
+		
+	insheet using "`equityfn'", clear 
+	meancenter_interact
 
-  * m12 + seccat
- global rtf_out "`path'\`m'\stata_M12B_seccat.rtf"
- global vars f_relestknow_std f_energdiff_std seccat c4 f_relestknow_std_sq f_energdiff_std_sq f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
+	* M12 + fmcg
+	analysis, path("`fpath'") save_fn("M12A_fmcg") maineffects(fmcg_seccat c4) ///
+										     interactions(f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat ///
+											 f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff)
 
-  * m12 + without seccat
- global rtf_out "`path'\`m'\stata_M12C_without_seccat.rtf"
- global vars f_relestknow_std f_energdiff_std seccat c4 f_relestknow_std_sq f_energdiff_std_sq f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
+	* M12 + seccat
+	analysis, path("`fpath'") save_fn("M12B_seccat") maineffects(seccat c4) ///
+										     interactions(f_relestknow_stdXseccat f_energdiff_stdXseccat ///
+											 f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff)
 
-  * m12 wihtout squared
- global rtf_out "`path'\`m'\stata_M12D_nosquared_fmcg.rtf"
- global vars f_relestknow_std f_energdiff_std fmcg_seccat c4 f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
+	* M12 + fmcg + growth
+	analysis, path("`fpath'") save_fn("M12A2_fmcg_catgrowth") maineffects(fmcg_seccat c4 catgrowth_abs) ///
+										     interactions(f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat ///
+											 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+											 f_relestknow_stdXcatgrowth_abs f_energdiff_stdXcatgrowth_abs ///
+											 f_relestknowXf_energdiff)
 
-  * m12 wihtout squared
- global rtf_out "`path'\`m'\stata_M12DE_nosquared_seccat.rtf"
- global vars f_relestknow_std f_energdiff_std seccat c4 f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
+	* M12 + seccat + growth
+	analysis, path("`fpath'") save_fn("M12B2_seccat_catgrowth") maineffects(seccat c4 catgrowth_abs) ///
+										     interactions(f_relestknow_stdXseccat f_energdiff_stdXseccat ///
+											 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+											 f_relestknow_stdXcatgrowth_abs f_energdiff_stdXcatgrowth_abs ///
+											 f_relestknowXf_energdiff)
+									 
+end
 
- 
-  * m4
- global rtf_out "`path'\`m'\stata_M4.rtf"
- global vars f_relestknow_std f_energdiff_std f_relestknow_std_sq f_energdiff_std_sq
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
- 
-  * m5
- global rtf_out "`path'\`m'\stata_M5.rtf"
- global vars f_relestknow_std f_energdiff_std seccat
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
- 
-  * regular
- global rtf_out "`path'\`m'\stata_M6.rtf"
- global vars f_relestknow_std f_energdiff_std seccat f_relestknow_stdXseccat f_energdiff_stdXseccat
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
-  * regular
- global rtf_out "`path'\`m'\stata_M7.rtf"
- global vars f_relestknow_std f_energdiff_std c4 f_relestknow_stdXc4 f_energdiff_stdXc4
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
-  * regular
- global rtf_out "`path'\`m'\stata_M8.rtf"
- global vars f_relestknow_std f_energdiff_std c4 f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknow_std_sq f_energdiff_std_sq
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
- * regular
- global rtf_out "`path'\`m'\stata_M9.rtf"
- global vars f_relestknow_std f_energdiff_std fmcg_seccat f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
- * regular
- global rtf_out "`path'\`m'\stata_M10.rtf"
- global vars f_relestknow_std f_energdiff_std retail_seccat f_relestknow_stdXretail_seccat f_energdiff_stdXretail_seccat
- equity, fn("`equityfn'")
- elasticity, fn("`elastfn'")
+main
 
- }	
+program main_old
+
+	foreach m of local mlist {
+	 
+	 global elast_vars f_relestknow_std f_energdiff_std
+	 
+	 
+	  * m4
+	 global rtf_out "`path'\`m'\stata_M4.rtf"
+	 global vars f_relestknow_std f_energdiff_std f_relestknow_std_sq f_energdiff_std_sq
+	 equity, fn("`equityfn'")
+	 elasticity, fn("`elastfn'")
+
+	  * m5
+	 global rtf_out "`path'\`m'\stata_M5.rtf"
+	 global vars f_relestknow_std f_energdiff_std seccat
+	 equity, fn("`equityfn'")
+	 elasticity, fn("`elastfn'")
+
+	  * regular
+	 global rtf_out "`path'\`m'\stata_M6.rtf"
+	 global vars f_relestknow_std f_energdiff_std seccat f_relestknow_stdXseccat f_energdiff_stdXseccat
+	 equity, fn("`equityfn'")
+	 elasticity, fn("`elastfn'")
+
+	 * regular
+	 global rtf_out "`path'\`m'\stata_M7.rtf"
+	 global vars f_relestknow_std f_energdiff_std c4 f_relestknow_stdXc4 f_energdiff_stdXc4
+	 equity, fn("`equityfn'")
+	 elasticity, fn("`elastfn'")
+
+	 * regular
+	 global rtf_out "`path'\`m'\stata_M8.rtf"
+	 global vars f_relestknow_std f_energdiff_std c4 f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknow_std_sq f_energdiff_std_sq
+	 equity, fn("`equityfn'")
+	 elasticity, fn("`elastfn'")
+
+	 * regular
+	 global rtf_out "`path'\`m'\stata_M9.rtf"
+	 global vars f_relestknow_std f_energdiff_std fmcg_seccat f_relestknow_stdXfmcg_seccat f_energdiff_stdXfmcg_seccat
+	 equity, fn("`equityfn'")
+	 elasticity, fn("`elastfn'")
+
+	* regular
+	 global rtf_out "`path'\`m'\stata_M10.rtf"
+	 global vars f_relestknow_std f_energdiff_std retail_seccat f_relestknow_stdXretail_seccat f_energdiff_stdXretail_seccat
+	 equity, fn("`equityfn'")
+	 elasticity, fn("`elastfn'")
+
+	 }	
+
+end
 
