@@ -50,7 +50,7 @@ setkey(annual_ms, cat_name, brand_name, year)
 setkey(equity, cat_name, brand_name, year)
 
 equity = merge(equity, annual_ms, all.x=T, all.y=F, by=c('cat_name', 'brand_name', 'year'))
-
+equity[, bav_brand := ifelse(is.na(bav_asset), 0, 1)]
 elast = tmp$elast
 
 ###################
