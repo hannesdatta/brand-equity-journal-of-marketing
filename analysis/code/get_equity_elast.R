@@ -107,5 +107,15 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 		return(df)
 		})
 
-	equity=tmp[[1]]
-	elast=tmp[[2]]
+equity=tmp[[1]]
+elast=tmp[[2]]
+	
+# Load category measures
+cat_measures <- fread('../../raw/cat_measures/category_measures.txt')
+cnames <- gsub('[ ]', '_', tolower(gsub('([ ]=.*)|([:].*)', '', colnames(cat_measures))))
+setnames(cat_measures, c('cat_name', 'c_inv', 'c_perfrisk', 'c_socsymb', 'c_qdiff_brandpl', 'c_qualgap', 'c_vdiff_brandpl', 'c_vdiff_brandpl2', 'c_pricequal','c_brandtrust', 'c_percdiff', 'c_shareofbudg', 'c_impulse', 'note'))
+cat_measures[, note:=NULL]
+
+equity <- merge(equity, cat_measures, by=c('cat_name'), all.x=T)
+elast <- merge(elast, cat_measures, by=c('cat_name'), all.x=T)
+
