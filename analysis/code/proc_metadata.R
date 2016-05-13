@@ -34,11 +34,12 @@ cat_char = rbindlist(lapply(datasets, function(x) {
 		drinks = ifelse(cat_name %in% c('beer', 'carbbev', 'milk', 'coffee'), 1,0)
 		cigs = ifelse(cat_name %in% c("cigets"), 1,0)
 		
+		#hedonic = ifelse(cat_name %in% c('beer', 'carbbev', 'cigets', 'coffee', 'pz_di', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'yogurt'), 1, 0)
 		#	perishable = ifelse(cat_name %in% c('coldcer', 'mayo', 'milk', 'yogurt'),1,0)
 		#	impulse = ifelse(cat_name %in% c('saltsnck'),1,0)
 		#	fooddrinks = ifelse(cat_name %in% c('beer', 'carbbev', 'coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
 	
-	data.frame(cat_name=cat_name, c2=c2, c3=c3, c4=c4, herf=H,
+	data.frame(cat_name=cat_name, c2=c2, c3=c3, c4=c4, herf=H, #hedonic = hedonic,
 			   fooddrinks, hygiene, hhclean, food, drinks, cigs, food_drink_cigs = as.numeric(food|drinks|cigs), catgrowth_abs = growth)
 	}))
 
