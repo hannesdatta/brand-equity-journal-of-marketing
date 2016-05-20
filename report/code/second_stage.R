@@ -164,8 +164,8 @@ program meancenter_interact
 		g f_relestknow_stdX`var' = f_relestknow_std * `var'_mc
 		g f_energdiff_stdX`var' = f_energdiff_std * `var'_mc
 		local l: variable label `var'
-		label var f_relestknow_stdX`var' "RelEstKnow x `l'"
-		label var f_energdiff_stdX`var' "EnergDiff x `l'"
+		label var f_relestknow_stdX`var' "Relevant Stature x `l'"
+		label var f_energdiff_stdX`var' "Energized Diff. x `l'"
 		}
 		
 	* Interactions for non-meancentered variables
@@ -173,12 +173,12 @@ program meancenter_interact
 		g f_relestknow_stdX`var' = f_relestknow_std * `var'
 		g f_energdiff_stdX`var' = f_energdiff_std * `var'
 		local l: variable label `var'
-		label var f_relestknow_stdX`var' "RelEstKnow x `l'"
-		label var f_energdiff_stdX`var' "EnergDiff x `l'"
+		label var f_relestknow_stdX`var' "Relevant Stature x `l'"
+		label var f_energdiff_stdX`var' "Energized Diff. x `l'"
 		}
 		
-	label var f_relestknow_std "RelEstKnow"
-	label var f_energdiff_std "EnergDiff"
+	label var f_relestknow_std "Relevant Stature"
+	label var f_energdiff_std "Energized Diff."
 	
 	g f_relestknow_std_sq = f_relestknow_std ^ 2
 	g f_energdiff_std_sq = f_energdiff_std ^ 2

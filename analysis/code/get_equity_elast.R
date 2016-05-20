@@ -111,11 +111,9 @@ equity=tmp[[1]]
 elast=tmp[[2]]
 	
 # Load category measures
-cat_measures <- fread('../../raw/cat_measures/category_measures.txt')
-cnames <- gsub('[ ]', '_', tolower(gsub('([ ]=.*)|([:].*)', '', colnames(cat_measures))))
-setnames(cat_measures, c('cat_name', 'c_inv', 'c_perfrisk', 'c_socsymb', 'c_qdiff_brandpl', 'c_qualgap', 'c_vdiff_brandpl', 'c_vdiff_brandpl2', 'c_pricequal','c_brandtrust', 'c_percdiff', 'c_shareofbudg', 'c_impulse', 'note'))
-cat_measures[, note:=NULL]
+cat_measures <- fread('../../raw/cat_measures/grocery_survey.txt')
+setnames(cat_measures, c('cat_name', paste0('cat_',tolower(colnames(cat_measures)[-1]))))
+setnames(cat_measures, c('cat_name', 'cat_invol', 'cat_hedonic', 'cat_utilit', 'cat_perfrisk', 'cat_socdemon'))
 
 equity <- merge(equity, cat_measures, by=c('cat_name'), all.x=T)
 elast <- merge(elast, cat_measures, by=c('cat_name'), all.x=T)
-
