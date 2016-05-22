@@ -73,30 +73,30 @@ program equity_sensitivity
 	xtset cat_brand_num
 	
 	eststo m4: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 ///
-						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff [pw=weights], vce(cluster cat_brand_num)
+						   f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff [pw=weights], vce(cluster cat_brand_num)
 	
 	eststo m4b: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 food_drink_cigs ///
-						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
+						   f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
 						   f_relestknow_stdXfood_drink_cigs f_energdiff_stdXfood_drink_cigs [pw=weights], vce(cluster cat_brand_num)
 
 	eststo m4c: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 cat_invol ///
-						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
+						   f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
 						   f_relestknow_stdXcat_invol f_energdiff_stdXcat_invol [pw=weights], vce(cluster cat_brand_num)
 						   
 	eststo m4d: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 cat_hedonic ///
-						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
+						   f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
 						   f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic [pw=weights], vce(cluster cat_brand_num)
 						   
 	eststo m4e: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 cat_utilit ///
-						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
+						   f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
 						   f_relestknow_stdXcat_utilit f_energdiff_stdXcat_utilit [pw=weights], vce(cluster cat_brand_num)
 						   
 	eststo m4f: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 cat_perfrisk ///
-						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
+						   f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
 						   f_relestknow_stdXcat_perfrisk f_energdiff_stdXcat_perfrisk [pw=weights], vce(cluster cat_brand_num)
 						   
 	eststo m4g: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat c4 cat_socdemon ///
-						   f_relestknow_stdXseccat f_energdiff_stdXseccat f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
+						   f_relestknow_stdXc4 f_energdiff_stdXc4 f_relestknowXf_energdiff ///
 						   f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon [pw=weights], vce(cluster cat_brand_num)
 
 	capture erase "$rtf_out"
@@ -224,12 +224,12 @@ program meancenter_interact
 	
 	g f_relestknow_std_sq = f_relestknow_std ^ 2
 	g f_energdiff_std_sq = f_energdiff_std ^ 2
-	label var f_relestknow_std_sq "RelEstKnow squared"
-	label var f_energdiff_std_sq "EnergDiff squared"
+	label var f_relestknow_std_sq "Relevant Stature squared"
+	label var f_energdiff_std_sq "Energized Diff. squared"
 	
 	g f_relestknowXf_energdiff = f_relestknow_std*f_energdiff_std
 	
-	label var f_relestknowXf_energdiff "RelEstKnow X EnergDiff"
+	label var f_relestknowXf_energdiff "Relevant Stature x Energized Diff."
 	
 end
 
@@ -239,7 +239,7 @@ program load_elasticity
 	drop if f_relestknow_std == . | elast_std == .
 	generate cat_brand = cat_name+ "_" +brand_name
 	egen cat_brand_num = group(cat_brand)
-	gen weights = 1/elast_se
+	gen weights = 1/elast_se_std
 	
 end
 
