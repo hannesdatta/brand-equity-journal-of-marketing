@@ -15,17 +15,21 @@
 ###############################
 
 equity[, years_per_brand := .N, by=c('cat_name', 'brand_name')]
-tmp=equity[!is.na(bav_asset), list(no_brands = length(unique(brand_name)), 
+tmp=equity[, list(no_brands = length(unique(brand_name)),
+			  no_bav_brands = length(unique(brand_name[!is.na(bav_asset)])),
 			  no_years = mean(years_per_brand[match(unique(brand_name), brand_name)], na.rm=T),
 			  dollar_sales = mean(revenue)/1E6, 
 			  dollar_sales_sd = sd(revenue/1E6),
-			  bav_asset = mean(bav_asset), 
-			  bav_asset_sd = sd(bav_asset)
+			  bav_asset = mean(bav_asset[!is.na(bav_asset)]), 
+			  bav_asset_sd = sd(bav_asset[!is.na(bav_asset)])
 			  ), by=c('cat_name')]
 
 # Total number of brands
 length(unique(paste(equity$cat_name, equity$brand_name, sep= '_')))
-			  
+	
+# Total number of brand-year observations
+equity[, list(.N)]
+	
 write.table(tmp, '../output/sample_description.csv', row.names=F)
 		  
 ###########################################
