@@ -25,11 +25,15 @@ tmp=equity[, list(no_brands = length(unique(brand_name)),
 			  ), by=c('cat_name')]
 
 # Total number of brands
+with(equity,length(unique(paste(cat_name, brand_name, sep= '_'))))
+# Total number of BAV brands
+with(equity[!is.na(bav_asset)],length(unique(paste(cat_name, brand_name, sep= '_'))))
+# Total number of brands
 length(unique(paste(equity$cat_name, equity$brand_name, sep= '_')))
-	
 # Total number of brand-year observations
-equity[, list(.N)]
-	
+nrow(equity[, list(.N), by=c('cat_name', 'brand_name', 'year')])
+
+# Export for XLS table
 write.table(tmp, '../output/sample_description.csv', row.names=F)
 		  
 ###########################################
