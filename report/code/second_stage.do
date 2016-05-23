@@ -351,6 +351,88 @@ program equity_22may2016_v2
 
 end
 
+
+program equity_final
+	syntax, ttitle(string)
+	eststo clear
+		
+	eststo m05c2: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+									  
+	eststo m05c2_2: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd ///
+									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+
+	
+	eststo m05e: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_perfrisk f_relestknow_stdXcat_perfrisk f_energdiff_stdXcat_perfrisk ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+									  
+	eststo m05e_2: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd ///
+									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_perfrisk f_relestknow_stdXcat_perfrisk f_energdiff_stdXcat_perfrisk ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+
+	eststo m05c2_x: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+									  
+	eststo m05c2_2x: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd ///
+									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+
+	
+	eststo m05ex: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_muchtolose f_relestknow_stdXcat_muchtolose f_energdiff_stdXcat_muchtolose ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+									  
+	eststo m05e_2x: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd ///
+									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_muchtolose f_relestknow_stdXcat_muchtolose f_energdiff_stdXcat_muchtolose ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+			
+	capture erase "$rtf_out"
+
+	esttab m* using "$rtf_out", nodepvar label ///
+	addnote("") title("`ttitle'") ///
+	onecell b(a2) compress ///
+	modelwidth(5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5) varwidth(22) ///
+	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)) ///
+	star(* 0.10 ** 0.05 *** .01) replace ///
+	order(f_relestknow_std f_energdiff_std seccat ///
+		  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
+		  f_relestknow_stdXf_energdiff_std ///
+		  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+		  cat_utilit f_relestknow_stdXcat_utilit f_energdiff_stdXcat_utilit ///
+		  cat_perfrisk f_relestknow_stdXcat_perfrisk f_energdiff_stdXcat_perfrisk ///
+		  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon)
+		  
+	*fmt(a2 a2 3 0 0)) ///
+	*onecell  
+	* nogap 
+	*aux(vif 2) wide nopar ///
+	
+end
+
 program analysis2
 	syntax, path(string)
 	
@@ -373,12 +455,15 @@ program analysis2
 	* equity_catmeasures, ttitle("Equity with new category measures and weights = 1/sbbe_se_std")
 	
 	* Equity
-	global rtf_out "`path'\stata_equity_22may2016.rtf"
-	equity_22may2016, ttitle("Equity regressions, 22 May 2016")
+	*global rtf_out "`path'\stata_equity_22may2016.rtf"
+	*equity_22may2016, ttitle("Equity regressions, 22 May 2016")
 	
 	* Equity v2
-	global rtf_out "`path'\stata_equity_22may2016_v2.rtf"
-	equity_22may2016_v2, ttitle("Equity regressions, 22 May 2016")
+	*global rtf_out "`path'\stata_equity_22may2016_v2.rtf"
+	*equity_22may2016_v2, ttitle("Equity regressions, 22 May 2016")
+	* Equity Final check with Kusum
+	global rtf_out "`path'\stata_equity_23may2016.rtf"
+	equity_final, ttitle("Equity regressions, 23 May 2016")
 		
 end
 
@@ -404,7 +489,7 @@ program do_preclean
 	egen cat_brand_num = group(cat_brand)
 
 	* Label variables
-	local mcvars c2 c3 c4 herf catgrowth_rel catgrowth_abs cat_invol cat_hedonic cat_utilit cat_perfrisk cat_socdemon
+	local mcvars c2 c3 c4 herf catgrowth_rel catgrowth_abs cat_invol cat_hedonic cat_utilit cat_perfrisk cat_socdemon cat_muchtolose
 	local otherinteract_vars seccat newbrnd fmcg_seccat retail_seccat food_drink_cigs
 
 	label var seccat "Brand in second. cat."
@@ -424,6 +509,7 @@ program do_preclean
 	label var cat_utilit "Category Utilitarianism"
 	label var cat_perfrisk "Category performance risk"
 	label var cat_socdemon "Category Social Demonstrance"
+	label var cat_muchtolose "Category Much to Lose"
 	
 	* Mean-center variables
 	foreach var in `mcvars' {
