@@ -114,7 +114,7 @@ elast=tmp[[2]]
 # Load category measures
 cat_measures <- fread('../../raw/cat_measures/grocery_survey.txt')
 setnames(cat_measures, c('cat_name', paste0('cat_',tolower(colnames(cat_measures)[-1]))))
-setnames(cat_measures, c('cat_name', 'cat_invol', 'cat_hedonic', 'cat_utilit', 'cat_perfrisk', 'cat_socdemon'))
+setnames(cat_measures, c('cat_name', 'cat_invol', 'cat_hedonic', 'cat_utilit', 'cat_perfrisk', 'cat_socdemon', 'cat_muchtolose'))
 
 equity <- merge(equity, cat_measures, by=c('cat_name'), all.x=T)
 elast <- merge(elast, cat_measures, by=c('cat_name'), all.x=T)
