@@ -383,49 +383,21 @@ program equity_final
 									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
 
-	eststo m05c2_x: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
-									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
-									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
-									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-									  
-	eststo m05c2_2x: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd ///
-									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
-									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
-									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-	
-	eststo m05ex: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
-									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
-									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
-									  cat_muchtolose f_relestknow_stdXcat_muchtolose f_energdiff_stdXcat_muchtolose ///
-									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-									  
-	eststo m05e_2x: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd ///
-									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
-									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
-									  cat_muchtolose f_relestknow_stdXcat_muchtolose f_energdiff_stdXcat_muchtolose ///
-									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-			
 	capture erase "$rtf_out"
 
 	esttab m* using "$rtf_out", nodepvar label ///
 	addnote("") title("`ttitle'") ///
-	onecell b(a2) compress ///
-	modelwidth(5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5) varwidth(22) ///
+	b(a2) compress ///
+	modelwidth(5 5 5 5) varwidth(22) nogap ///
 	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)) ///
 	star(* 0.10 ** 0.05 *** .01) replace ///
 	order(f_relestknow_std f_energdiff_std seccat ///
 		  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
-		  f_relestknow_stdXf_energdiff_std ///
 		  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
-		  cat_utilit f_relestknow_stdXcat_utilit f_energdiff_stdXcat_utilit ///
 		  cat_perfrisk f_relestknow_stdXcat_perfrisk f_energdiff_stdXcat_perfrisk ///
 		  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon)
-		  
+	
+	
 	*fmt(a2 a2 3 0 0)) ///
 	*onecell  
 	* nogap 
@@ -464,6 +436,10 @@ program analysis2
 	* Equity Final check with Kusum
 	global rtf_out "`path'\stata_equity_23may2016.rtf"
 	equity_final, ttitle("Equity regressions, 23 May 2016")
+	
+	* main effects only
+	elasticity, fn("`elastfn'") elast_vars(f_relestknow_std f_energdiff_std)
+	
 		
 end
 
@@ -596,10 +572,10 @@ program elasticity
 	eststo m5: quietly reg elast_std `elast_vars' [pw=weights] 
 	
 	* capture erase "$rtf_out" *append
-	esttab m* using "$rtf_out", append mtitles("ad" "fd" "pct_store_skus" "pi" "rreg") nodepvar label ///
-	   addnote("All estimated with WLS.") title("Elasticities, 1/elast_se_std as weights") modelwidth(6 6 6 6 6) varwidth(24) ///
+	esttab m* using "$rtf_out", append mtitles("adstock" "feature/display" "total distribution" "price index" "regular price") nodepvar label ///
+	   addnote("All estimated with WLS.") title("Elasticities, 1/elast_se_std as weights") modelwidth(8 8 8 8 8) varwidth(30) ///
 	   stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)  fmt(a2 a2 3 0 0)) ///
-	   onecell nogap star(+ 0.10 * 0.05 ** .01 *** .001) replace b(a2)
+	   onecell nogap star(* 0.10 ** 0.05 *** .01) replace b(a2)
 				
 end
 

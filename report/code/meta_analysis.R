@@ -35,7 +35,15 @@ nrow(equity[, list(.N), by=c('cat_name', 'brand_name', 'year')])
 
 # Export for XLS table
 write.table(tmp, '../output/sample_description.csv', row.names=F)
-		  
+	
+
+# Mean of C4
+
+setkey(elast,cat_name)
+tmp=unique(elast)
+tmp[, c('cat_name', 'c4'),with=F]
+
+	
 ###########################################
 # Table 4: Sales Response Model Estimates #
 ###########################################
@@ -67,6 +75,7 @@ summarize_elast <- function(elast) {
 	  }
 	
 	tmp = elast[!grepl('cop[_]', var_name), list(welast = sum(elast/elast_se,na.rm=T)/sum(1/elast_se,na.rm=T),
+				   elast_sd = sd(elast, na.rm=T),
 				   rosenthalznw = sum(elast/elast_se,na.rm=T)/sqrt(length(unique(id[!is.na(elast)]))),
 				   signstars = signstars(sum(elast/elast_se,na.rm=T)/sqrt(length(unique(id[!is.na(elast)])))),
 				   low90 = quantile(elast, .1,na.rm=T), up90 = quantile(elast, .9, na.rm=T),
@@ -80,6 +89,7 @@ summarize_elast <- function(elast) {
 	print(tmp)
 	
 	tmp = elast[!grepl('cop[_]', var_name) & bav_available==T, list(welast = sum(elast/elast_se,na.rm=T)/sum(1/elast_se,na.rm=T),
+				   elast_sd = sd(elast, na.rm=T),
 				   rosenthalznw = sum(elast/elast_se,na.rm=T)/sqrt(length(unique(id[!is.na(elast)]))),
 				   signstars = signstars(sum(elast/elast_se,na.rm=T)/sqrt(length(unique(id[!is.na(elast)])))),
 				   low90 = quantile(elast, .1,na.rm=T), up90 = quantile(elast, .9, na.rm=T),
@@ -97,8 +107,115 @@ summarize_elast <- function(elast) {
 
 summarize_elast(elast)
 
+##############################
+# CORRELATION TABLE FUNCTION #
+##############################
 
+# adapted from: http://www.sthda.com/english/wiki/elegant-correlation-table-using-xtable-r-package
+
+library(Hmisc)
+
+# x is a matrix containing the data
+# method : correlation method. "pearson"" or "spearman"" is supported
+# removeTriangle : remove upper or lower triangle
+# results :  if "html" or "latex"
+  # the results will be displayed in html or latex format
+corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper", "lower"),
+                     result=c("none", "html", "latex")){
+
+    #Compute correlation matrix
+    require(Hmisc)
+    x <- as.matrix(x)
+    correlation_matrix<-rcorr(x, type=method[1])
+    R <- correlation_matrix$r # Matrix of correlation coeficients
+    p <- correlation_matrix$P # Matrix of p-value 
+    
+    ## Define notions for significance levels; spacing is important.
+    mystars <- ifelse(p < .01, "*** ", ifelse(p < .05, "**  ", ifelse(p < .1, "*   ", "   ")))
+    
+    ## trunctuate the correlation matrix to three decimals
+    R <- format(round(cbind(rep(-1.11, ncol(x)), R), 3))[,-1]
+    
+    ## build a new matrix that includes the correlations with their apropriate stars
+    Rnew <- matrix(paste(R, mystars, sep=""), ncol=ncol(x))
+    diag(Rnew) <- paste(diag(R), " ", sep="")
+    rownames(Rnew) <- colnames(x)
+    colnames(Rnew) <- paste(colnames(x), "", sep="")
+    
+    Rnew <- as.matrix(Rnew)
+    Rnew <- as.data.frame(Rnew)
+    
+    ## remove last column and return the correlation matrix
+    #Rnew <- cbind(Rnew[1:length(Rnew)-1])
 	
+    if (result[1]=="none") return(Rnew)
+    else{
+      if(result[1]=="html") print(xtable(Rnew), type="html")
+      else print(xtable(Rnew), type="latex") 
+    }
+
+} 
+
+#################
+
+
+###########
+# TABLE 7 #
+###########
+
+# Correlations for equity (standardized within category)
+
+rowvars = c('sbbe_STD', 'unitsales_STD', 'revenue_STD', 'price_STD')
+colvars = grep('bav[_].*[_]STD', colnames(equity),value=T)
+
+tmp = equity[, c('cat_name', 'brand_name',rowvars, colvars),with=F]
+tmp = tmp[complete.cases(tmp)]
+tmpcor=cor(as.matrix(tmp[,-c(1:2),with=F]))
+
+options(width=600)
+sink('../output/correlations_sbbe.txt')
+print(corstars(as.matrix(tmp[,-c(1:2),with=F], method="pearson", removeTriangle='none')))
+sink()
+
+
+write.table(tmpcor, '../output/correlations_sbbe.csv', row.names=T)
+
+###########
+# TABLE 9 #
+###########
+
+# Correlations for brand equity and marketing mix response (standardized within category)
+
+# extract mmix response
+	require(reshape2)
+	tmp=dcast(elast, cat_name + brand_name ~ var_name, value.var = 'elast_STD')
+
+# get bav factors
+	setkey(elast, cat_name, brand_name)
+	tmp2 = unique(elast)
+
+# merge both
+	tmp <- data.table(merge(tmp, tmp2, by=c('cat_name', 'brand_name'), all.x=T))
+
+
+rowvars = c('rreg_pr_bt', 'pi_bt', 'fd_bt', 'pct_store_skus_bt', 'adstock_bt')
+colvars = grep('bav[_].*[_]STD', colnames(tmp),value=T)
+
+tmpextract = tmp[, c('cat_name', 'brand_name',rowvars, colvars),with=F]
+tmpcor=cor(as.matrix(tmpextract[,-c(1:2),with=F]), use = 'pairwise.complete')
+
+
+write.table(tmpcor, '../output/correlations_mmix.csv', row.names=T)
+
+
+options(width=600)
+sink('../output/correlations_mmix.txt')
+print(corstars(as.matrix(tmpextract[,-c(1:2),with=F]), method="pearson", removeTriangle='none'))
+sink()
+
+
+
+
 summarize_equity <- function(equity) {
 	
 	#################################################
@@ -115,19 +232,10 @@ summarize_equity <- function(equity) {
 	print(tmpcor)
 	cat(paste0('\nNote: Measured for ', length(unique(paste0(tmp$brand_name,tmp$cat_name))), ' unique BAV brands\n'))
 	
-	#################################################
-	# Cross-section time-series pooled correlations #
-	#################################################
-	
-	std_equity = equity[, lapply(.SD, function(x) (x-mean(x, na.rm=T))/sd(x, na.rm=T)),by=c('cat_name', 'brand_name'), .SDcols=vars]
-	std_equity=std_equity[complete.cases(std_equity)]
-	
-	tmp=cor(as.matrix(std_equity[,-(1:2),with=F]))
-		
-	cat('\n\nTime Series Correlations Within Brands Over Time\n')
-	print(tmp)
-	cat(paste0('\nNote: Measured for ', length(unique(paste0(std_equity$brand_name, std_equity$cat_name))), ' unique BAV brands\n'))
 	}
+	
+	
+	
 	
 summ <- function(tmp_results)	{
 	
