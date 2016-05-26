@@ -329,10 +329,11 @@ program equity_22may2016_v2
 	estadd vif
 
 	capture erase "$rtf_out"
-
+*onecell b(a2) compress ///
+	
 	esttab m* using "$rtf_out", nodepvar label ///
 	addnote("") title("`ttitle'") ///
-	onecell b(a2) compress ///
+	aux(vif 2) wide nopar ///
 	modelwidth(5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5) varwidth(22) ///
 	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)) ///
 	aux(vif 2) wide nopar ///
@@ -362,33 +363,46 @@ program equity_final
 									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
 									  
-	eststo m05c2_2: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd ///
+	eststo m05c2_2: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+									  estbrand ///
 									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
 									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
 									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
-
-	
-	eststo m05e: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+  eststo m05c2_2b: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+									  estbrand f_relestknow_stdXf_energdiff_std ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
+ 
+   	eststo m05e: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
 									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
 									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
 									  cat_perfrisk f_relestknow_stdXcat_perfrisk f_energdiff_stdXcat_perfrisk ///
 									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
-									  
-	eststo m05e_2: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat newbrnd ///
+						  
+	eststo m05e_2: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+									  estbrand ///
 									  c4 f_relestknow_stdXc4 f_energdiff_stdXc4 ///
 									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
 									  cat_perfrisk f_relestknow_stdXcat_perfrisk f_energdiff_stdXcat_perfrisk ///
 									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
+eststo m05e_2b: quietly reg sbbe_std f_relestknow_std f_energdiff_std seccat ///
+									  estbrand f_relestknow_stdXf_energdiff_std ///
+									  cat_hedonic f_relestknow_stdXcat_hedonic f_energdiff_stdXcat_hedonic ///
+									  cat_perfrisk f_relestknow_stdXcat_perfrisk f_energdiff_stdXcat_perfrisk ///
+									  cat_socdemon f_relestknow_stdXcat_socdemon f_energdiff_stdXcat_socdemon ///
+									  [pw=weights], vce(cluster cat_brand_num)
 
+	estadd vif
 	capture erase "$rtf_out"
 
 	esttab m* using "$rtf_out", nodepvar label ///
 	addnote("") title("`ttitle'") ///
 	b(a2) compress ///
-	modelwidth(5 5 5 5) varwidth(22) nogap ///
+	modelwidth(5 5 5 5 5 5 5 5 5 5) varwidth(22) nogap ///
 	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)) ///
 	star(* 0.10 ** 0.05 *** .01) replace ///
 	order(f_relestknow_std f_energdiff_std seccat ///
@@ -464,9 +478,11 @@ program do_preclean
 	generate cat_brand = cat_name+ "_" +brand_name
 	egen cat_brand_num = group(cat_brand)
 
+	g estbrand = 1-newbrnd
+	
 	* Label variables
 	local mcvars c2 c3 c4 herf catgrowth_rel catgrowth_abs cat_invol cat_hedonic cat_utilit cat_perfrisk cat_socdemon cat_muchtolose
-	local otherinteract_vars seccat newbrnd fmcg_seccat retail_seccat food_drink_cigs
+	local otherinteract_vars seccat newbrnd estbrand fmcg_seccat retail_seccat food_drink_cigs
 
 	label var seccat "Brand in second. cat."
 	label var retail_seccat "Retail chain second. cat."
@@ -474,6 +490,8 @@ program do_preclean
 	label var food_drink_cigs "Food, drink and cigs"
 	
 	label var newbrnd "New brand"
+	label var estbrand "Established brand"
+	
 	label var c2 "C2"
 	label var c3 "C3"
 	label var c4 "C4"
@@ -524,6 +542,8 @@ program do_preclean
 	g f_relestknow_stdXf_energdiff_std = f_relestknow_std*f_energdiff_std
 	
 	label var f_relestknow_stdXf_energdiff_std "Relevant Stature x Energized Diff."
+	
+	g frelenergXestbrand = f_relestknow_stdXf_energdiff_std * estbrand
 	
 end
 
