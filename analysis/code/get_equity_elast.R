@@ -60,28 +60,44 @@ elast[, bav_brand := ifelse(is.na(bav_asset), 0, 1)]
 
 library(psych)
 bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
-	
+		
 	# Equity brand-value metrics (i.e., by year and brand)
-		setkey(equity, brand_name, year)
-		mydata=unique(equity)
-		
-		fit <- principal(mydata[, bav_dims,with=F], nfactors=2, rotate="varimax")
-		summary(fit)
-		print(fit)
-		fit_scores <- cbind(mydata[, c('brand_name', 'year'),with=F], fit$scores)
-		setkey(fit_scores, brand_name, year)
-		equity[fit_scores, ':=' (F_RelEstKnow=i.PC1, F_EnergDiff=i.PC2)]
-		equity[, var_name:='none']
-		
+		for (nfactors in 2:3) {
+			
+			cat('\n\n===============================================================================\n')
+			cat('Factor analysis on the EQUITY data with ', nfactors, ' factor scores to be extracted\n')
+			cat('===============================================================================\n\n\n')
+			
+			setkey(equity, brand_name, year)
+			mydata=unique(equity)
+			fit <- principal(mydata[, bav_dims,with=F], nfactors=nfactors, rotate="varimax")
+			
+			summary(fit)
+			print(fit)
+			fit_scores <- cbind(mydata[, c('brand_name', 'year'),with=F], fit$scores)
+			setkey(fit_scores, brand_name, year)
+			for (nf in 1:nfactors) eval(parse(text=paste0('equity[fit_scores, F', nfactors,'_PC', nf, ':=i.PC', nf,']')))
+			equity[, var_name:='none']
+			}
+			
 	# Elasticities
-		setkey(elast, cat_name, brand_name)
-		mydata=unique(elast)
-		fit2 <- principal(mydata[, bav_dims,with=F], nfactors=2, rotate="varimax")
-		fit_scores2 <- cbind(mydata[, c('cat_name', 'brand_name'),with=F], fit2$scores)
-		setkey(fit_scores2, cat_name, brand_name)
-		elast[fit_scores2, ':=' (F_RelEstKnow=i.PC1, F_EnergDiff=i.PC2)]
-	
-
+		for (nfactors in 2:3) {
+		
+			cat('\n\n===============================================================================\n')
+			cat('Factor analysis on the ELASTICITIY data with ', nfactors, ' factor scores to be extracted\n')
+			cat('===============================================================================\n\n\n')
+			
+			setkey(elast, cat_name, brand_name)
+			mydata=unique(elast)
+			fit2 <- principal(mydata[, bav_dims,with=F], nfactors=nfactors, rotate="varimax")
+			
+			summary(fit2)
+			print(fit2)
+			fit_scores2 <- cbind(mydata[, c('cat_name', 'brand_name'),with=F], fit2$scores)
+			setkey(fit_scores2, cat_name, brand_name)
+			
+			for (nf in 1:nfactors) eval(parse(text=paste0('elast[fit_scores2, F', nfactors,'_PC', nf, ':=i.PC', nf,']')))
+			}
 
 # Standardize variables
 	stdvar <- function(x) (x-mean(x,na.rm=T))/sd(x, na.rm=T)
@@ -118,3 +134,4 @@ setnames(cat_measures, c('cat_name', 'cat_invol', 'cat_hedonic', 'cat_utilit', '
 
 equity <- merge(equity, cat_measures, by=c('cat_name'), all.x=T)
 elast <- merge(elast, cat_measures, by=c('cat_name'), all.x=T)
+
