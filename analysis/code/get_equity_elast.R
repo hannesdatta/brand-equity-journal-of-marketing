@@ -69,9 +69,10 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 			cat(paste0('Factor analysis on the ', toupper(ds), ' data with ', nfactors, ' factor scores to be extracted\n'))
 			cat('===============================================================================\n\n\n')
 			
-			if (ds=='equity') setkey(equity, brand_name, year)
-			if (ds=='elast') setkey(elast, brand_name)
+			if (ds=='equity') keys = c('brand_name', 'year')
+			if (ds=='elast') keys = c('brand_name')
 			
+			eval(parse(text=paste0('setkey(', ds, ', ', paste(keys, collapse=','),')')))
 			mydata=eval(parse(text=paste0('unique(', ds, ')')))[!is.na(bav_asset)]
 			
 			fit <- principal(mydata[, bav_dims,with=F], nfactors=nfactors, rotate="varimax")
@@ -79,21 +80,16 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 			summary(fit)
 			print(fit)
 			
-			if (ds == 'equity') {
-				fit_scores <- cbind(mydata[, c('brand_name', 'year'),with=F], fit$scores)
-				setkey(fit_scores, brand_name, year)
-				for (nf in 1:nfactors) eval(parse(text=paste0('equity[fit_scores, F', nfactors,'_PC', nf, ':=i.PC', nf,']')))
-				equity[, var_name:='none'] }
+			fit_scores <- cbind(mydata[, keys,with=F], fit$scores)
+			setkeyv(fit_scores, keys)
+			
+			for (nf in 1:nfactors) eval(parse(text=paste0(ds, '[fit_scores, F', nfactors,'_PC', nf, ':=i.PC', nf,']')))
 				
-			if (ds == 'elast') {
-				fit_scores <- cbind(mydata[, c('brand_name'),with=F], fit$scores)
-				setkey(fit_scores, brand_name)
-				for (nf in 1:nfactors) eval(parse(text=paste0('elast[fit_scores, F', nfactors,'_PC', nf, ':=i.PC', nf,']')))
-				}
-		
+			if (ds == 'equity') equity[, var_name:='none']
+			
 			}
 		}
-		
+
 # Standardize variables
 	stdvar <- function(x) (x-mean(x,na.rm=T))/sd(x, na.rm=T)
 	std_without_mean <- function(x) x/sd(x, na.rm=T)
