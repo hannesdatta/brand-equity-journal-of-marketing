@@ -29,3 +29,6 @@ $(OUTPUT_DIR)/equity.RData: modelselection_equity.R
 
 csv: make_csv.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "make_csv.R"
+
+plot: plots.R
+	"$(RBIN64)Rterm.exe" --vanilla --args "" < "plots.R"
