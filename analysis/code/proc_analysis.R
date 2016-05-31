@@ -15,7 +15,7 @@ require(reshape2)
 require(marketingtools)
 require(car) # for delta method
 
-prepare_data <- function(i, plus_1 = FALSE) {
+prepare_data <- function(i, plus_1 = FALSE, meancentering = FALSE) {
 	print(i)
 	print(names(datasets)[i])
 	
@@ -53,15 +53,26 @@ prepare_data <- function(i, plus_1 = FALSE) {
 		dt[, .var := 100*(get(.var)),with=F]
 		}
 	
-	if (plus_1==TRUE) {
+	if (plus_1==TRUE) { # add one to advertising stock, for logging (if needed)
 		vars=c(grep('adstock', colnames(dt),value=T))
 		
 		for (.var in c(vars, grep('attr[_]|fd[_]bt', colnames(dt),value=T))) {
 		    if (!length(unique(unlist(dt[, .var,with=F])))==1) dt[, .var := get(.var)+1,with=F]
 			}
 		}
-	setorder(dt, brand_name, week)
+	
+	# mean-centering of explanatory (heterogenous) variables
+	if (meancentering==TRUE) {
+		.vars <- setdiff(grep('[_]bt', colnames(dt), value=T),c(grep('attr[_]', colnames(dt), value=T),'sales_bt', 'rev_bt'))
 		
+		for (.var in .vars) {
+			dt[, paste0(.var, '_mc') := get(.var)-mean(get(.var),na.rm=T), by = c('cat_name')]
+			}
+	
+	}	
+	
+	setorder(dt, brand_name, week)
+			
 	dt
 	}
 	
@@ -110,6 +121,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	##################
 
 	# check for variation in all variables by brand; if not available, set all to NA
+	if(0) {
 	for (.n in c(xvars_heterog, yvars)) {
 		dtf[, get_n := length(unique(get(.n))),by=c('brand_name')]
 		dtf[get_n==1, .n := NA, with=F]
@@ -121,7 +133,8 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 			}
 		dtf[,':=' (get_n=NULL)]
 		}
-
+	}
+	
 	cat('Unique values\n')
 	dtf[, lapply(.SD, function(x) length(unique(x[!is.na(x)]))), by=c('brand_name'), .SDcols=c(xvars_heterog, yvars)]
 	
@@ -167,7 +180,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	dtf[, year:=as.numeric(year)]
 	dtf[, nbrands := length(unique(get(it[1]))), by = c(it[2])]
 	dtf[, ms := sales_bt/sum(sales_bt), by=c(it[2])]
-
+	
 	# Transform data to base-brand representation
 	dtbb <- attraction_data(as.formula(paste0('ms ~ ', paste0(c(xvars_heterog, xvars_homog),collapse=' + '))), 
 					data = dtf, heterogenous = as.formula(paste0(' ~ ', paste0(c(xvars_heterog),collapse=' + '))),
@@ -279,8 +292,14 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	# EXTRACT ELASTICITIES #
 	########################
 
-		# calculate means of explanatory variables
-		means <- dtf[, c('brand_name', xvars_heterog),with=F][, lapply(.SD, mean), by=c('brand_name'), .SDcols=c(xvars_heterog)]
+		# calculate means of explanatory variables (note: always take the NON-mean-centered variables, i.e., deleting the index _mc)
+		del_mc = intersect(grep("[_]mc",xvars_heterog,value=T),grep("cop[_]",xvars_heterog,invert=TRUE,value=T))
+		xvars_heterog_without_mc = xvars_heterog
+		xvars_heterog_without_mc[which(xvars_heterog_without_mc%in%del_mc)] <- gsub('[_]mc', '', xvars_heterog[which(xvars_heterog_without_mc%in%del_mc)])
+		
+		means <- dtf[, c('brand_name', xvars_heterog_without_mc),with=F][, lapply(.SD, mean), by=c('brand_name'), .SDcols=c(xvars_heterog_without_mc)]
+		setnames(means, c('brand_name', xvars_heterog))
+		
 		meansmelt <- melt(means, id.vars=c('brand_name'))
 		setnames(meansmelt, 'value','mean_var')
 		setnames(meansmelt, 'variable','var_name')
