@@ -101,8 +101,6 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 			
 			# check whether any of these attributes is zero for all brands, or is equal throughout the observation periods; then remove this column
 			attrsums = colSums(dtf[, xvars_homog, with=F])
-			
-#			attrequal = dtf[, lapply(.SD, function(x) length(unique(x))), by=c('week'), .SDcols=xvars_homog]
 
 			if(any(attrsums==0)) {
 				warning('Some of the product attributes are zero for all brands; removing variables ', paste0(names(attrsums)[which(attrsums==0)],collapse=' ,'))
@@ -120,7 +118,7 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	# TRANSFORM DATA #
 	##################
 
-	# check for variation in all variables by brand; if not available, set all to NA
+	# check for variation in all variables by brand; if not available, set all to NA / DEACTIVATED (should be done up-stream - if at all -, to make sure variables are mean-centered correctly)
 	if(0) {
 	for (.n in c(xvars_heterog, yvars)) {
 		dtf[, get_n := length(unique(get(.n))),by=c('brand_name')]

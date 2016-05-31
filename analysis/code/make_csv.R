@@ -25,9 +25,16 @@ for (fn in c(fn_data, fn_results)) {
 # PRINT AND PROCESS OUTPUT #
 ############################
 
-	unlink('..//output//*.txt')
+	# wipe subfolders in output directory
+	.dirs = list.dirs('../output',recursive=F)
+	for (.dir in .dirs) unlink(.dir, recursive=T)
 	
-	selected_models[, type_and_attr_type := paste(attr_type,type, varspec, sep='_')]
+	.files = list.files('../output', full.names=T)
+	.files = grep('result.*', .files, value=T, invert = T)
+	
+	for (.file in .files) unlink(.file)
+	
+	selected_models[, type_and_attr_type := paste(attr_type,type, varspec, meancentering, sep='_')]
 	
 	# Report individual model results
 	for (r in unique(selected_models$type_and_attr_type)) {
@@ -54,7 +61,6 @@ for (fn in c(fn_data, fn_results)) {
 			}
 		sink()
 		
-		
 		###########################
 		# Summarizing all results #
 		###########################
@@ -72,30 +78,24 @@ for (fn in c(fn_data, fn_results)) {
 			elast = merge(elast, meta_char, by = c('cat_name', 'brand_name'), all.x=T, all.y=F)
 			
 		# Assertions
-			elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
+			elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c(grep('F[0-9][_]', colnames(equity), value=T))]
 			# should be near-to-zero
-			equity[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c('F_RelEstKnow_STD', 'F_EnergDiff_STD')]
+			equity[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c(grep('F[0-9][_]', colnames(equity), value=T))]
 		
 		# Write data files to disk
 			# CSV
-			cpath = paste0(fpath, '')
-			#cpath = paste0(fpath, '//csv')
-			dir.create(cpath)
-			write.table(equity, paste0(cpath, '//equity.csv'), sep='\t', row.names=F,na = "")
-			write.table(elast, paste0(cpath, '//elasticities.csv'), sep='\t', row.names=F,na = "")
+			write.table(equity, paste0(fpath, '//equity.csv'), sep='\t', row.names=F,na = "")
+			write.table(elast, paste0(fpath, '//elasticities.csv'), sep='\t', row.names=F,na = "")
 			#[!is.na(bav_asset)]
 			
 			# SPSS
 			require(sjmisc)
-			#cpath = paste0(fpath, '//spss')
-			dir.create(cpath)
-			write_spss(equity, paste0(cpath, '//equity.sav'))
-			write_spss(elast, paste0(cpath, '//elasticities.sav'))
+			write_spss(equity, paste0(fpath, '//equity.sav'))
+			write_spss(elast, paste0(fpath, '//elasticities.sav'))
 			
 			# SAS
-			require(foreign)
-			write.foreign(equity, paste0(cpath, '//equity.txt'), paste0(cpath, '//equity.sas'), package="SAS")
-			write.foreign(elast, paste0(cpath, '//elasticities.txt'), paste0(cpath, '//elasticities.sas'), package="SAS")
-			
-		
+			# require(foreign)
+			# write.foreign(equity, paste0(cpath, '//equity.txt'), paste0(cpath, '//equity.sas'), package="SAS")
+			# write.foreign(elast, paste0(cpath, '//elasticities.txt'), paste0(cpath, '//elasticities.sas'), package="SAS")
+
 	}

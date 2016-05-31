@@ -1,4 +1,3 @@
-
 ### LOAD DATA SETS
 require(data.table)
 require(reshape2)
@@ -35,14 +34,15 @@ for (fn in c(fn_data, fn_results)) {
 	models_meta[, ':=' (index=models$index, model_name = names(all_results[models$index]))]
 	models <- models_meta
 	
+	models[, cat_index := sapply(model_name, function(x) strsplit(x, split='_')[[1]][1])]
 	models[, type := sapply(model_name, function(x) strsplit(x, split='_')[[1]][2])]
+	models[, decay := as.numeric(sapply(model_name, function(x) strsplit(x, split='_')[[1]][3]))]
 	models[, attr_type := sapply(model_name, function(x) strsplit(x, split='_')[[1]][4])]
 	models[, varspec := sapply(model_name, function(x) strsplit(x, split='_')[[1]][5])]
-	models[, cat_index := sapply(model_name, function(x) strsplit(x, split='_')[[1]][1])]
-	models[, decay := as.numeric(sapply(model_name, function(x) strsplit(x, split='_')[[1]][3]))]
+	models[, meancentering := sapply(model_name, function(x) strsplit(x, split='_')[[1]][6])]
 	
 # Select best-fitting models (min AIC)
-	models[, ':=' (selected= max(llik) == llik), by=c('cat_index', 'attr_type', 'type', 'varspec')]
+	models[, ':=' (selected= max(llik) == llik), by=c('cat_index', 'attr_type', 'type', 'varspec', 'meancentering')]
 	
 # Plot decay patterns
 	path='..//audit//decay_selection//'
@@ -63,7 +63,6 @@ for (fn in c(fn_data, fn_results)) {
 
 # Select models for reporting
 	selected_models = models[type=='copula'&selected==TRUE]
-
 
 ##################
 # COMPUTE EQUITY #
