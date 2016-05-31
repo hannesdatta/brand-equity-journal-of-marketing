@@ -15,6 +15,8 @@ OUTPUT_DIR = ../output
 analyze: $(OUTPUT_DIR)/results.RData
 equity: $(OUTPUT_DIR)/equity.RData
 
+# csv: see below
+
 ###### DATA ANALYSIS ######
 
 # analyze data
@@ -27,9 +29,3 @@ $(OUTPUT_DIR)/equity.RData: modelselection_equity.R
 
 csv: make_csv.R
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "make_csv.R"
-
-meta: meta_analysis.R summary_plots.R
-	"$(RBIN64)Rterm.exe" --vanilla --args "" < "meta_analysis.R"
-
-stata: tables.do
-	$(STATABIN) /e do tables.do
