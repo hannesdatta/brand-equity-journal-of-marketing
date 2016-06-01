@@ -126,10 +126,9 @@ for (path in .dirs) {
 			
 			par(mfrow=c(1,nfactors))
 			
-			# RelEstKnow
 			for (.var in fac) {
 				df[, xvar := get(.var)]
-				with(df[year==2011], plot(y=sbbe_STD, x=xvar, main = paste0(j,': ', .var, ' vs. SBBE'),ylab='SBBE', xlab='F_RelEstKnow (year 2011)\ngreen: new brands, red: secondary categories, black: all other brands', col = 'black', pch=20))
+				with(df[year==2011], plot(y=sbbe_STD, x=xvar, main = paste0(j,': ', .var, ' vs. SBBE'),ylab='SBBE', xlab='Factor score (year 2011)\ngreen: new brands, red: secondary categories, black: all other brands', col = 'black', pch=20))
 				if (nrow(df[year==2011&newbrnd==1])>0) with(df[year==2011&newbrnd==1], points(y=sbbe_STD, x=xvar, col = 'green', pch=20))
 				if (nrow(df[year==2011&seccat==1])>0) with(df[year==2011&seccat==1], points(y=sbbe_STD, x=xvar, col = 'red', pch=20))
 				with(df[year==2011], text(y=sbbe_STD, x=xvar, labels = brand_name, cex=.6,pos=1))
