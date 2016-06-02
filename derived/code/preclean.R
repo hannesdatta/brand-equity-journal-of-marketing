@@ -63,8 +63,6 @@ dat <- NULL
 
 	for (i in seq(along=catdata)) {
 		# verify whether all attribute levels are listed as variable names
-		vars <- colnames(catdata[[i]])
-		
 		attrs <- attr[cat_name==unique(catdata[[i]]$cat_name)]
 		attrvars = paste0(attrs$attribute_variables, '_bt')
 		
@@ -76,8 +74,12 @@ dat <- NULL
 		
 		setkeyv(dt, setdiff(colnames(dt), 'AdStock_bt'))
 		dt <- unique(dt)
-
-		vars_keep = vars[1:grep('cat_name', vars)]
+		dt[, brand_name_orig := brand_name]
+		setcolorder(dt, c('brand_name', 'brand_name_orig', setdiff(colnames(dt), c('brand_name','brand_name_orig'))))
+		
+		vars <- colnames(dt)
+		
+		vars_keep = vars[1:grep("cat_name", vars)]
 		vars_keep = vars_keep[!vars_keep%in%attrs_rem]
 		
 		dt <- dt[,vars_keep,with=F]
