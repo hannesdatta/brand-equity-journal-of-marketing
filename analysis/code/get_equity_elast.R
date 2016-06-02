@@ -80,6 +80,11 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 			summary(fit)
 			print(fit)
 			
+			cat('\n\nInitial Eigenvalues:\n')
+			eig <- data.table(eigen(cor(mydata[, bav_dims, with=F]))$values)
+			setnames(eig, 'eigenvalue')
+			print(eig)
+			
 			fit_scores <- cbind(mydata[, keys,with=F], fit$scores)
 			setkeyv(fit_scores, keys)
 			
