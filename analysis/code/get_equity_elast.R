@@ -45,14 +45,27 @@ annual_ms = rbindlist(lapply(datasets, function(x) {
 	res[, cat_name:=cat_name]
 	return(res)
 	}))
+
+# brand names
+brand_names = rbindlist(lapply(datasets, function(x) {
+	x[, c('cat_name', 'brand_name', 'brand_name_orig'), with=F]
+	}))
 	
 setkey(annual_ms, cat_name, brand_name, year)
-setkey(equity, cat_name, brand_name, year)
+setkey(brand_names, cat_name, brand_name)
+setkey(equity, cat_name, brand_name)
 
 equity = merge(equity, annual_ms, all.x=T, all.y=F, by=c('cat_name', 'brand_name', 'year'))
+equity[brand_names, brand_name_orig := i.brand_name_orig]
 equity[, bav_brand := ifelse(is.na(bav_asset), 0, 1)]
+
+setcolorder(equity, c('cat_name', 'brand_name', 'brand_name_orig', setdiff(colnames(equity),c('cat_name', 'brand_name', 'brand_name_orig'))))
+
 elast = tmp$elast
 elast[, bav_brand := ifelse(is.na(bav_asset), 0, 1)]
+setkey(elast, cat_name, brand_name)
+elast[brand_names, brand_name_orig := i.brand_name_orig]
+setcolorder(elast, c('cat_name', 'brand_name', 'brand_name_orig', setdiff(colnames(elast),c('cat_name', 'brand_name', 'brand_name_orig'))))
 
 ###################
 # Factor analysis #
