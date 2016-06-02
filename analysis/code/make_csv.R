@@ -76,7 +76,10 @@ for (fn in c(fn_data, fn_results)) {
 		# Merge equity and elasticities with brand- and category-level characteristics
 			equity = merge(equity, meta_char, by=c('cat_name', 'brand_name'),all.x=T,all.y=F)
 			elast = merge(elast, meta_char, by = c('cat_name', 'brand_name'), all.x=T, all.y=F)
-			
+		
+		# Clean _mc from variable names
+		elast[, var_name := gsub('[_]mc', '', var_name)]
+		
 		# Assertions
 			elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c(grep('F[0-9][_]', colnames(equity), value=T))]
 			# should be near-to-zero
