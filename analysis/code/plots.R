@@ -150,4 +150,117 @@ for (path in .dirs) {
 		}
 		
 	}
+	
+	
+	
+	
+	# SBBE vs CBBE plots for paper
+	fpath=paste0(path, '/sbbe_vs_cbbe_paper/')
+	unlink(paste0(fpath,'*'))
+	dir.create(fpath)
+
+	library(ggrepel)
+	library(ggplot2)
+	
+	plotfkt <- function(iv, sel_cat, xlabel, title = sel_cat, fn = NULL) {
+		#iv = 'bav_asset_STD' 
+		#sel_cat = 'beer' 
+		#xlabel = 'Brand Asset Score' 
+		set.seed(45)
+		df = equity[cat_name==sel_cat & year == 2011][!is.na(bav_asset)]
+		df[, xvar := get(iv)]
+		
+		# compute regression line
+			mpred <- lm(sbbe_STD~1+xvar, data = df[year==2011])
+			predict_dat = data.table(xvar = seq(from = min(df[year==2011]$xvar,na.rm=T), to=max(df[year==2011]$xvar,na.rm=T), by=.1))
+			pred=data.table(predict(mpred, predict_dat, interval= 'confidence'))
+			predict_dat[, ':=' (sbbe_STD_plot = pred$fit, lwr=pred$lwr, upr=pred$upr)]
+			
+		df_plot <- rbind(df, predict_dat, fill=T)
+		
+		if (!is.null(fn)) png(fn, res=200, units='in', height=6, width=8)
+		pl <- ggplot(df_plot) + geom_point(aes(xvar,sbbe_STD), color = 'black') + geom_text_repel(aes(xvar, sbbe_STD, label = brand_name_orig)) +
+			         labs(x = xlabel) + labs(y = 'SBBE') + geom_path(aes(x=xvar, y = sbbe_STD_plot)) + geom_path(aes(x=xvar, y = lwr), linetype=2) + geom_path(aes(x=xvar, y = upr), linetype=2) +
+					 ggtitle(title) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) +
+					 theme(panel.grid.major = element_blank(), 
+						   panel.grid.minor = element_blank(),
+						   plot.title=element_text(face="bold"),
+						   axis.title=element_text(face="bold"),
+						   panel.border = element_rect(colour = "black", fill=NA))
+						   
+		print(pl)
+		if (!is.null(fn)) dev.off()
+	}
+	
+	
+	
+	####### FIGURE 2 ########
+	equity[, bav_asset_YSTD := (bav_asset-mean(bav_asset,na.rm=T))/sd(bav_asset,na.rm=T), by=c('cat_name', 'year')]
+	
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'beer', xlabel = 'Brand Asset Score', title = 'Beer', fn = paste0(fpath, 'figure2a.png'))
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'carbbev', xlabel = 'Brand Asset Score', title = 'Carbonated Soft Drinks', fn = paste0(fpath, 'figure2b.png'))
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'cigets', xlabel = 'Brand Asset Score', title = 'Cigarettes', fn = paste0(fpath, 'figure2c.png'))
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'coffee', xlabel = 'Brand Asset Score', title = 'Coffee', fn = paste0(fpath, 'figure2d.png'))
+	
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'coldcer', xlabel = 'Brand Asset Score', title = 'Cold (RTE) Cereals', fn = paste0(fpath, 'figure2e.png'))
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'pz_di', xlabel = 'Brand Asset Score', title = 'Frozen Pizza and Dinners', fn = paste0(fpath, 'figure2f.png'))
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'laundet', xlabel = 'Brand Asset Score', title = 'Laundry Detergents', fn = paste0(fpath, 'figure2g.png'))
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'saltsnck', xlabel = 'Brand Asset Score', title = 'Salty Snacks', fn = paste0(fpath, 'figure2h.png'))
+	
+	####### FIGURE 3 ########
+	equity[, bav_rel_YSTD := (bav_relevance-mean(bav_relevance,na.rm=T))/sd(bav_relevance,na.rm=T), by=c('cat_name', 'year')]
+	equity[, bav_est_YSTD := (bav_esteem-mean(bav_esteem,na.rm=T))/sd(bav_esteem,na.rm=T), by=c('cat_name', 'year')]
+	equity[, bav_know_YSTD := (bav_knowledge-mean(bav_knowledge,na.rm=T))/sd(bav_knowledge,na.rm=T), by=c('cat_name', 'year')]
+	equity[, bav_energ_YSTD := (bav_energizeddiff-mean(bav_energizeddiff,na.rm=T))/sd(bav_energizeddiff,na.rm=T), by=c('cat_name', 'year')]
+	
+	plotfkt(iv = 'bav_rel_YSTD', sel_cat = 'beer', xlabel = 'Relevance', title = '', fn = paste0(fpath, 'figure3a.png'))
+	plotfkt(iv = 'bav_est_YSTD', sel_cat = 'carbbev', xlabel = 'Esteem', title = ' Soft Drinks', fn = paste0(fpath, 'figure3b.png'))
+	plotfkt(iv = 'bav_know_YSTD', sel_cat = 'cigets', xlabel = 'Knowledge', title = '', fn = paste0(fpath, 'figure3c.png'))
+	plotfkt(iv = 'bav_energ_YSTD', sel_cat = 'coffee', xlabel = 'Energized Differentiation', title = '', fn = paste0(fpath, 'figure3d.png'))
+	
+	
+
+	# SCATTERPLOT SBBE vs. CBBE
+	fpath=paste0(path, '/sbbe_vs_cbbe/')
+	unlink(paste0(fpath,'*'))
+	dir.create(fpath)
+
+	
+	for (j in unique(equity$cat_name)) {
+		
+		for (nfactors in c(2,3)) {
+			if (nfactors==2) fac = c('F2_PC1_STD', 'F2_PC2_STD')
+			if (nfactors==3) fac = c('F3_PC1_STD', 'F3_PC2_STD','F3_PC3_STD')
+			
+			png(paste0(fpath, 'sbbe_cbbe_', j, '_', nfactors, '_factors.png'), res=200, units='in', height=8, width=12)
+			df = equity[cat_name==j][!is.na(bav_asset)]
+			
+			par(mfrow=c(1,nfactors))
+			
+			for (.var in fac) {
+				df[, xvar := get(.var)]
+				with(df[year==2011], plot(y=sbbe_STD, x=xvar, main = paste0(j,': ', .var, ' vs. SBBE'),ylab='SBBE', xlab='Factor score (year 2011)\ngreen: new brands, red: secondary categories, black: all other brands', col = 'black', pch=20))
+				if (nrow(df[year==2011&newbrnd==1])>0) with(df[year==2011&newbrnd==1], points(y=sbbe_STD, x=xvar, col = 'green', pch=20))
+				if (nrow(df[year==2011&seccat==1])>0) with(df[year==2011&seccat==1], points(y=sbbe_STD, x=xvar, col = 'red', pch=20))
+				with(df[year==2011], text(y=sbbe_STD, x=xvar, labels = brand_name, cex=.6,pos=1))
+				
+				# regresion line
+				mpred <- lm(sbbe_STD~1+xvar, data = df[year==2011])
+				newdat = data.table(xvar = seq(from = min(df[year==2011]$xvar,na.rm=T), to=max(df[year==2011]$xvar,na.rm=T), by=.1))
+				pred=data.table(predict(mpred, newdat, interval= 'confidence'))
+				newdat[, ':=' (sbbe_STD = pred$fit, lwr=pred$lwr, upr=pred$upr)]
+				
+				with(newdat, lines(xvar, sbbe_STD))
+				with(newdat, lines(xvar, lwr,lty=2))
+				with(newdat, lines(xvar, upr,lty=2))
+				mtext(paste0('R2: ', formatC(summary(mpred)$r.squared,digits=4)), cex=.6)
+				
+			}
+			
+			dev.off()
+		}
+		
+	}
+	
+		
 }
