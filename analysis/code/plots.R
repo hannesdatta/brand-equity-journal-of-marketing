@@ -201,12 +201,18 @@ for (path in .dirs) {
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'carbbev', xlabel = 'Brand Asset Score', title = 'Carbonated Soft Drinks', fn = paste0(fpath, 'figure2b.png'))
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'cigets', xlabel = 'Brand Asset Score', title = 'Cigarettes', fn = paste0(fpath, 'figure2c.png'))
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'coffee', xlabel = 'Brand Asset Score', title = 'Coffee', fn = paste0(fpath, 'figure2d.png'))
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'deod', xlabel = 'Brand Asset Score', title = 'Deodorants', fn = paste0(fpath, 'figure2d.png'))
 	
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'coldcer', xlabel = 'Brand Asset Score', title = 'Cold (RTE) Cereals', fn = paste0(fpath, 'figure2e.png'))
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'pz_di', xlabel = 'Brand Asset Score', title = 'Frozen Pizza and Dinners', fn = paste0(fpath, 'figure2f.png'))
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'laundet', xlabel = 'Brand Asset Score', title = 'Laundry Detergents', fn = paste0(fpath, 'figure2g.png'))
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'saltsnck', xlabel = 'Brand Asset Score', title = 'Salty Snacks', fn = paste0(fpath, 'figure2h.png'))
+	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'shamp', xlabel = 'Brand Asset Score', title = 'Shampoo', fn = paste0(fpath, 'figure2h.png'))
+
 	
+	# do this for all categories
+	for (catn in unique(equity$cat_name)) plotfkt(iv = 'bav_asset_YSTD', sel_cat = catn, xlabel = 'Brand Asset Score', title = catn, fn = paste0(fpath, 'plot_', catn, '.png'))
+		
 	####### FIGURE 3 ########
 	equity[, bav_rel_YSTD := (bav_relevance-mean(bav_relevance,na.rm=T))/sd(bav_relevance,na.rm=T), by=c('cat_name', 'year')]
 	equity[, bav_est_YSTD := (bav_esteem-mean(bav_esteem,na.rm=T))/sd(bav_esteem,na.rm=T), by=c('cat_name', 'year')]
