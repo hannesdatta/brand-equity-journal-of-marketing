@@ -1,5 +1,5 @@
 # Set path for focal model
-	path = '../../analysis/output/MNL_copula_5mmix'
+	path = '../../analysis/output/MNL_copula_5mmix_nomc'
 	require(data.table)
 
 # Load data 
@@ -121,7 +121,7 @@ library(Hmisc)
 # results :  if "html" or "latex"
   # the results will be displayed in html or latex format
 corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper", "lower"),
-                     result=c("none", "html", "latex")){
+                     result=c("none", "html", "latex"), ndec = 2){
 
     #Compute correlation matrix
     require(Hmisc)
@@ -134,7 +134,7 @@ corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper"
     mystars <- ifelse(p < .01, "*** ", ifelse(p < .05, "**  ", ifelse(p < .1, "*   ", "   ")))
     
     ## trunctuate the correlation matrix to three decimals
-    R <- format(round(cbind(rep(-1.11, ncol(x)), R), 3))[,-1]
+    R <- format(round(cbind(rep(-1.11, ncol(x)), R), ndec))[,-1]
     
     ## build a new matrix that includes the correlations with their apropriate stars
     Rnew <- matrix(paste(R, mystars, sep=""), ncol=ncol(x))
@@ -174,7 +174,7 @@ tmpcor=cor(as.matrix(tmp[,-c(1:2),with=F]))
 
 options(width=600)
 sink('../output/correlations_sbbe.txt')
-print(corstars(as.matrix(tmp[,-c(1:2),with=F], method="pearson", removeTriangle='none')))
+print(corstars(as.matrix(tmp[,-c(1:2),with=F], method="pearson", removeTriangle='none', ndec=2)))
 sink()
 
 
@@ -210,7 +210,7 @@ write.table(tmpcor, '../output/correlations_mmix.csv', row.names=T)
 
 options(width=600)
 sink('../output/correlations_mmix.txt')
-print(corstars(as.matrix(tmpextract[,-c(1:2),with=F]), method="pearson", removeTriangle='none'))
+print(corstars(as.matrix(tmpextract[,-c(1:2),with=F]), method="pearson", removeTriangle='none', ndec=2))
 sink()
 
 
