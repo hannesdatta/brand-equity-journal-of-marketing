@@ -117,6 +117,7 @@ program do_preclean
 	label var f2_pc1_stdXf2_pc2_std "Relevant Stature x Energized Diff."
 	
 	g f2_pc1_stdXf2_pc2_stdXestbrand = f2_pc1_stdXf2_pc2_std * estbrand
+	*label var f2_pc1_stdXf2_pc2_std "Established Relevant Stature x Energized Diff."
 	
 end
 
@@ -232,22 +233,22 @@ program equity_final
 									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
 				
-	
-	eststo m1c: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std seccat ///
+
+	eststo m1c: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
+									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
 									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
 									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
 									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
 									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
 	
-	eststo m1d: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std seccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand f2_pc1_stdXf2_pc2_stdXestbrand ///
+	eststo m1d: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
+									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
+									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
 									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
 									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
 									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
-	
-	
 	
 	eststo m2: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
 									  estbrand ///
@@ -265,7 +266,9 @@ program equity_final
 									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
 				
-	eststo m2c: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std seccat ///
+
+	eststo m2c: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
+									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
 									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
 									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
 									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
@@ -273,23 +276,26 @@ program equity_final
 									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
 	
-	eststo m2d: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std seccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand f2_pc1_stdXf2_pc2_stdXestbrand ///
+	eststo m2d: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
+									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
+									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
 									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
 									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
 									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
 									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
-	
+
 	capture erase "$rtf_out"
 
 	esttab m* using "$rtf_out", nodepvar label ///
 	addnote("") title("`ttitle'") ///
 	b(a2) compress ///
-	modelwidth(5 5 5 5 5 5 5 5 5 5) varwidth(22) nogap ///
+	modelwidth(5 5 5 5 5 5 5 5 5 5) varwidth(18) nogap ///
 	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)) ///
 	star(* 0.10 ** 0.05 *** .01) replace ///
-	order(f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std seccat estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand f2_pc1_stdXf2_pc2_stdXestbrand ///
+	order(f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
+		  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
+		  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
 		  c4 f2_pc1_stdXc4 f2_pc2_stdXc4  ///
 		  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
 		  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
