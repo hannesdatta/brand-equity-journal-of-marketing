@@ -82,8 +82,25 @@ for (fn in c(fn_data, fn_results)) {
 		
 		# Assertions
 			elast[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c(grep('F[0-9][_]', colnames(equity), value=T))]
-			# should be near-to-zero
+			# standardized variables should be near-to-zero
 			equity[, lapply(.SD, mean, na.rm=TRUE),by=c('cat_name', 'var_name'), .SDcols=c(grep('F[0-9][_]', colnames(equity), value=T))]
+		
+		# Output category-level means/sds for variables
+		sink(paste0(fpath, '//category_means.txt'))
+		
+		means <- elast
+		setkey(means, cat_name)
+		means <- unique(means)
+		
+		.vars <- setdiff(c(grep('cat[_]', colnames(means),value=T), 'c2', 'c3', 'c4'), 'cat_name')
+		tmp <- cbind(t(means[, lapply(.SD, mean),.SDcols=.vars]),t(means[, lapply(.SD, sd),.SDcols=.vars]))
+		colnames(tmp) <- c('mean','sd')
+		
+		print(tmp)
+		
+		sink()
+		
+		
 		
 		# Write data files to disk
 			# CSV
