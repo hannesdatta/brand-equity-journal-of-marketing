@@ -171,7 +171,7 @@ for (path in .dirs) {
 		df[, xvar := get(iv)]
 		
 		# compute regression line
-			mpred <- lm(sbbe_STD~1+xvar, data = df[year==2011])
+			mpred <- lm(sbbe_YSTD~1+xvar, data = df[year==2011])
 			predict_dat = data.table(xvar = seq(from = min(df[year==2011]$xvar,na.rm=T), to=max(df[year==2011]$xvar,na.rm=T), by=.1))
 			pred=data.table(predict(mpred, predict_dat, interval= 'confidence'))
 			predict_dat[, ':=' (sbbe_STD_plot = pred$fit, lwr=pred$lwr, upr=pred$upr)]
@@ -179,7 +179,7 @@ for (path in .dirs) {
 		df_plot <- rbind(df, predict_dat, fill=T)
 		
 		if (!is.null(fn)) png(fn, res=200, units='in', height=6, width=8)
-		pl <- ggplot(df_plot) + geom_point(aes(xvar,sbbe_STD), color = 'black') + geom_text_repel(aes(xvar, sbbe_STD, label = brand_name_orig)) +
+		pl <- ggplot(df_plot) + geom_point(aes(xvar,sbbe_YSTD), color = 'black') + geom_text_repel(aes(xvar, sbbe_YSTD, label = brand_name_orig)) +
 			         labs(x = xlabel) + labs(y = 'SBBE') + geom_path(aes(x=xvar, y = sbbe_STD_plot)) + geom_path(aes(x=xvar, y = lwr), linetype=2) + geom_path(aes(x=xvar, y = upr), linetype=2) +
 					 ggtitle(title) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) +
 					 theme(panel.grid.major = element_blank(), 
@@ -195,7 +195,8 @@ for (path in .dirs) {
 	
 	
 	####### FIGURE 2 ########
-	equity[, bav_asset_YSTD := (bav_asset-mean(bav_asset,na.rm=T))/sd(bav_asset,na.rm=T), by=c('cat_name', 'year')]
+	equity[!is.na(bav_asset), bav_asset_YSTD := (bav_asset-mean(bav_asset,na.rm=T))/sd(bav_asset,na.rm=T), by=c('cat_name', 'year')]
+	equity[!is.na(bav_asset), sbbe_YSTD := (sbbe-mean(sbbe,na.rm=T))/sd(sbbe,na.rm=T), by=c('cat_name', 'year')]
 	
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'beer', xlabel = 'Brand Asset Score', title = 'Beer', fn = paste0(fpath, 'figure2a.png'))
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'carbbev', xlabel = 'Brand Asset Score', title = 'Carbonated Soft Drinks', fn = paste0(fpath, 'figure2b.png'))
