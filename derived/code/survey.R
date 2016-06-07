@@ -78,11 +78,22 @@ for (i in seq(along=scales)) {
 sink('../output/survey_report.txt')
 # Summarize means	
 means <- survey[, lapply(.SD, function(x) mean(x,na.rm=T)), by=c('category'), .SDcols=names(scales)]
+sds <- survey[, lapply(.SD, function(x) sd(x,na.rm=T)), by=c('category'), .SDcols=names(scales)]
+
 setnames(means, 'category', 'cat_name')
 setorder(means, cat_name)
+setnames(sds, 'category', 'cat_name')
+setorder(sds, cat_name)
 
-cat('Construct means\'s:\n')
+cat('SUMMARY STATISTICS FOR THE MTURK SURVEY\n============================================\n\n')
+cat('Construct means:\n')
 print(means)
+
+cat('\n\nConstruct standard deviations:\n')
+print(sds)
+
+cat('\n\nStandard deviations of category means across categories:\n')
+print(apply(means[,-1,with=F], 2, sd))
 
 # Compute Cronbach Alpha's
 alphas <- lapply(scales, function(x) {
@@ -91,7 +102,7 @@ alphas <- lapply(scales, function(x) {
 	alpha_test$total$raw_alpha
 	})
 
-cat('\n\nCronbach alpha\'s:\n')
+cat('\n\nCronbach alphas:\n')
 print(data.frame(alphas))
 
 sink()
