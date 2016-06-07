@@ -13,7 +13,7 @@ OUTPUT_DIR = ../output
 #.PHONY : run
 
 # complete build
-build: $(OUTPUT_DIR)/datasets.RData plots
+build: $(OUTPUT_DIR)/datasets.RData surv plots
 buildnp: $(OUTPUT_DIR)/datasets.RData
 
 # part builds
@@ -22,6 +22,7 @@ attr: $(TEMP_DIR)/attributes.RData
 cpindex: $(TEMP_DIR)/cpi.RData
 bavdat: $(TEMP_DIR)/bav.RData
 bavdel: $(TEMP_DIR)/bav_deletes.RData
+surv: $(OUTPUT_DIR)/survey.csv
 
 ###### DATA PREPARATION ######
 
@@ -32,6 +33,10 @@ $(TEMP_DIR)/iri_sales.RData : iri_sales.R
 # convert BAV data from sas7bdat to RData
 $(TEMP_DIR)/bav.RData : bav.R $(TEMP_DIR)/iri_sales.RData
 	"$(RBIN64)Rterm.exe" --vanilla --args "" < "bav.R"
+
+# convert BAV data from sas7bdat to RData
+$(OUTPUT_DIR)/survey.csv : survey.R
+	"$(RBIN64)Rterm.exe" --vanilla --args "" < "survey.R"
 
 # read in CPI data and map to category names (cat_name)
 CPIDEPENDENCIES := ../../raw/cpi/catmapping.csv ../../raw/cpi/CPI\ and\ GDP\ figures.sav

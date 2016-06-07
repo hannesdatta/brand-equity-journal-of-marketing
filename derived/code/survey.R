@@ -75,7 +75,7 @@ for (i in seq(along=scales)) {
 	eval(parse(text=paste0('survey[, ', names(scales)[i], ' := rowMeans(data.frame(', paste(scales[[i]], collapse=','), '),na.rm=T)]')))
 	}
 	
-sink('../output/survey.txt')
+sink('../output/survey_report.txt')
 # Summarize means	
 means <- survey[, lapply(.SD, function(x) mean(x,na.rm=T)), by=c('category'), .SDcols=names(scales)]
 setnames(means, 'category', 'cat_name')
@@ -96,4 +96,4 @@ print(data.frame(alphas))
 
 sink()
 
-write.table(means, '../output/survey.txt', row.names=F)
+write.table(means, '../output/survey.csv', row.names=F)

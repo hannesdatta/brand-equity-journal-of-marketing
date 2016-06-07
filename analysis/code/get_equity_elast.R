@@ -137,7 +137,7 @@ equity=tmp[[1]]
 elast=tmp[[2]]
 
 # Load category measures
-cat_measures <- fread('../../derived/output/survey.txt')
+cat_measures <- fread('../../derived/output/survey.csv')
 equity <- merge(equity, cat_measures, by=c('cat_name'), all.x=T)
 elast <- merge(elast, cat_measures, by=c('cat_name'), all.x=T)
 
