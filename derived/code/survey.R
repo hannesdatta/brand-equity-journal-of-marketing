@@ -102,11 +102,11 @@ print(tmp)
 alphas <- lapply(scales, function(x) {
 	if (length(x)<2) return(NA)
 	alpha_test = alpha(as.matrix(survey[, x, with=F]))
-	alpha_test$total$raw_alpha
+	c(alpha=alpha_test$total$raw_alpha, cor = cor(as.matrix(survey[, x, with=F]), use = 'complete.obs')[1,2])
 	})
 
 cat('\n\nCronbach alphas:\n')
-print(data.frame(alphas))
+print(do.call('rbind', alphas))
 
 sink()
 
