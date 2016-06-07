@@ -46,7 +46,7 @@ program do_preclean
 	g estbrand = 1-newbrnd
 	
 	* Label variables
-	local mcvars c2 c3 c4 herf catgrowth_rel catgrowth_abs cat_invol cat_hedonic cat_utilit cat_perfrisk cat_socdemon cat_muchtolose
+	local mcvars c2 c3 c4 herf catgrowth_rel catgrowth_abs cat_invol cat_hedonic cat_utilit cat_perfrisk cat_socdemon cat_muchtolose cat_differences
 	local otherinteract_vars seccat newbrnd estbrand fmcg_seccat retail_seccat food_drink_cigs
 
 	label var seccat "Brand extension"
@@ -69,6 +69,7 @@ program do_preclean
 	label var cat_perfrisk "Category performance risk"
 	label var cat_socdemon "Category Social Demonstrance"
 	label var cat_muchtolose "Category Much to Lose"
+	
 	
 	* Mean-center variables
 	foreach var in `mcvars' {
@@ -105,7 +106,7 @@ program do_preclean
 		}
 		
 	label var f2_pc1_std "Relevant Stature"
-	label var f2_pc2_std "Energized Differentiation "
+	label var f2_pc2_std "Energized Differentiation"
 	
 	g f2_pc1_std_sq = f2_pc1_std ^ 2
 	g f2_pc2_std_sq = f2_pc2_std ^ 2
@@ -119,6 +120,11 @@ program do_preclean
 	g f2_pc1_stdXf2_pc2_stdXestbrand = f2_pc1_stdXf2_pc2_std * estbrand
 	*label var f2_pc1_stdXf2_pc2_std "Established Relevant Stature x Energized Diff."
 	
+	label var bav_relevance_std "Relevance"
+	label var bav_esteem_std "Esteem"
+	label var bav_knowledge_std "Knowledge"
+	label var bav_energizeddiff_std "Energized Differentiation"
+	
 end
 
 program load_elasticity
@@ -131,7 +137,9 @@ end
 
 
 program elasticity
-	syntax, fn(string) elast_vars(varlist)
+	syntax, fn(string) elast_vars(varlist) [ttitle(string)]
+	
+	if "`ttitle'"=="" local ttitle = "Elasticities"
 	
 	eststo clear
 	
@@ -168,52 +176,11 @@ program elasticity
 		
 	* capture erase "$rtf_out" *append
 	esttab m* using "$rtf_out", append mtitles("regular price" "price index" "feature/display" "total distribution" "adstock") nodepvar label ///
-	   addnote("All estimated with WLS.") title("Elasticities, 1/elast_se_std as weights") modelwidth(8 8 8 8 8) varwidth(30) ///
+	   addnote("All estimated with WLS.") title(`ttitle') modelwidth(8 8 8 8 8) varwidth(16) ///
 	   stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)  fmt(a2 a2 3 0 0)) ///
 	   onecell nogap star(* 0.10 ** 0.05 *** .01) replace b(a2)
 				
 end
-
-program equity_final_old
-	syntax, ttitle(string)
-	eststo clear
-		
-	eststo mx1: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat estbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-	
-	eststo mx2: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat estbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-	
-	estadd vif
-	capture erase "$rtf_out"
-
-	esttab m* using "$rtf_out", nodepvar label ///
-	addnote("") title("`ttitle'") ///
-	b(a2) compress ///
-	modelwidth(5 5 5 5 5 5 5 5 5 5) varwidth(22) nogap ///
-	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)) ///
-	star(* 0.10 ** 0.05 *** .01) replace ///
-	order(f2_pc1_std f2_pc2_std seccat estbrand ///
-		  c4 f2_pc1_stdXc4 f2_pc2_stdXc4  ///
-		  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-		  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-		  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon)
-	
-	
-	*fmt(a2 a2 3 0 0)) ///
-	*onecell  
-	* nogap 
-	*aux(vif 2) wide nopar ///
-	
-end
-
 
 program equity_final
 	syntax, ttitle(string)
@@ -370,91 +337,38 @@ program equity_final
 end
 
 
-program equity_final_old2
+program equity_sensitivity_7june
 	syntax, ttitle(string)
 	eststo clear
 		
-	eststo m1: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
-									  estbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
+	eststo r1: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
+									  [pw=weights], vce(cluster cat_brand_num)
+	
+	eststo r2: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
 									  [pw=weights], vce(cluster cat_brand_num)
 									  
-	eststo m1b: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-				
-
-	eststo m1c: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-	
-	eststo m1d: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-	
-	eststo m2: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
-									  estbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
+	eststo r3: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
 									  [pw=weights], vce(cluster cat_brand_num)
 									  
-	eststo m2b: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-				
-
-	eststo m2c: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
+	eststo r4: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std seccat ///
 									  [pw=weights], vce(cluster cat_brand_num)
 	
-	eststo m2d: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
+	eststo r5: quietly reg sbbe_std bav_relevance_std bav_esteem_std bav_knowledge_std bav_energizeddiff_std ///
 									  [pw=weights], vce(cluster cat_brand_num)
-
+	
+	eststo r6: quietly reg sbbe_std bav_relevance_std bav_esteem_std bav_knowledge_std bav_energizeddiff_std seccat ///
+									  [pw=weights], vce(cluster cat_brand_num)
+	
+	
 	capture erase "$rtf_out"
 
-	esttab m* using "$rtf_out", nodepvar label ///
-	addnote("") title("`ttitle'") ///
+	esttab r* using "$rtf_out", nodepvar label ///
+	addnote("") title("`ttitle'") onecell ///
 	b(a2) compress ///
-	modelwidth(5 5 5 5 5 5 5 5 5 5) varwidth(18) nogap ///
+	modelwidth(5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5) varwidth(18) nogap ///
 	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)) ///
 	star(* 0.10 ** 0.05 *** .01) replace ///
-	order(f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-		  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-		  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-		  c4 f2_pc1_stdXc4 f2_pc2_stdXc4  ///
-		  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-		  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-		  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon)
+	order(f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std seccat bav_relevance_std bav_esteem_std bav_knowledge_std bav_energizeddiff_std)
 	
 	
 	*fmt(a2 a2 3 0 0)) ///
@@ -470,7 +384,7 @@ program run_analysis
 	local equityfn = "`path'\equity.csv"
 	local elastfn = "`path'\elasticities.csv"
 	
-	global rtf_out "`path'\stata_equity_23may2016.rtf"
+	global rtf_out "`path'\stata_equity_7june2016.rtf"
 	
 	insheet using "`equityfn'", clear 
 
@@ -478,11 +392,20 @@ program run_analysis
 	
 	* Equity
 	gen weights = 1/sbbe_se_std
-	equity_final, ttitle("Equity regressions, 23 May 2016")
+	equity_final, ttitle("Equity regressions, 7 June 2016")
 	
 	* Elasticities
 	elasticity, fn("`elastfn'") elast_vars(f2_pc1_std f2_pc2_std)
-		
+	
+	global rtf_out "`path'\stata_robust_7june2016.rtf"
+	insheet using "`equityfn'", clear 
+	do_preclean
+	gen weights = 1/sbbe_se_std
+	
+	equity_sensitivity_7june, ttitle("Equity robustness checks, 7 June 2016")
+	
+	elasticity, fn("`elastfn'") elast_vars(bav_relevance_std bav_esteem_std bav_knowledge_std bav_energizeddiff_std)
+
 end
 
 
