@@ -135,12 +135,9 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 
 equity=tmp[[1]]
 elast=tmp[[2]]
-	
-# Load category measures
-cat_measures <- fread('../../raw/cat_measures/grocery_survey.txt')
-setnames(cat_measures, c('cat_name', paste0('cat_',tolower(colnames(cat_measures)[-1]))))
-setnames(cat_measures, c('cat_name', 'cat_invol', 'cat_hedonic', 'cat_utilit', 'cat_perfrisk', 'cat_socdemon', 'cat_muchtolose'))
 
+# Load category measures
+cat_measures <- fread('../../derived/output/survey.txt')
 equity <- merge(equity, cat_measures, by=c('cat_name'), all.x=T)
 elast <- merge(elast, cat_measures, by=c('cat_name'), all.x=T)
 
