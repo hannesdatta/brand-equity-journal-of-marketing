@@ -186,127 +186,9 @@ program equity_final
 	syntax, ttitle(string)
 	eststo clear
 		
-	eststo m1: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
-									  estbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-									  
-	eststo m1b: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-				
-
-	eststo m1c: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-	
-	eststo m1d: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-	
-	eststo m2: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
-									  estbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-									  
-	eststo m2b: quietly reg sbbe_std f2_pc1_std f2_pc2_std seccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-				
-
-	eststo m2c: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-	
-	eststo m2d: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-    eststo m2d2: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-    eststo m2d3: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
+	eststo m: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
 									  seccat ///
 									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-	eststo m2d4: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-	eststo m2d5: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
-									  seccat ///
-									  c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-	eststo m2d6: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-    eststo m2d7: quietly reg sbbe_std f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-									  seccat ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-	eststo m2d8: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
-									  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
-									  [pw=weights], vce(cluster cat_brand_num)
-
-	eststo m2d9: quietly reg sbbe_std f2_pc1_std f2_pc2_std ///
-									  seccat ///
 									  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
 									  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
 									  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon ///
@@ -314,25 +196,21 @@ program equity_final
 
 	capture erase "$rtf_out"
 
-	esttab m2* using "$rtf_out", nodepvar label ///
-	addnote("") title("`ttitle'") onecell ///
-	b(a2) compress ///
-	modelwidth(5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5) varwidth(18) nogap ///
-	stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)) ///
+	esttab m* using "$rtf_out", nodepvar label wide ///
+	addnote("") title("`ttitle'") ///
+	modelwidth(10) varwidth(30) nogap ///
+	stats(r2 N_clust N, labels(R-squared brands observations)) ///
 	star(* 0.10 ** 0.05 *** .01) replace ///
-	order(f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std ///
-		  seccat f2_pc1_stdXseccat f2_pc2_stdXseccat ///
-		  estbrand f2_pc1_stdXestbrand f2_pc2_stdXestbrand ///
-		  c4 f2_pc1_stdXc4 f2_pc2_stdXc4  ///
-		  cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
-		  cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
-		  cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon)
+	order(seccat c4 cat_hedonic cat_socdemon cat_perfrisk ///
+		  f2_pc2_std f2_pc2_stdXc4 f2_pc2_stdXcat_hedonic f2_pc2_stdXcat_socdemon f2_pc2_stdXcat_perfrisk ///
+		  f2_pc1_std f2_pc1_stdXc4 f2_pc1_stdXcat_hedonic f2_pc1_stdXcat_socdemon f2_pc1_stdXcat_perfrisk)
 	
 	
 	*fmt(a2 a2 3 0 0)) ///
 	*onecell  
 	* nogap 
 	*aux(vif 2) wide nopar ///
+	*b(a2) ///
 	
 end
 
