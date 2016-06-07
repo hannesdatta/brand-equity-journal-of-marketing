@@ -92,8 +92,11 @@ print(means)
 cat('\n\nConstruct standard deviations:\n')
 print(sds)
 
-cat('\n\nStandard deviations of category means across categories:\n')
-print(apply(means[,-1,with=F], 2, sd))
+cat('\n\nMeans and standard deviations of category means across categories:\n')
+tmp <- data.frame(apply(means[,-1,with=F], 2, mean))
+tmp <- cbind(tmp, apply(means[,-1,with=F], 2, sd))
+colnames(tmp) <- c('mean','sd')
+print(tmp)
 
 # Compute Cronbach Alpha's
 alphas <- lapply(scales, function(x) {
