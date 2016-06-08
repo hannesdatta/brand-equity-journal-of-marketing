@@ -210,9 +210,8 @@ for (path in .dirs) {
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'saltsnck', xlabel = 'Brand Asset Score', title = 'Salty Snacks', fn = paste0(fpath, 'figure2h.png'))
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'shamp', xlabel = 'Brand Asset Score', title = 'Shampoo', fn = paste0(fpath, 'figure2h.png'))
 
-	
 	# do this for all categories
-	for (catn in unique(equity$cat_name)) plotfkt(iv = 'bav_asset_YSTD', sel_cat = catn, xlabel = 'Brand Asset Score', title = catn, fn = paste0(fpath, 'plot_', catn, '.png'))
+	for (catn in unique(equity$cat_name)) plotfkt(iv = 'bav_asset_YSTD', sel_cat = catn, xlabel = 'Brand Asset Score', title = catn, fn = paste0(fpath, 'brandasset_', catn, '.png'))
 		
 	####### FIGURE 3 ########
 	equity[, bav_rel_YSTD := (bav_relevance-mean(bav_relevance,na.rm=T))/sd(bav_relevance,na.rm=T), by=c('cat_name', 'year')]
@@ -221,10 +220,17 @@ for (path in .dirs) {
 	equity[, bav_energ_YSTD := (bav_energizeddiff-mean(bav_energizeddiff,na.rm=T))/sd(bav_energizeddiff,na.rm=T), by=c('cat_name', 'year')]
 	
 	plotfkt(iv = 'bav_rel_YSTD', sel_cat = 'beer', xlabel = 'Relevance', title = '', fn = paste0(fpath, 'figure3a.png'))
-	plotfkt(iv = 'bav_est_YSTD', sel_cat = 'carbbev', xlabel = 'Esteem', title = ' Soft Drinks', fn = paste0(fpath, 'figure3b.png'))
-	plotfkt(iv = 'bav_know_YSTD', sel_cat = 'cigets', xlabel = 'Knowledge', title = '', fn = paste0(fpath, 'figure3c.png'))
-	plotfkt(iv = 'bav_energ_YSTD', sel_cat = 'coffee', xlabel = 'Energized Differentiation', title = '', fn = paste0(fpath, 'figure3d.png'))
+	plotfkt(iv = 'bav_est_YSTD', sel_cat = 'beer', xlabel = 'Esteem', title = ' Soft Drinks', fn = paste0(fpath, 'figure3b.png'))
+	plotfkt(iv = 'bav_know_YSTD', sel_cat = 'beer', xlabel = 'Knowledge', title = '', fn = paste0(fpath, 'figure3c.png'))
+	plotfkt(iv = 'bav_energ_YSTD', sel_cat = 'beer', xlabel = 'Energized Differentiation', title = '', fn = paste0(fpath, 'figure3d.png'))
 	
+	# do this for all categories
+	for (catn in unique(equity$cat_name)) {
+		plotfkt(iv = 'bav_rel_YSTD', sel_cat = catn, xlabel = 'Relevance', title = '', fn = paste0(fpath, 'bavdims_rel_', catn, '.png'))
+		plotfkt(iv = 'bav_est_YSTD', sel_cat = catn, xlabel = 'Esteem', title = ' Soft Drinks', fn = paste0(fpath, 'bavdims_est_', catn, '.png'))
+		plotfkt(iv = 'bav_know_YSTD', sel_cat = catn, xlabel = 'Knowledge', title = '', fn = paste0(fpath, 'bavdims_kno_', catn, '.png'))
+		plotfkt(iv = 'bav_energ_YSTD', sel_cat = catn, xlabel = 'Energized Differentiation', title = '', fn = paste0(fpath, 'bavdims_energ_', catn, '.png'))
+		}
 	
 
 	# SCATTERPLOT SBBE vs. CBBE
