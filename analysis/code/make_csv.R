@@ -21,6 +21,10 @@ for (fn in c(fn_data, fn_results)) {
 	overview <- data.frame(index = 1:length(datasets), nobs=unlist(lapply(datasets, nrow)))
 	print(overview)
 
+# Number of observations
+	sum(unlist(lapply(datasets, function(x) nrow(x[year>=2002]))))
+	
+	
 ############################
 # PRINT AND PROCESS OUTPUT #
 ############################
