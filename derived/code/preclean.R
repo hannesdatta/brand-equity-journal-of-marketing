@@ -78,6 +78,15 @@ dat <- NULL
 		dt[, brand_name_orig := gsub("`", "\'", brand_name_orig)]
 		dt[which(tolower(brand_name_orig)=="all"), brand_name_orig := "All"]
 		
+		simpleCap <- function(x) {
+		  s <- strsplit(x, " ")[[1]]
+		  paste(toupper(substring(s, 1,1)), tolower(substring(s, 2)),
+			  sep="", collapse=" ")
+		}
+		
+		dt[, brand_name_orig := sapply(brand_name_orig, simpleCap)]
+		dt[, brand_name_orig := gsub('[(].*', '', brand_name_orig)]
+		
 		setcolorder(dt, c('brand_name', 'brand_name_orig', setdiff(colnames(dt), c('brand_name','brand_name_orig'))))
 		
 		vars <- colnames(dt)
