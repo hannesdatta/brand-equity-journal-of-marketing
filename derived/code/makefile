@@ -13,8 +13,8 @@ OUTPUT_DIR = ../output
 #.PHONY : run
 
 # complete build
-build: $(OUTPUT_DIR)/datasets.RData surv plots
-buildnp: $(OUTPUT_DIR)/datasets.RData
+build: $(OUTPUT_DIR)/datasets.RData surv
+buildp: $(OUTPUT_DIR)/datasets.RData surv plots
 
 # part builds
 raw: $(TEMP_DIR)/iri_sales.RData
