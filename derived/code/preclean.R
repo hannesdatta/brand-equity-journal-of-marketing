@@ -75,6 +75,9 @@ dat <- NULL
 		setkeyv(dt, setdiff(colnames(dt), 'AdStock_bt'))
 		dt <- unique(dt)
 		dt[, brand_name_orig := brand_name]
+		dt[, brand_name_orig := gsub("`", "\'", brand_name_orig)]
+		dt[which(tolower(brand_name_orig)=="all"), brand_name_orig := "All"]
+		
 		setcolorder(dt, c('brand_name', 'brand_name_orig', setdiff(colnames(dt), c('brand_name','brand_name_orig'))))
 		
 		vars <- colnames(dt)
