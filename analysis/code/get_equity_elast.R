@@ -116,7 +116,7 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 	tmp=lapply(list(equity, elast), function(df) {
 		
 		for (.var in colnames(df)) {
-			if (.var %in% c('year', 'cat_name', 'brand_name', 'var_name')) next #grep('F[_]', colnames(df),value=TRUE) grep('bav[_]', colnames(df),value=TRUE)
+			if (.var %in% c('year', 'cat_name', 'brand_name', 'brand_name_orig', 'var_name')) next #grep('F[_]', colnames(df),value=TRUE) grep('bav[_]', colnames(df),value=TRUE)
 			# check whether column is dummy: do not meancenter
 			if (all(unique(unlist(df[, .var, with=F]))%in%c(1,0))) next
 			# varies by category
