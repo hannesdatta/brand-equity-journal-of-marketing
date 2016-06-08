@@ -40,7 +40,7 @@ init()
 	# MODEL SPECIFICATION
 		mestim = overview$index
 		#mestim = 21:25
-		endogeneity_spec <- c('copula') # c('non-copula', 'copula')
+		endogeneity_spec <- c('non-copula', 'copula')
 		
 		model_type = c('MNL')
 		adv_decay = formatC(seq(from=0, to=.9, by=c(.1))*100, width=2, flag=0)
@@ -48,7 +48,7 @@ init()
 		
 		varspec <- c('5mmix') # '4mmix',
 	
-		meancentering = c('mc', 'nomc')
+		meancentering = c('nomc') # 'mc' 
 		
 	# EXECUTION
 		models=data.table(expand.grid(index=mestim, endogeneity_spec=endogeneity_spec, decay=adv_decay, model_type = model_type, varspec=varspec, meancentering=meancentering))
