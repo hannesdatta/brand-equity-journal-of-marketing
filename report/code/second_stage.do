@@ -49,7 +49,7 @@ program do_preclean
 	local mcvars c2 c3 c4 herf catgrowth_rel catgrowth_abs cat_invol cat_hedonic cat_utilit cat_perfrisk cat_socdemon cat_muchtolose cat_differences
 	local otherinteract_vars seccat newbrnd estbrand fmcg_seccat retail_seccat food_drink_cigs
 
-	label var seccat "Brand extension"
+	label var seccat "Secondary market"
 	label var retail_seccat "Retail chain second. cat."
 	label var fmcg_seccat "FMCG second. cat."
 	label var food_drink_cigs "Food, drink and cigs"
@@ -64,9 +64,9 @@ program do_preclean
 	label var catgrowth_rel "Category growth rel."
 	label var catgrowth_abs "Category growth abs."
 	label var cat_invol "Category involvement"
-	label var cat_hedonic "Category Hedonic"
+	label var cat_hedonic "Hedonic"
 	label var cat_utilit "Category Utilitarianism"
-	label var cat_perfrisk "Category performance risk"
+	label var cat_perfrisk "Category Performance Risk"
 	label var cat_socdemon "Category Social Demonstrance"
 	label var cat_muchtolose "Category Much to Lose"
 	
@@ -175,10 +175,10 @@ program elasticity
 	
 		
 	* capture erase "$rtf_out" *append
-	esttab m* using "$rtf_out", append mtitles("regular price" "price index" "feature/display" "total distribution" "adstock") nodepvar label ///
-	   addnote("All estimated with WLS.") title(`ttitle') modelwidth(8 8 8 8 8) varwidth(16) ///
-	   stats(r2 F p N_clust N, labels(R-squared F p-value brands observations)  fmt(a2 a2 3 0 0)) ///
-	   onecell nogap star(* 0.10 ** 0.05 *** .01) replace b(a2)
+	esttab m* using "$rtf_out", append mtitles("Regular Price Elasticity" "Promotional Price Elasticity" "Feature / Display Response" "Distribution Elastictiy" "Advertising Elasticity") nodepvar label ///
+	   addnote("All estimated with WLS.") title(`ttitle') modelwidth(8 8 8 8 8) varwidth(16) b(2) se(2) ///
+	   stats(r2 N, labels("R-squared" "Number of elasticity observations")  fmt(2 0)) ///
+	   onecell nogap star(* .10 ** .05 *** .01) replace
 				
 end
 
@@ -196,17 +196,21 @@ program equity_final
 
 	capture erase "$rtf_out"
 
-	esttab m* using "$rtf_out", nodepvar label wide ///
+	esttab m* using "$rtf_out", nodepvar label wide nopar se nomtitles ///
 	addnote("") title("`ttitle'") ///
-	modelwidth(10) varwidth(30) nogap ///
-	stats(r2 N_clust N, labels(R-squared brands observations)) ///
+	modelwidth(10) varwidth(30) b(2) se(2) ///
+	stats(r2 N_clust N, labels("R-squared" "Number of brands" "Number of observations") fmt(2 0 0)) ///
 	star(* 0.10 ** 0.05 *** .01) replace ///
-	order(seccat c4 cat_hedonic cat_socdemon cat_perfrisk ///
-		  f2_pc2_std f2_pc2_stdXc4 f2_pc2_stdXcat_hedonic f2_pc2_stdXcat_socdemon f2_pc2_stdXcat_perfrisk ///
-		  f2_pc1_std f2_pc1_stdXc4 f2_pc1_stdXcat_hedonic f2_pc1_stdXcat_socdemon f2_pc1_stdXcat_perfrisk)
+	order(f2_pc2_std f2_pc2_stdXcat_socdemon f2_pc2_stdXcat_hedonic f2_pc2_stdXcat_perfrisk  f2_pc2_stdXc4 ///
+		  f2_pc1_std f2_pc1_stdXcat_socdemon f2_pc1_stdXcat_hedonic f2_pc1_stdXcat_perfrisk f2_pc1_stdXc4 ///
+		  seccat cat_socdemon cat_hedonic cat_perfrisk c4)
 	
 	
-	*fmt(a2 a2 3 0 0)) ///
+	*	esttab m* using "$report_out", append drop(_Iperiod* _cons*) label noconstant ///
+	*	stats(r2 F p N_clust N, labels(R-squared F p-value users observations)  fmt(a2 a2 3 0 0)) ///
+	*	nonote addnote(`footnote') title(`ttitle')  ///
+	*	se onecell nogap star(+ 0.10 * 0.05 ** .01 *** .001) replace varwidth(17) modelwidth(`colwidth') 
+*fmt(a2 a2 3 0 0)) ///
 	*onecell  
 	* nogap 
 	*aux(vif 2) wide nopar ///
