@@ -67,10 +67,9 @@ summarize_elast <- function(elast) {
 	  ret <- "ns."
 	  #if (abs(zscore)>qnorm(1-(0.1))) ret <- c(paste("  ", rawToChar(as.raw(134)), sep=''))
 	  
-	  if (abs(zscore)>qnorm(1-(0.1/2))) ret <- c("  .")
-	  if (abs(zscore)>qnorm(1-(0.05/2))) ret <- c("  *")
-	  if (abs(zscore)>qnorm(1-(0.01/2))) ret <- c(" **")
-	  if (abs(zscore)>qnorm(1-(0.001/2))) ret <- c("***")
+	  if (abs(zscore)>qnorm(1-(0.1/2))) ret <- c("  *")
+	  if (abs(zscore)>qnorm(1-(0.05/2))) ret <- c(" **")
+	  if (abs(zscore)>qnorm(1-(0.01/2))) ret <- c("***")
 	  return(ret)
 	  }
 	
