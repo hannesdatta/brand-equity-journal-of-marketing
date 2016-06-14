@@ -46,7 +46,7 @@ write.table(tmp, '../output/sample_description.csv', row.names=F)
 # Mean of C4 by category
 setkey(elast,cat_name)
 tmp=unique(elast)
-sink('mean_of_c4.txt')
+sink('../output/mean_of_c4.txt')
 tmp[, c('cat_name', 'c4'),with=F]
 sink()
 	
@@ -109,7 +109,7 @@ summarize_elast <- function(elast) {
 
 	}
 
-sink('elasticities.txt')
+sink('../output/elasticities.txt')
 cat('=========================\nModel with copula\n=========================\n')
 summarize_elast(elast)
 cat('\n\n\n=========================\nModel without copulas\n=========================\n')
