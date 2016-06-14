@@ -116,6 +116,22 @@ cat('\n\n\n=========================\nModel without copulas\n===================
 summarize_elast(elast_nocop)
 sink()
 
+# Correlation between the elasticities
+focal_vars <- c('cat_name', 'brand_name', 'var_name', 'elast')
+elast[, type:='copula']
+elast_nocop[, type:='nocopula']
+
+elast_merge <- dcast(rbind(elast, elast_nocop), cat_name+brand_name+var_name~type, value.var=c('elast'))
+
+sink('../output/elasticities.txt', append=T)
+cat('\n\n\n=========================\nAssociation between elasticities in the copula and non-copula model\n=========================\n')
+print(elast_merge[, list(cor = cor(copula, nocopula, use='pairwise.complete'),
+                   mean_difference = mean(copula-nocopula, na.rm=T)),
+				   #rmse = sqrt(mean((copula-nocopula)^2,na.rm=T))), 
+				   by=c('var_name')])
+sink()
+
+
 ##############################
 # CORRELATION TABLE FUNCTION #
 ##############################
