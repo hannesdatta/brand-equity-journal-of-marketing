@@ -62,7 +62,7 @@ for (fn in c(fn_data, fn_results)) {
 		}
 
 # Select models for reporting
-	selected_models = models[type=='copula'&selected==TRUE]
+	selected_models = models[selected==TRUE]
 
 ##################
 # COMPUTE EQUITY #
