@@ -40,8 +40,10 @@ for (fn in c(fn_data, fn_results)) {
 	
 	selected_models[, type_and_attr_type := paste(attr_type,type, varspec, meancentering, sep='_')]
 	
+	selm <- unique(selected_models$type_and_attr_type)
+	
 	# Report individual model results
-	for (r in unique(selected_models$type_and_attr_type)) {
+	for (r in selm) {
 		sel=selected_models[type_and_attr_type==r]
 
 		# Clean and create directory
