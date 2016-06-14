@@ -12,6 +12,8 @@ OUTPUT_DIR = ../output
 
 .PHONY: build
 
+# Complete build: run analyze, equity, csv and plot.
+
 analyze: $(OUTPUT_DIR)/results.RData
 equity: $(OUTPUT_DIR)/equity.RData
 
