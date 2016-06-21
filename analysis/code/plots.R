@@ -89,7 +89,7 @@ for (path in .dirs) {
 	unlink(paste0(fpath,'*'))
 	dir.create(fpath)
 
-	source('../../draft/code/proc_plots.R')
+	#source('../../draft/code/proc_plots.R')
 	
 	for (j in unique(equity$cat_name)) {
 		png(paste0(fpath, 'sbbe_', j, '.png'), res=200, units='in', height=8, width=12)
@@ -183,7 +183,8 @@ for (path in .dirs) {
 		
 		if (!is.null(fn)) png(fn, res=200, units='in', height=6, width=8)
 		pl <- ggplot(df_plot) + geom_point(aes(xvar,dv), color = 'black') + geom_text_repel(aes(xvar, dv, label = brand_name_orig)) +
-			         labs(x = xlabel) + labs(y = ylabel) + geom_path(aes(x=xvar, y = sbbe_STD_plot)) + geom_path(aes(x=xvar, y = lwr), linetype=2) + geom_path(aes(x=xvar, y = upr), linetype=2) +
+			         labs(x = xlabel) + labs(y = ylabel) + geom_path(aes(x=xvar, y = sbbe_STD_plot)) + 
+					 #geom_path(aes(x=xvar, y = lwr), linetype=2) + geom_path(aes(x=xvar, y = upr), linetype=2) +
 					 ggtitle(title) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) +
 					 theme(panel.grid.major = element_blank(), 
 						   panel.grid.minor = element_blank(),
