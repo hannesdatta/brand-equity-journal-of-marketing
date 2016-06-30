@@ -33,13 +33,8 @@ cat_char = rbindlist(lapply(datasets, function(x) {
 		food = ifelse(cat_name %in% c('coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
 		drinks = ifelse(cat_name %in% c('beer', 'carbbev', 'milk', 'coffee'), 1,0)
 		cigs = ifelse(cat_name %in% c("cigets"), 1,0)
-		
-		#hedonic = ifelse(cat_name %in% c('beer', 'carbbev', 'cigets', 'coffee', 'pz_di', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'yogurt'), 1, 0)
-		#	perishable = ifelse(cat_name %in% c('coldcer', 'mayo', 'milk', 'yogurt'),1,0)
-		#	impulse = ifelse(cat_name %in% c('saltsnck'),1,0)
-		#	fooddrinks = ifelse(cat_name %in% c('beer', 'carbbev', 'coffee', 'coldcer', 'pz_di', 'ketchup', 'margbutr', 'mayo', 'milk', 'mustard', 'spagsauc', 'peanbutr', 'saltsnck', 'soup', 'sugarsub', 'yogurt'),1,0)
-	
-	data.frame(cat_name=cat_name, c2=c2, c3=c3, c4=c4, herf=H, #hedonic = hedonic,
+
+	data.frame(cat_name=cat_name, c2=c2, c3=c3, c4=c4, herf=H,
 			   fooddrinks, hygiene, hhclean, food, drinks, cigs, food_drink_cigs = as.numeric(food|drinks|cigs), catgrowth_abs = growth)
 	}))
 
@@ -70,6 +65,10 @@ brand_char = rbindlist(lapply(datasets, function(x) {
 				  newbrnd_bav=unique(newbrnd_bav),
 				  seccat_bav=unique(seccat_bav),
 				  dyingbrnd_bav=unique(dyingbrnd_bav),
+				  upd_noseccatnew=unique(upd_noseccatnew), 
+				  upd_seccat = unique(upd_seccat), 
+				  upd_new = unique(upd_new), 
+				  upd_seccatandnew = unique(upd_seccatandnew),
 				  
 				  sales_yrfirst = sum(sales_bt[year==min(year)], na.rm=T),
 				  sales_yrlast =  sum(sales_bt[year==max(year)], na.rm=T),
@@ -90,6 +89,11 @@ brand_char = rbindlist(lapply(datasets, function(x) {
 				   seccat = seccat_bav,
 				   newbrnd = newbrnd_bav,
 				   dyingbrnd = dyingbrnd_bav,
+				   upd_noseccatnew = upd_noseccatnew,
+				   upd_seccat = upd_seccat, 
+				   upd_new = upd_new, 
+				   upd_seccatandnew = upd_seccatandnew,
+				  
 				   brndgrowth_abs = (sales_yrlast/sales_yrfirst)^(1/growth_years), 
 				   brndgrowth_rel = (ms_yrlast/ms_yrfirst)^(1/growth_years)),
 				   by=c('cat_name')]
