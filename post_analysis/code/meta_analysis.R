@@ -104,8 +104,8 @@ summarize_elast <- function(elast) {
 				   negsig = length(unique(id[elast/elast_se<=-sigtest]))/length(unique(id[!is.na(elast)]))
 				   ), by=c('var_name')]
 
-	#cat('\n\nSUMMARY OF ELASTICITIES FOR BAV BRANDS\n')
-	#print(tmp)
+	cat('\n\nSUMMARY OF ELASTICITIES FOR BAV BRANDS\n')
+	print(tmp)
 
 	}
 
@@ -190,7 +190,7 @@ corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper"
 
 # Correlations for equity (standardized within category)
 
-rowvars = c('sbbe_STD', 'unitsales_STD', 'revenue_STD', 'price_STD')
+rowvars = c('sbbe_STD', 'unitsales_STD', 'revenue_STD', 'price_STD', 'annual_avgms_STD')
 colvars = grep('bav[_].*[_]STD', colnames(equity),value=T)
 
 tmp = equity[, c('cat_name', 'brand_name',rowvars, colvars),with=F]
@@ -204,6 +204,19 @@ cat(paste0('\nNumber of observations: ', nrow(as.matrix(tmp[,-c(1:2),with=F])), 
 sink()
 
 write.table(tmpcor, '../output/correlations_sbbe.csv', row.names=T)
+
+# correlations excluding new brands
+tmp = equity[!upd_new==1&!upd_seccatandnew==1, c('cat_name', 'brand_name',rowvars, colvars),with=F]
+tmp = tmp[complete.cases(tmp)]
+tmpcor=cor(as.matrix(tmp[,-c(1:2),with=F]))
+
+options(width=600)
+sink('../output/correlations_sbbe_nonewbrands.txt')
+print(corstars(as.matrix(tmp[,-c(1:2),with=F], method="pearson", removeTriangle='none', ndec=2)))
+cat(paste0('\nNumber of observations: ', nrow(as.matrix(tmp[,-c(1:2),with=F])), '\n'))
+sink()
+
+
 
 ###########
 # TABLE 9 #
