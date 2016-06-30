@@ -69,14 +69,16 @@ scales <- list(cat_hedonic = c('enjoyable','fun'),
 			   cat_muchtolose = c('muchtolose'))
 
 
-# Compute constructs 
+# Compute mean of constructs 
 for (i in seq(along=scales)) {
 	# Category-means
 	eval(parse(text=paste0('survey[, ', names(scales)[i], ' := rowMeans(data.frame(', paste(scales[[i]], collapse=','), '),na.rm=T)]')))
 	}
-	
-sink('../output/survey_report.txt')
+
+
 # Summarize means	
+sink('../output/survey_report.txt')
+	
 means <- survey[, lapply(.SD, function(x) mean(x,na.rm=T)), by=c('category'), .SDcols=names(scales)]
 sds <- survey[, lapply(.SD, function(x) sd(x,na.rm=T)), by=c('category'), .SDcols=names(scales)]
 
@@ -108,6 +110,33 @@ alphas <- lapply(scales, function(x) {
 cat('\n\nCronbach alphas:\n')
 print(do.call('rbind', alphas))
 
+
+# Perform factor analysis
+	catmeans <- survey[, lapply(.SD, function(x) mean(x,na.rm=T)), by=c('category'), .SDcols=unlist(scales)]
+
+	library(psych)
+
+	mydata=catmeans[, c('category', unlist(scales[names(scales)%in%c('cat_hedonic', 'cat_perfrisk', 'cat_socdemon')])), with=F]
+
+	fit <- principal(mydata[, !colnames(mydata)%in%c('category'),with=F], nfactors=3, rotate="varimax")
+	
+	cat('\n\n\nPRINCIPAL COMPONENT ANALYSIS\n============================================\n\n')
+
+	summary(fit)
+	print(fit)
+				
+	cat('\n\nInitial Eigenvalues:\n')
+	eig <- data.table(eigen(cor(mydata[, !colnames(mydata)%in%c('category'), with=F]))$values)
+	setnames(eig, 'eigenvalue')
+	print(eig)
+				
+	fit_scores <- cbind(mydata[, 'category',with=F], fit$scores)
+	setnames(fit_scores, c('cat_name', 'cat_fhedonic', 'cat_fsocdemon', 'cat_fperfrisk'))
+
+	print(fit_scores)
+	
 sink()
 
-write.table(means, '../output/survey.csv', row.names=F)
+sresults <- merge(means, fit_scores, by=c('cat_name'),all.x=T)
+
+write.table(sresults, '../output/survey.csv', row.names=F)
