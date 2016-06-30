@@ -210,11 +210,13 @@ setkey(bav_deletes, cat_name, brand_name)
 					  bav_asset = i.Brand_Asset_C)]
 		
 		setkey(dt, cat_name, brand_name_charact)
-		dt[bav_deletes, ':=' (brnd_delete = i.delete, seccat_bav = i.bav_secondarycat, newbrnd_bav = i.bav_newbrnd, dyingbrnd_bav = i.bav_dyingbrnd)]
+		dt[bav_deletes, ':=' (brnd_delete = i.delete, seccat_bav = i.bav_secondarycat, newbrnd_bav = i.bav_newbrnd, dyingbrnd_bav = i.bav_dyingbrnd,
+							  upd_noseccatnew=i.upd_noseccatnew, upd_seccat = i.upd_seccat, upd_new = i.upd_new, upd_seccatandnew = i.upd_seccatandnew)]
 		dt[is.na(brnd_delete), brnd_delete := 0]
 		
 		dat[[i]] <- dt
 		}
+
 
 #################
 # SELECT BRANDS #
