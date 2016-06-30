@@ -79,7 +79,7 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 		for (nfactors in 2:3) {
 			
 			cat('\n\n===============================================================================\n')
-			cat(paste0('Factor analysis on the ', toupper(ds), ' data with ', nfactors, ' factor scores to be extracted\n'))
+			cat(paste0('Principal Component Analysis on the ', toupper(ds), ' data with ', nfactors, ' factor scores to be extracted\n'))
 			cat('===============================================================================\n\n\n')
 			
 			if (ds=='equity') keys = c('brand_name', 'year')
