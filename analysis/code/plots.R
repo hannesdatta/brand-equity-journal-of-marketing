@@ -163,19 +163,19 @@ for (path in .dirs) {
 	library(ggrepel)
 	library(ggplot2)
 	
-	plotfkt <- function(iv, sel_cat, xlabel, title = sel_cat, fn = NULL, dv = 'sbbe_YSTD', ylabel = 'SBBE') {
+	plotfkt <- function(iv, sel_cat, xlabel, title = sel_cat, fn = NULL, dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear = 2011) {
 		#iv = 'bav_asset_STD' 
 		#sel_cat = 'beer' 
 		#xlabel = 'Brand Asset Score' 
 		set.seed(45)
-		df = equity[cat_name==sel_cat & year == 2011][!is.na(bav_asset)]
+		df = equity[cat_name%in%sel_cat & year == selyear][!is.na(bav_asset)]
 		df[, xvar := get(iv)]
 		df[, dv := get(dv)]
 		
 		
 		# compute regression line
-			mpred <- lm(dv~1+xvar, data = df[year==2011])
-			predict_dat = data.table(xvar = seq(from = min(df[year==2011]$xvar,na.rm=T), to=max(df[year==2011]$xvar,na.rm=T), by=.1))
+			mpred <- lm(dv~1+xvar, data = df[year==selyear])
+			predict_dat = data.table(xvar = seq(from = min(df[year==selyear]$xvar,na.rm=T), to=max(df[year==selyear]$xvar,na.rm=T), by=.1))
 			pred=data.table(predict(mpred, predict_dat, interval= 'confidence'))
 			predict_dat[, ':=' (sbbe_STD_plot = pred$fit, lwr=pred$lwr, upr=pred$upr)]
 			
@@ -184,13 +184,14 @@ for (path in .dirs) {
 		if (!is.null(fn)) png(fn, res=200, units='in', height=6, width=8)
 		pl <- ggplot(df_plot) + geom_point(aes(xvar,dv), color = 'black') + geom_text_repel(aes(xvar, dv, label = brand_name_orig)) +
 			         labs(x = xlabel) + labs(y = ylabel) + geom_path(aes(x=xvar, y = sbbe_STD_plot)) + 
-					 #geom_path(aes(x=xvar, y = lwr), linetype=2) + geom_path(aes(x=xvar, y = upr), linetype=2) +
+					 geom_path(aes(x=xvar, y = lwr), linetype=2) + geom_path(aes(x=xvar, y = upr), linetype=2) +
 					 ggtitle(title) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) +
 					 theme(panel.grid.major = element_blank(), 
 						   panel.grid.minor = element_blank(),
 						   plot.title=element_text(face="bold"),
 						   axis.title=element_text(face="bold"),
-						   panel.border = element_rect(colour = "black", fill=NA))
+						   panel.border = element_rect(colour = "black", fill=NA))+
+					ylim(-3, 3) + xlim(-3,3)
 						   
 		print(pl)
 		if (!is.null(fn)) dev.off()
@@ -234,7 +235,7 @@ for (path in .dirs) {
 	plotfkt(iv = 'bav_know_YSTD', sel_cat = 'beer', xlabel = 'Knowledge', title = '', fn = paste0(fpath, 'figure3c.png'))
 	plotfkt(iv = 'bav_energ_YSTD', sel_cat = 'beer', xlabel = 'Energized Differentiation', title = '', fn = paste0(fpath, 'figure3d.png'))
 	
-	for (p in c('sbbe_vs_cbbe_paper', 'marketshare_vs_cbbe')) {
+	for (p in c('sbbe_vs_cbbe_paper', 'marketshare_vs_cbbe', 'sbbe_vs_cbbe_year')) {
 		fpath=paste0(path, '/', p, '/')
 		unlink(paste0(fpath,'*'))
 		dir.create(fpath)
@@ -269,5 +270,55 @@ for (path in .dirs) {
 		}
 	}
 
+	
+	plotfkt2 <- function(iv, sel_cat, xlabel, title = sel_cat, fn = NULL, dv = 'sbbe_YSTD', ylabel = 'SBBE') {
+		#iv = 'bav_asset_STD' 
+		#sel_cat = 'beer' 
+		#xlabel = 'Brand Asset Score' 
+		set.seed(45)
+		df = equity[cat_name%in%sel_cat & year == 2011][!is.na(bav_asset)]
+		df[, xvar := get(iv)]
+		df[, dv := get(dv)]
 		
+		
+		# compute regression line
+			mpred <- lm(dv~1+xvar, data = df[year==2011])
+			predict_dat = data.table(xvar = seq(from = min(df[year==2011]$xvar,na.rm=T), to=max(df[year==2011]$xvar,na.rm=T), by=.1))
+			pred=data.table(predict(mpred, predict_dat, interval= 'confidence'))
+			predict_dat[, ':=' (sbbe_STD_plot = pred$fit, lwr=pred$lwr, upr=pred$upr)]
+			
+		df_plot <- rbind(df, predict_dat, fill=T)
+		
+		if (!is.null(fn)) png(fn, res=200, units='in', height=20, width=20)
+		pl <- ggplot(df_plot) + geom_point(aes(xvar,dv), color = 'black') + geom_text_repel(aes(xvar, dv, label = brand_name_orig)) +
+			         labs(x = xlabel) + labs(y = ylabel) + geom_path(aes(x=xvar, y = sbbe_STD_plot)) + 
+					 geom_path(aes(x=xvar, y = lwr), linetype=2) + geom_path(aes(x=xvar, y = upr), linetype=2) +
+					 ggtitle(title) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) +
+					 theme(panel.grid.major = element_blank(), 
+						   panel.grid.minor = element_blank(),
+						   plot.title=element_text(face="bold"),
+						   axis.title=element_text(face="bold"),
+						   panel.border = element_rect(colour = "black", fill=NA))
+						   
+		print(pl)
+		if (!is.null(fn)) dev.off()
+	}
+
+	
+	#paste0(wpath, 'bavfactors_relstat_', catn, '.png'
+	plotfkt2(iv = 'relstat_YSTD', sel_cat = unique(equity$cat_name), xlabel = 'Factor for Relevant Stature (RelStat)', title = '', fn = paste0(path, '/all_relevantstature.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
+	plotfkt2(iv = 'energdiff_YSTD', sel_cat = unique(equity$cat_name), xlabel = 'Factor for Energized Differentiation (EnDif)', title = '', fn = paste0(path, '/all_energdiff.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
+
+	equity[, relstat_YSTD := (F2_PC1_STD-mean(F2_PC1_STD,na.rm=T))/sd(F2_PC1_STD,na.rm=T), by=c('cat_name')]
+	equity[, energdiff_YSTD := (F2_PC2_STD-mean(F2_PC2_STD,na.rm=T))/sd(F2_PC2_STD,na.rm=T), by=c('cat_name')]
+	equity[!is.na(bav_asset), sbbe_YSTD := (sbbe-mean(sbbe,na.rm=T))/sd(sbbe,na.rm=T), by=c('cat_name')]
+
+	for (year in 2002:2011) {
+		# BAV Factors
+			wpath = paste0(path, '/sbbe_vs_cbbe_year/')
+			plotfkt(iv = 'relstat_YSTD', sel_cat = 'beer', xlabel = 'Factor for Relevant Stature (RelStat)', title = paste0('Beer: ', year), fn = paste0(wpath, 'bavfactors_relstat_', year, '_beer.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear=year)
+			plotfkt(iv = 'energdiff_YSTD', sel_cat = 'beer', xlabel = 'Factor for Energized Differentiation (EnDif)', title = paste0('Beer: ', year), fn = paste0(wpath, 'bavfactors_energdiff_', year, '_beer.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear=year)
+		}
+		
+	
 }
