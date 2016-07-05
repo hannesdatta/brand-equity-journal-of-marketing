@@ -28,17 +28,21 @@ set seed 04251963
 set sortseed 04251963
 set scheme s2mono
 
-*global mlist = "MNL_copula_5mmix_nomc "
 global curr_modelname = "MNL_copula_5mmix_nomc"
-*global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
-*cd "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
-
 global path = "c:\Users\hanne\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
-cd "c:\Users\hanne\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
-
-log using ../output/stata_log.txt, replace
+*global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
 
 
+
+
+**** EXECUTION ****
+cd "$path"
+log using stata_log.txt, replace
+
+global equityfn = "$path\$curr_modelname\equity.csv"
+global elastfn = "$path\$curr_modelname\elasticities.csv"
+
+	
 program do_preclean
 	* Kick out non-BAV brands
 	drop if bav_brand == 0
@@ -132,8 +136,7 @@ program do_preclean
 end
 
 program load_elasticity
-	syntax, fn(string) 
-	insheet using "`fn'", clear 
+	insheet using "$elastfn", clear 
 	drop if f2_pc1_std == . | elast_std == .
 	gen weights = 1/elast_se_std
 	
@@ -141,7 +144,7 @@ end
 
 
 program elasticity
-	syntax, fn(string) elast_vars(varlist) [ttitle(string)]
+	syntax, elast_vars(varlist) [ttitle(string) do_append(real 1)]
 	
 	local elast_dv elast_std
 	
@@ -149,54 +152,28 @@ program elasticity
 	
 	eststo clear
 	
-	/* rreg_bt */
-	load_elasticity, fn("`fn'")
-	keep if var_name=="rreg_pr_bt"
-	do_preclean
-	sort cat_name
-	by cat_name: summ `elast_dv'
-
-	eststo m1: quietly reg `elast_dv' `elast_vars' [pw=weights] 
-
-	/* pi_bt */
-	load_elasticity, fn("`fn'")
-	keep if var_name=="pi_bt"
-	do_preclean
-	sort cat_name
-	by cat_name: summ `elast_dv'
-
-	eststo m2: quietly reg `elast_dv' `elast_vars' [pw=weights] 
-
-	/* fd_bt */
-	load_elasticity, fn("`fn'")
-	keep if var_name=="fd_bt"
-	do_preclean
-	sort cat_name
-	by cat_name: summ `elast_dv'
-
-	eststo m3: quietly reg `elast_dv' `elast_vars' [pw=weights] 
-
-	/* pct_store_skus_bt */
-	load_elasticity, fn("`fn'")
-	keep if var_name=="pct_store_skus_bt"
-	do_preclean
-	sort cat_name
-	by cat_name: summ `elast_dv'
-
-	eststo m4: quietly reg `elast_dv' `elast_vars' [pw=weights]
-
-	/* ad */
-	load_elasticity, fn("`fn'")
-	keep if var_name=="adstock_bt"
-	do_preclean
-	sort cat_name
-	by cat_name: summ `elast_dv'
-
-	eststo m5: quietly reg `elast_dv' `elast_vars' [pw=weights] 
+	local vars rreg_pr_bt pi_bt fd_bt pct_store_skus_bt adstock_bt
 	
-		
-	* capture erase "$rtf_out" *append
-	esttab m* using "$rtf_out", append mtitles("Regular Price Elasticity" "Promotional Price Elasticity" "Feature / Display Response" "Distribution Elasticity" "Advertising Elasticity") nodepvar label ///
+	local count_var : word count `vars'
+	display "`count_var'"
+	
+	* Loop over DVs (vars)
+		forvalues i = 1/`count_var' {
+			local m : word `i' of `vars'
+			load_elasticity, fn("$elastfn")
+			keep if var_name == "`m'"
+			do_preclean
+			sort cat_name
+			by cat_name: summ `elast_dv'
+			
+			eststo m`i': quietly reg `elast_dv' `elast_vars' [pw=weights] 
+
+			}
+					
+	esttab m* using "$rtf_out", append ///
+	   mtitles("Regular Price Elasticity" "Promotional Price Elasticity" "Feature / Display Response" ///
+	           "Distribution Elasticity" "Advertising Elasticity") ///
+	   nodepvar label ///
 	   addnote("All estimated with WLS.") title(`ttitle') modelwidth(8 8 8 8 8) varwidth(16) b(2) se(2) ///
 	   stats(r2 N, labels("R-squared" "Number of elasticity observations")  fmt(2 0)) ///
 	   onecell nogap star(* .10 ** .05 *** .01) replace
@@ -230,7 +207,7 @@ program equity_final
     vif
 	
 	capture erase "$rtf_out"
-*nomtitles 
+
 	esttab m* using "$rtf_out", nodepvar label wide nopar se ///
 	title("`ttitle'") ///
 	modelwidth(10) varwidth(30) b(2) se(2) ///
@@ -257,7 +234,6 @@ program equity_sensitivity_7june
 	eststo r3: quietly reg `dv' f2_pc1_std f2_pc2_std seccat ///
 									  [pw=weights], vce(cluster cat_brand_num)
 									  
-	
 	eststo r4: quietly reg `dv' f2_pc1_std f2_pc2_std f2_pc1_stdXf2_pc2_std seccat ///
 									  [pw=weights], vce(cluster cat_brand_num)
 	
@@ -283,30 +259,24 @@ program equity_sensitivity_7june
 end
 
 program run_analysis
-	syntax, path(string)
-	
-	local equityfn = "`path'\equity.csv"
-	local elastfn = "`path'\elasticities.csv"
-	
 	* SBBE regression *
-	global rtf_out "`path'\sbbe_regression.rtf"
-	insheet using "`equityfn'", clear 
+	global rtf_out "$path\$curr_modelname\sbbe_regression.rtf"
+	insheet using "$equityfn", clear 
 	do_preclean
 	gen weights = 1/sbbe_se_std
 	equity_final, ttitle("Regression of SBBE on CBBE Principal Components and Category Moderators")
-	
 	sort cat_name
 	by cat_name: summ sbbe_std f2_*
 
 	* Marketing Mix Elasticities
-	elasticity, fn("`elastfn'") elast_vars(f2_pc1_std f2_pc2_std) ttitle("Regression of Marketing Mix Elasticities on CBBE Principal Components")
+	elasticity, elast_vars(f2_pc1_std f2_pc2_std) ttitle("Regression of Marketing Mix Elasticities on CBBE Principal Components")
 	
 	sort cat_name
 	by cat_name: summ elast_std f2_*
 
 	* SBBE regression (robustness excluding new brands) *
-	global rtf_out "`path'\sbbe_regression_newbrand.rtf"
-	insheet using "`equityfn'", clear 
+	global rtf_out "$path\$curr_modelname\sbbe_regression_newbrand.rtf"
+	insheet using "$equityfn", clear 
 	do_preclean
 	drop if upd_new == 1
 	drop if upd_seccatandnew == 1
@@ -315,26 +285,26 @@ program run_analysis
 	
 	* Other robustness checks *
 	
-	global rtf_out "`path'\other_robustness.rtf"
-	insheet using "`equityfn'", clear 
+	global rtf_out "$path\$curr_modelname\other_robustness.rtf"
+	insheet using "$equityfn", clear 
 	do_preclean
 	gen weights = 1/sbbe_se_std
 	
 	equity_sensitivity_7june, ttitle("Equity robustness checks (including all BAV brands")
 	
-	elasticity, fn("`elastfn'") elast_vars(bav_relevance_std bav_esteem_std bav_knowledge_std bav_energizeddiff_std)
+	elasticity, elast_vars(bav_relevance_std bav_esteem_std bav_knowledge_std bav_energizeddiff_std)
 
-	elasticity, fn("`elastfn'") elast_vars(f2_pc2_std f2_pc2_stdXcat_socdemon f2_pc2_stdXcat_hedonic f2_pc2_stdXcat_perfrisk  f2_pc2_stdXc4 ///
+	elasticity, elast_vars(f2_pc2_std f2_pc2_stdXcat_socdemon f2_pc2_stdXcat_hedonic f2_pc2_stdXcat_perfrisk  f2_pc2_stdXc4 ///
 		  f2_pc1_std f2_pc1_stdXcat_socdemon f2_pc1_stdXcat_hedonic f2_pc1_stdXcat_perfrisk f2_pc1_stdXc4 ///
 		  seccat cat_socdemon cat_hedonic cat_perfrisk c4)
 
-	elasticity, fn("`elastfn'") elast_vars(f2_pc2_std f2_pc2_stdXcat_fsocdemon f2_pc2_stdXcat_fhedonic f2_pc2_stdXcat_fperfrisk  f2_pc2_stdXc4 ///
+	elasticity, elast_vars(f2_pc2_std f2_pc2_stdXcat_fsocdemon f2_pc2_stdXcat_fhedonic f2_pc2_stdXcat_fperfrisk  f2_pc2_stdXc4 ///
 		  f2_pc1_std f2_pc1_stdXcat_fsocdemon f2_pc1_stdXcat_fhedonic f2_pc1_stdXcat_fperfrisk f2_pc1_stdXc4 ///
 		  seccat cat_socdemon cat_hedonic cat_perfrisk c4)
 
 	* Other robustness checks excluding new brands
-	global rtf_out "`path'\other_robustness_newbrands.rtf"
-	insheet using "`equityfn'", clear 
+	global rtf_out "$path\$curr_modelname\other_robustness_newbrands.rtf"
+	insheet using "$equityfn", clear 
 	do_preclean
 	drop if upd_new == 1
 	drop if upd_seccatandnew == 1
@@ -342,19 +312,19 @@ program run_analysis
 	
 	equity_sensitivity_7june, ttitle("Equity robustness checks (excluding new brands")
 	
-	elasticity, fn("`elastfn'") elast_vars(bav_relevance_std bav_esteem_std bav_knowledge_std bav_energizeddiff_std)
+	elasticity, elast_vars(bav_relevance_std bav_esteem_std bav_knowledge_std bav_energizeddiff_std)
 
-	elasticity, fn("`elastfn'") elast_vars(f2_pc2_std f2_pc2_stdXcat_socdemon f2_pc2_stdXcat_hedonic f2_pc2_stdXcat_perfrisk  f2_pc2_stdXc4 ///
+	elasticity, elast_vars(f2_pc2_std f2_pc2_stdXcat_socdemon f2_pc2_stdXcat_hedonic f2_pc2_stdXcat_perfrisk  f2_pc2_stdXc4 ///
 		  f2_pc1_std f2_pc1_stdXcat_socdemon f2_pc1_stdXcat_hedonic f2_pc1_stdXcat_perfrisk f2_pc1_stdXc4 ///
 		  seccat cat_socdemon cat_hedonic cat_perfrisk c4)
 	
-	elasticity, fn("`elastfn'") elast_vars(f2_pc2_std f2_pc2_stdXcat_fsocdemon f2_pc2_stdXcat_fhedonic f2_pc2_stdXcat_fperfrisk  f2_pc2_stdXc4 ///
+	elasticity, elast_vars(f2_pc2_std f2_pc2_stdXcat_fsocdemon f2_pc2_stdXcat_fhedonic f2_pc2_stdXcat_fperfrisk  f2_pc2_stdXc4 ///
 		  f2_pc1_std f2_pc1_stdXcat_fsocdemon f2_pc1_stdXcat_fhedonic f2_pc1_stdXcat_fperfrisk f2_pc1_stdXc4 ///
 		  seccat cat_socdemon cat_hedonic cat_perfrisk c4)
 
 	* Regression on market share*
-	global rtf_out "`path'\ms_regression.rtf"
-	insheet using "`equityfn'", clear 
+	global rtf_out "$path\$curr_modelname\ms_regression.rtf"
+	insheet using "$equityfn", clear 
 	do_preclean
 	gen weights = 1 
 	equity_final, ttitle("Regression of Marketshares on CBBE Principal Components and Category Moderators (no weights)") dv(annual_avgms_std)
@@ -365,8 +335,8 @@ program run_analysis
 
 	* Other robustness checks on market share *
 	
-	global rtf_out "`path'\other_robustness_ms.rtf"
-	insheet using "`equityfn'", clear 
+	global rtf_out "$path\$curr_modelname\other_robustness_ms.rtf"
+	insheet using "$equityfn", clear 
 	do_preclean
 	gen weights = 1
 	
@@ -374,24 +344,8 @@ program run_analysis
 	
 end
 
-
-program go
-	local path = "$path\$curr_modelname\"
-	local equityfn = "`path'\equity.csv"
-	insheet using "`equityfn'", clear 
-	drop if f_relestknow == .
-end
-
-
-program main
-	run_analysis, path("$path\$curr_modelname\")
-end
-
 program spotlight_equity
-	local path = "$path\$curr_modelname\"
-	local equityfn = "`path'\equity.csv"
-	
-	insheet using "`equityfn'", clear 
+	insheet using "$equityfn", clear 
 
 	do_preclean
 	
@@ -454,8 +408,6 @@ end
 
 
 program spotlight_elast
-	local path = "$path\$curr_modelname\"
-	local equityfn = "`path'\elasticities.csv"
 	local elast_vars f2_pc1_std f2_pc2_std
 	
 	local vlist c4_mc cat_hedonic_mc cat_perfrisk_mc cat_socdemon_mc
@@ -470,7 +422,7 @@ program spotlight_elast
 		display "`val'"
 		*local val adstock_bt
 		
-		quietly load_elasticity, fn("`equityfn'")
+		quietly load_elasticity, fn("$equityfn")
 		keep if var_name=="`val'"
 		quietly do_preclean
 		
@@ -533,7 +485,7 @@ program spotlight_elast
 end
 
 
-main
+run_analysis
 spotlight_elast
 
 log close
