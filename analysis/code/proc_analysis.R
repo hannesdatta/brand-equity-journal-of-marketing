@@ -118,21 +118,6 @@ analyze_marketshares <- function(dtf, xvars_heterog = c('promo_bt', 'ract_pr_bt'
 	# TRANSFORM DATA #
 	##################
 
-	# check for variation in all variables by brand; if not available, set all to NA / DEACTIVATED (should be done up-stream - if at all -, to make sure variables are mean-centered correctly)
-	if(0) {
-	for (.n in c(xvars_heterog, yvars)) {
-		dtf[, get_n := length(unique(get(.n))),by=c('brand_name')]
-		dtf[get_n==1, .n := NA, with=F]
-		
-		if (grepl('advertising|adstock', .n)) {
-			dtf[, obs := length(which(get(.n)>0)),by=c('brand_name')]
-			dtf[obs<8, .n := NA, with=F]
-			dtf[, obs:=NULL]
-			}
-		dtf[,':=' (get_n=NULL)]
-		}
-	}
-	
 	cat('Unique values\n')
 	dtf[, lapply(.SD, function(x) length(unique(x[!is.na(x)]))), by=c('brand_name'), .SDcols=c(xvars_heterog, yvars)]
 	
