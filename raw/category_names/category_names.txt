@@ -1,0 +1,26 @@
+cat_name	cat_name_full
+beer	Beer
+carbbev	Carbonated Soft Drinks
+cigets	Cigarettes
+coffee	Coffee
+coldcer	Cold (RTE) Cereal
+deod	Deodorants
+diapers	Disposable Diapers
+hhclean	Household Cleaners
+ketchup	Ketchup
+laundet	Laundry Detergents
+margbutr	Margarine & Spreads
+mayo	Mayonnaise
+milk	Milk
+mustard	Mustard
+peanbutr	Peanut Butter
+pz_di	Frozen Pizza & Dinners
+rz_bl	Razors & Blades
+saltsnck	Salty Snacks
+shamp	Shampoo
+soup	Soup
+spagsauc	Pasta Sauce
+sugarsub	Sugar Substitutes
+toitisu	Toilet Tissue
+toothpa	Toothpaste
+yogurt	Yogurt
