@@ -67,19 +67,21 @@ setkey(elast, cat_name, brand_name)
 elast[brand_names, brand_name_orig := i.brand_name_orig]
 setcolorder(elast, c('cat_name', 'brand_name', 'brand_name_orig', setdiff(colnames(elast),c('cat_name', 'brand_name', 'brand_name_orig'))))
 
-###################
-# Factor analysis #
-###################
+################################
+# Principal Component Analysis #
+################################
 
 library(psych)
 bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
+
+source('corstars.R')
 		
 	# Equity brand-value metrics (i.e., by year and brand)
 	for (ds in c('equity', 'elast')) {
 		for (nfactors in 2:3) {
 			
 			cat('\n\n===============================================================================\n')
-			cat(paste0('Principal Component Analysis on the ', toupper(ds), ' data with ', nfactors, ' factor scores to be extracted\n'))
+			cat(paste0('Principal Component Analysis on the ', toupper(ds), ' data with ', nfactors, ' components to be extracted\n'))
 			cat('===============================================================================\n\n\n')
 			
 			if (ds=='equity') keys = c('brand_name', 'year')
@@ -87,6 +89,12 @@ bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 			
 			eval(parse(text=paste0('setkey(', ds, ', ', paste(keys, collapse=','),')')))
 			mydata=eval(parse(text=paste0('unique(', ds, ')')))[!is.na(bav_asset)]
+			
+			cat('\nCorrelation matrix:\n')
+			#print(cor(mydata[, bav_dims,with=F]))
+
+			print(corstars(as.matrix(mydata[, bav_dims,with=F], method="pearson", removeTriangle='none', ndec=2)))
+			cat(paste0('\nNumber of observations: ', nrow(as.matrix(mydata[, bav_dims,with=F])), '\n'))
 			
 			fit <- principal(mydata[, bav_dims,with=F], nfactors=nfactors, rotate="varimax")
 			
