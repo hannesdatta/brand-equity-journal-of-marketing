@@ -1,14 +1,5 @@
 ./**********************************************************
-        _                       ____
-       ( )                     |____|
-    ___|/________|\____________|____|_______
-   |__/|/_)_|____|_______|\__(_)__(_)_______|
-   |_(_|_/__|__(_)_______|\_________________|
-   |___|____|__________(_)__________________|
-   |________|_________________________(_)___|
-                                        |
-                                        | 
- * tables.do 
+
  * BAV project
  * Kusum Ailawadi, Harald van Heerde, and Hannes Datta
  * bug reports: h.datta@tilburguniversity.edu
@@ -41,7 +32,8 @@ log using stata_log.txt, replace
 
 global equityfn = "$path\$curr_modelname\equity.csv"
 global elastfn = "$path\$curr_modelname\elasticities.csv"
-
+global sim_equityfn = "$path\$curr_modelname\sim_equity.csv"
+global sim_elastfn = "$path\$curr_modelname\sim_elast.csv"
 	
 program do_preclean
 	* Kick out non-BAV brands
@@ -172,7 +164,7 @@ program elasticity
 					
 	esttab m* using "$rtf_out", append ///
 	   mtitles("Regular Price Elasticity" "Promotional Price Elasticity" "Feature / Display Response" ///
-	           "Distribution Elasticity" "Advertising Elasticity") ///
+			   "Distribution Elasticity" "Advertising Elasticity") ///
 	   nodepvar label ///
 	   addnote("All estimated with WLS.") title(`ttitle') modelwidth(8 8 8 8 8) varwidth(16) b(2) se(2) ///
 	   stats(r2 N, labels("R-squared" "Number of elasticity observations")  fmt(2 0)) ///
@@ -204,7 +196,7 @@ program equity_final
 									  cat_fsocdemon f2_pc1_stdXcat_fsocdemon f2_pc2_stdXcat_fsocdemon ///
 									  [pw=weights], vce(cluster cat_brand_num)
 
-    vif
+	vif
 	
 	capture erase "$rtf_out"
 
@@ -360,49 +352,54 @@ program spotlight_equity
 		cat_socdemon_mc c.f2_pc1_std#c.cat_socdemon_mc c.f2_pc2_std#c.cat_socdemon_mc ///
 		[pw=weights], vce(cluster cat_brand_num)
 
-	local vlist c4_mc cat_hedonic_mc cat_perfrisk_mc cat_socdemon_mc
+	matlist e(V)
 	
+	local vlist c4_mc cat_hedonic_mc cat_perfrisk_mc cat_socdemon_mc
+
+	file open myfile using "$sim_equityfn", write replace
+	set more off
+
+	file write myfile  "pca" _tab "moderator" _tab "sim_value10p" _tab "sim_value90p" _tab "pred_10" _tab "pred_10se" _tab "pred_90" _tab "pred_90se" _n
+
 	foreach selvar in `vlist' {
 		*local selvar c4_mc
-		display 
 		* compute category-specific percentiles, store them
 		capture drop tag
 		egen tag=tag(cat_name)
 		quietly summarize `selvar' if tag == 1, detail
-		*summarize `selvar', detail
-		*_pctile(`selvar') if tag == 1, nq(10)
 		quietly return list
+		local p10 = `r(p10)'
+		local p90 = `r(p90)'
 		
-		display "`selvar' : Relevant Stature"
+		*display "`selvar' : Relevant Stature"
+		local facvars_loop f2_pc1_std f2_pc2_std 
+		
+		foreach pca_var in `facvars_loop' {
 				
-		margins, expression(predict() -_b[_cons]) at((zero) _all `selvar'=(`r(p10)' `r(p90)') f2_pc1_std=(1))
-		*marginsplot, recast(bar) noci
+			file write myfile %9s "`pca_var'" _tab ///
+							  %9s "`selvar'" _tab ///
+							  %12.0g "`p10'" _tab ///
+							  %12.0g "`p90'" _tab 
+								  
+			lincom `pca_var' + `p10'*c.`pca_var'#c.`selvar'
+			return list
+			
+			file write myfile %12.0g (r(estimate)) _tab ///
+							  %12.0g (r(se)) _tab 
+			
+			lincom `pca_var' + `p90'*c.`pca_var'#c.`selvar' 
+			return list
+			
+			file write myfile %12.0g (r(estimate)) _tab ///
+							  %12.0g (r(se)) _n
+		  
+		  
+			}
 		
-		*(asobserved) 
-		display "`selvar' : Energized Differentation"
-		
-		quietly summarize `selvar' if tag == 1, detail
-		quietly return list
-		
-		margins, expression(predict() -_b[_cons]) at((zero) _all `selvar'=(`r(p10)' `r(p90)') f2_pc2_std=(1))
-		
-		*marginsplot, recast(bar) noci
-		*return list
-		*twoway bar `r(at)' `r(b)'
-		*matrix bdat = r(b)'
-		*matrix rownames bdat = "low" "high"
-		*clear
-		*svmat bdat, names(bdat)
-
-		*graph bar bdat1, over(bdat4)
-
-		*matrix pred r(at) r(b)'
-		
-		*marginsplot, recast(bar)
-		*, saving(`selvar'.gph, replace)
-		*graph export `selvar'.png, replace
-
 		}
+	
+	file close myfile
+	set more on
 	
 end
 
@@ -412,10 +409,10 @@ program spotlight_elast
 	
 	local vlist c4_mc cat_hedonic_mc cat_perfrisk_mc cat_socdemon_mc
 	
-	file open myfile using "sim_elast.txt", write replace
+	file open myfile using "$sim_elastfn", write replace
 	set more off
 
-	file write myfile  "variable" _tab "bav_factor" _tab "sim_value" _tab "prediction" _tab "N" _n ///
+	file write myfile  "variable" _tab "bav_factor" _tab "sim_value" _tab "pred" _tab "pred_se" _tab "N" _n ///
 				  
 	foreach val in rreg_pr_bt pi_bt fd_bt pct_store_skus_bt adstock_bt {
 		
@@ -435,11 +432,16 @@ program spotlight_elast
 		egen sd_elast = sd(elast) if bav_brand==1, by(cat_name) 
 		
 		foreach predfact in f2_pc1_std f2_pc2_std { 
-		
+			
+			*local predfact f2_pc1_std
+				
 			capture drop `predfact'_back
 			g `predfact'_back = `predfact'
 		
 			foreach predval in 0 10 90 {
+				*local predval = 10
+				*local predfact f2_pc1_std
+				
 				capture drop `predfact'
 				
 				quietly summarize `predfact'_back, detail
@@ -454,17 +456,34 @@ program spotlight_elast
 			 
 				g pred_elast_`predfact'_`predval' = pred_elast_std_`predval'*sd_elast + mean_elast
 				g pred_elast_`predfact'_`predval'_se = pred_elast_std_`predval'_se * sd_elast
-				capture drop tmp_weight 
-				g tmp_weight = 1/pred_elast_`predfact'_`predval'_se
-			 
-				quietly summarize pred_elast_`predfact'_`predval' [w=tmp_weight], detail 
 				
+				* weigh by inverse standard errors
+				capture drop tmp_weight 
+				g tmp_w = 1/pred_elast_`predfact'_`predval'_se
+				* make weights sum up to 1
+				egen tmp_wsum = total(tmp_w)
+				g tmp_weight = tmp_w/tmp_wsum
+				drop tmp_w tmp_wsum
+				
+				* compute weighted mean
+				quietly summarize pred_elast_`predfact'_`predval' [w=tmp_weight], detail 
 				g w_elast_`predfact'_`predval' = r(mean)
+				local w_m = r(mean)
+				
+				* compute weighted SEs as
+				* sqrt ( w_1^2 * se_1^2 + w_2^2 * se_2^2 + ...)
+				gen tmp_wse = pred_elast_`predfact'_`predval'_se^2 * tmp_weight^2
+				egen tmp_wse_sum = total(tmp_wse)
+				quietly summarize tmp_wse_sum, detail
+				g w_elast_`predfact'_`predval'_se = sqrt(r(mean))
+				local w_se = sqrt(r(mean))
+				drop tmp_wse tmp_wse_sum
 				
 				file write myfile %9s "`val'" _tab ///
 								  %9s "`predfact'" _tab ///
 								  %9s "`predval'" _tab /// 
-								  %12.0g (r(mean)) _tab ///
+								  %12.0g (`w_m') _tab ///
+								  %12.0g (`w_se') _tab ///
 								  (r(N)) _n
 		  
 				capture drop pred_elast_std_*
@@ -485,7 +504,65 @@ program spotlight_elast
 end
 
 
-run_analysis
-spotlight_elast
+*run_analysis
+*spotlight_elast
+*spotlight_equity
 
 log close
+
+
+* test plotting
+program plot_elast
+	
+	foreach bav in f2_pc1_std f2_pc2_std {
+		
+		foreach var in rreg_pr_bt pi_bt fd_bt pct_store_skus_bt adstock_bt {
+	
+			insheet using "$sim_elastfn", clear
+		
+			keep if bav_factor == "`bav'"
+			drop if sim_value == 0
+			keep if variable == "`var'"
+				
+			replace sim_value = 1 if sim_value == 10
+			replace sim_value = 2.5 if sim_value == 90
+			gen conf_hi = pred + 1.96 * pred_se
+			gen conf_lo = pred - 1.96 * pred_se
+
+			* labeling
+			gen variable_label = " "
+			replace variable_label = "Advertising" if variable == "adstock_bt"
+			replace variable_label = "Feature/Display" if variable == "fd_bt"
+			replace variable_label = "Promotional Price Index" if variable == "pi_bt"
+			replace variable_label = "Regular Price" if variable == "rreg_pr_bt"
+			replace variable_label = "Distribution" if variable == "pct_store_skus_bt"
+
+			* retrieve variable label
+			levelsof variable_label, local(levels)
+			foreach l of local levels {
+				local plot_label = "`l'"
+				}
+
+			* retrieve factor name
+			levelsof bav_factor, local(levels)
+			foreach l of local levels {
+				if "`l'"=="f2_pc1_std" local factor_label = "Relevant Stature"
+				if "`l'"=="f2_pc2_std" local factor_label = "Energized Differentiation"
+				}
+
+			twoway (bar pred sim_value) ///
+				   (rcap conf_hi conf_lo sim_value), ///
+				   xlabel(1 "Low `factor_label'" 2.5 "High `factor_label'") ///
+				   xtitle("") ytitle("Elasticity") ///
+				   title("`plot_label'") legend(off) ///
+				   graphregion(fcolor(white) lstyle(none)) /// 
+				   ysc(r(0)) ylabel(#6)
+				   
+			graph export $path\$curr_modelname\elast_`bav'_`var'.png, replace
+		
+		}
+	}
+	
+end
+
+plot_elast
