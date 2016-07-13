@@ -20,8 +20,8 @@ set sortseed 04251963
 set scheme s2mono
 
 global curr_modelname = "MNL_copula_5mmix_nomc"
-global path = "c:\Users\hanne\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
-*global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
+*global path = "c:\Users\hanne\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
+global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
 
 
 
@@ -404,10 +404,97 @@ program spotlight_equity
 end
 
 
+program weighted_mean, rclass
+	syntax, var(varlist) weight(varlist)
+ 	quietly summarize `var' [w=`weight'], detail
+	return scalar wmean = r(mean)
+end
+
+program test_elast
+
+		local elast_vars f2_pc1_std f2_pc2_std
+		local val rreg_pr_bt
+		quietly load_elasticity, fn("$equityfn")
+		keep if var_name=="`val'"
+		quietly do_preclean
+		
+		egen mean_elast = mean(elast), by(cat_name) 
+		egen sd_elast = sd(elast), by(cat_name) 
+		
+		reg elast_std `elast_vars' [pw=weights] 
+
+		
+		weighted_mean, var(elast) weight(weights)
+		return list
+		
+		lincom `r(wmean)' + f2_pc1_std * 10% * ...
+		
+		
+		
+		collapse (mean) elast (sum) weights, by (cat_name)
+		
+		
+		collapse (mean) elast [weight=weights]
+		
+		lincom _cons + f2_pc1_std
+		
+		
+		
+		*reg elast_std [pw=weights] 
+		cap drop pred
+		predict pred
+		predict pred_se, stdp
+		g w2 = 1/pred_se
+		
+		summarize elast_std [w=weights] 
+
+		
+		g fpred = pred * sd_elast + mean_elast
+		
+		summarize elast [w=weights]
+		summarize fpred [w=weights]
+		summarize fpred [w=w2]
+		summarize fpred
+
+		summarize f2_pc2_std, detail
+		return list	
+			
+		replace f2_pc2_std = `r(p10)'
+		replace f2_pc1_std = 0
+		
+		* predict STANDARDIZED elasticities and standard errors
+		quietly predict pred_elast_std_X
+		quietly predict pred_elast_std_X_se, stdp 
+		
+		* DE-STANDARDIZE elasticities and standard errors
+		g pred_elast_X1 = pred_elast_std_X*sd_elast + mean_elast
+		g pred_elast_X1_se = pred_elast_std_X_se * sd_elast
+		
+		*replace pred_elast_X1 = elast
+		*replace pred_elast_X1_se = elast_se
+		
+		*g pred_elast_X1 = pred_elast_std_X
+		*g pred_elast_X1_se = pred_elast_std_X_se
+		
+		* weigh by inverse standard errors
+		capture drop tmp_weight 
+		g tmp_w = 1/pred_elast_X1_se
+		egen tmp_wsum = total(tmp_w)
+		g tmp_weight = tmp_w/tmp_wsum
+		drop tmp_w tmp_wsum
+		
+		* compute weighted mean
+		summarize pred_elast_X1 [w=tmp_weight], detail 
+
+		set seed `=date("2015-05-03", "YMD")'
+		bootstrap weighted_mean=r(wmean), reps(200) nodots nowarn: weighted_mean, var(pred_elast_X1) weight(tmp_weight)
+				
+	
+end
+
+
 program spotlight_elast
 	local elast_vars f2_pc1_std f2_pc2_std
-	
-	local vlist c4_mc cat_hedonic_mc cat_perfrisk_mc cat_socdemon_mc
 	
 	file open myfile using "$sim_elastfn", write replace
 	set more off
@@ -423,61 +510,72 @@ program spotlight_elast
 		keep if var_name=="`val'"
 		quietly do_preclean
 		
-		* perform regression (used to predict later on)
-		reg elast_std `elast_vars' [pw=weights] 
-
 		* add category-specific means and SDs of elasticities to data set (used to retrieve elasticities from standardized elasticities)
 		capture drop mean_elast sd_elast
-		egen mean_elast = mean(elast) if bav_brand==1, by(cat_name) 
-		egen sd_elast = sd(elast) if bav_brand==1, by(cat_name) 
+		egen mean_elast = mean(elast), by(cat_name) 
+		egen sd_elast = sd(elast), by(cat_name) 
 		
 		foreach predfact in f2_pc1_std f2_pc2_std { 
 			
 			*local predfact f2_pc1_std
 				
-			capture drop `predfact'_back
-			g `predfact'_back = `predfact'
+			*capture drop `predfact'_back
+			*g `predfact'_back = `predfact'
 		
 			foreach predval in 0 10 90 {
+				preserve
 				*local predval = 10
 				*local predfact f2_pc1_std
+				*local elast_vars f2_pc1_std f2_pc2_std
+	
+				* perform regression (used to predict later on)
+				reg elast_std `elast_vars' [pw=weights] 
+	
+				*capture drop `predfact'
 				
-				capture drop `predfact'
-				
-				quietly summarize `predfact'_back, detail
+				quietly summarize `predfact', detail
 				quietly return list
 			
-				if `predval' == 10 gen `predfact' = `r(p10)'
-				if `predval' == 90 gen `predfact' = `r(p90)'
-				if `predval' == 0 gen `predfact' = `predfact'_back
+				if `predval' == 10 replace `predfact' = `r(p10)'
+				if `predval' == 90 replace `predfact' = `r(p90)'
 				
+				if "`predfact'" == "f2_pc1_std" {
+					replace f2_pc2_std = 0
+					}
+				if "`predfact'" == "f2_pc2_std" {
+					replace f2_pc1_std = 0
+					}
+				
+				* predict STANDARDIZED elasticities and standard errors
 				quietly predict pred_elast_std_`predval'
 				quietly predict pred_elast_std_`predval'_se, stdp 
 			 
+				* DE-STANDARDIZE elasticities and standard errors
 				g pred_elast_`predfact'_`predval' = pred_elast_std_`predval'*sd_elast + mean_elast
 				g pred_elast_`predfact'_`predval'_se = pred_elast_std_`predval'_se * sd_elast
 				
+				*g pred_elast_`predfact'_`predval' = pred_elast_std_`predval'
+				*g pred_elast_`predfact'_`predval'_se = pred_elast_std_`predval'_se
+				
 				* weigh by inverse standard errors
-				capture drop tmp_weight 
 				g tmp_w = 1/pred_elast_`predfact'_`predval'_se
 				* make weights sum up to 1
-				egen tmp_wsum = total(tmp_w)
-				g tmp_weight = tmp_w/tmp_wsum
-				drop tmp_w tmp_wsum
+				*egen tmp_wsum = total(tmp_w)
+				*g tmp_weight = tmp_w/tmp_wsum
+				*drop tmp_w tmp_wsum
 				
 				* compute weighted mean
-				quietly summarize pred_elast_`predfact'_`predval' [w=tmp_weight], detail 
+				summarize pred_elast_`predfact'_`predval' [w=tmp_w], detail 
+				return list
 				g w_elast_`predfact'_`predval' = r(mean)
 				local w_m = r(mean)
 				
-				* compute weighted SEs as
-				* sqrt ( w_1^2 * se_1^2 + w_2^2 * se_2^2 + ...)
-				gen tmp_wse = pred_elast_`predfact'_`predval'_se^2 * tmp_weight^2
-				egen tmp_wse_sum = total(tmp_wse)
-				quietly summarize tmp_wse_sum, detail
-				g w_elast_`predfact'_`predval'_se = sqrt(r(mean))
-				local w_se = sqrt(r(mean))
-				drop tmp_wse tmp_wse_sum
+				* compute weighted SEs via Bootstrapping
+				set seed `=date("2015-05-03", "YMD")'
+				bootstrap r(wmean), reps(200) nodots nowarn: weighted_mean, var(pred_elast_`predfact'_`predval') weight(tmp_w)
+				ereturn list
+				matrix m_wse = e(se)
+				local w_se = m_wse[1,1]
 				
 				file write myfile %9s "`val'" _tab ///
 								  %9s "`predfact'" _tab ///
@@ -486,15 +584,12 @@ program spotlight_elast
 								  %12.0g (`w_se') _tab ///
 								  (r(N)) _n
 		  
-				capture drop pred_elast_std_*
-				
-				* reset factor value
-				replace `predfact' = `predfact'_back
+				restore
 				}
 				
 				
 	}
-	tabstat w_elast_* , stat(n mean sd min max) col(stat) varwidth(16)
+	*tabstat w_elast_* , stat(n mean sd min max) col(stat) varwidth(16)
 	
 	}
 	
@@ -505,8 +600,9 @@ end
 
 
 *run_analysis
-*spotlight_elast
 *spotlight_equity
+
+spotlight_elast
 
 log close
 
@@ -558,7 +654,7 @@ program plot_elast
 				   graphregion(fcolor(white) lstyle(none)) /// 
 				   ysc(r(0)) ylabel(#6)
 				   
-			graph export $path\$curr_modelname\elast_`bav'_`var'.png, replace
+			graph export $path\$curr_modelname\elast_`var'_`bav'.png, replace
 		
 		}
 	}
