@@ -1,8 +1,11 @@
 # Set path for focal model
 .dirs = list.dirs('../output',recursive=F)
 require(data.table)	
-		
-for (path in .dirs) {
+
+path = .dirs[1]
+	
+
+#for (path in .dirs) {
 	equity <- fread(paste0(path, '/equity.csv'))
 	elast <- fread(paste0(path, '/elasticities.csv'))
 
@@ -250,8 +253,6 @@ for (path in .dirs) {
 	wpath = paste0(path, '/figure2/')
 		
 	loop_vars = list(beer = 'Beer',
-					 carbbev = 'Carbonated Beverages',
-					 hhclean = 'Household Cleaners',
 					 laundet = 'Laundry Detergents')
 				
     cntr = 1				
@@ -259,16 +260,11 @@ for (path in .dirs) {
 	for (l in seq(along=loop_vars)) {
 	
 		plotfkt(iv = 'bav_asset_YSTD', dv = 'sbbe_YSTD', xlabel = 'Brand Asset Score', ylabel = 'SBBE', 
-			sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr], '.png'), confidence = FALSE)
+			sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr], '.png'), confidence = FALSE, lims_fixed = TRUE, xlim = c(-1.5,3))
 	
-		if (names(loop_vars)[l]=='beer') {
-			plotfkt(iv = 'bav_asset_YSTD', dv = 'annual_avgms', xlabel = 'Brand Asset Score', ylabel = 'Market share', 
-				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.png'), confidence = FALSE, lims_fixed=TRUE, xlim = c(-1.5,2.5), ylim = c(-.01,.2))
-				} else {
-			plotfkt(iv = 'bav_asset_YSTD', dv = 'annual_avgms', xlabel = 'Brand Asset Score', ylabel = 'Market share', 
-				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.png'), confidence = FALSE, lims_fixed=FALSE)
-				}
-			cntr = cntr+2
+		plotfkt(iv = 'bav_asset_YSTD', dv = 'annual_avgms', xlabel = 'Brand Asset Score', ylabel = 'Market share', 
+				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.png'), confidence = FALSE, lims_fixed=TRUE, xlim = c(-1.5,3), ylim = c(-.01,.2))
+		cntr = cntr+2
 		}
 		
 	if(0){
@@ -342,4 +338,4 @@ for (path in .dirs) {
 		}
 		
 	
-}
+#}
