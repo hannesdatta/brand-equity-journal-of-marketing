@@ -20,8 +20,8 @@ set sortseed 04251963
 set scheme s2mono
 
 global curr_modelname = "MNL_copula_5mmix_nomc"
-*global path = "c:\Users\hanne\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
-global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
+global path = "c:\Users\hanne\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
+*global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
 
 
 
@@ -413,7 +413,7 @@ end
 program test_elast
 
 		local elast_vars f2_pc1_std f2_pc2_std
-		local val rreg_pr_bt
+		local val adstock_bt
 		quietly load_elasticity, fn("$equityfn")
 		keep if var_name=="`val'"
 		quietly do_preclean
@@ -492,96 +492,70 @@ program test_elast
 	
 end
 
+program mean_elast
+	insheet using "$elastfn", clear 
+	gen weights = 1/elast_se
+	sort var_name
+	by var_name: summarize elast [weight=weights]
+				
+end
 
 program spotlight_elast
 	local elast_vars f2_pc1_std f2_pc2_std
 	
 	file open myfile using "$sim_elastfn", write replace
 	set more off
-
+	
 	file write myfile  "variable" _tab "bav_factor" _tab "sim_value" _tab "pred" _tab "pred_se" _tab "N" _n ///
-				  
+		  
 	foreach val in rreg_pr_bt pi_bt fd_bt pct_store_skus_bt adstock_bt {
 		
-		display "`val'"
 		*local val adstock_bt
+		display "`val'"
 		
 		quietly load_elasticity, fn("$equityfn")
 		keep if var_name=="`val'"
 		quietly do_preclean
 		
 		* add category-specific means and SDs of elasticities to data set (used to retrieve elasticities from standardized elasticities)
-		capture drop mean_elast sd_elast
-		egen mean_elast = mean(elast), by(cat_name) 
-		egen sd_elast = sd(elast), by(cat_name) 
+		*capture drop mean_elast sd_elast
+		*egen mean_elast = mean(elast), by(cat_name) 
+		*egen sd_elast = sd(elast), by(cat_name) 
 		
 		foreach predfact in f2_pc1_std f2_pc2_std { 
 			
-			*local predfact f2_pc1_std
-				
-			*capture drop `predfact'_back
-			*g `predfact'_back = `predfact'
-		
-			foreach predval in 0 10 90 {
-				preserve
-				*local predval = 10
+			foreach predval in 10 90 {
+				*local val adstock_bt
 				*local predfact f2_pc1_std
+				*local predval 10
 				*local elast_vars f2_pc1_std f2_pc2_std
 	
-				* perform regression (used to predict later on)
-				reg elast_std `elast_vars' [pw=weights] 
-	
-				*capture drop `predfact'
+				preserve
 				
+				* calculate p10 and p90 for the PCA score, store as local variable
 				quietly summarize `predfact', detail
 				quietly return list
-			
-				if `predval' == 10 replace `predfact' = `r(p10)'
-				if `predval' == 90 replace `predfact' = `r(p90)'
+				if `predval' == 10 local percentile = `r(p10)'
+				if `predval' == 90 local percentile = `r(p90)'
 				
-				if "`predfact'" == "f2_pc1_std" {
-					replace f2_pc2_std = 0
-					}
-				if "`predfact'" == "f2_pc2_std" {
-					replace f2_pc1_std = 0
-					}
-				
-				* predict STANDARDIZED elasticities and standard errors
-				quietly predict pred_elast_std_`predval'
-				quietly predict pred_elast_std_`predval'_se, stdp 
-			 
-				* DE-STANDARDIZE elasticities and standard errors
-				g pred_elast_`predfact'_`predval' = pred_elast_std_`predval'*sd_elast + mean_elast
-				g pred_elast_`predfact'_`predval'_se = pred_elast_std_`predval'_se * sd_elast
-				
-				*g pred_elast_`predfact'_`predval' = pred_elast_std_`predval'
-				*g pred_elast_`predfact'_`predval'_se = pred_elast_std_`predval'_se
-				
-				* weigh by inverse standard errors
-				g tmp_w = 1/pred_elast_`predfact'_`predval'_se
-				* make weights sum up to 1
-				*egen tmp_wsum = total(tmp_w)
-				*g tmp_weight = tmp_w/tmp_wsum
-				*drop tmp_w tmp_wsum
-				
-				* compute weighted mean
-				summarize pred_elast_`predfact'_`predval' [w=tmp_w], detail 
+				* Get weighted elasticity (for BAV brands)
+				summarize elast [weight=weights]
 				return list
-				g w_elast_`predfact'_`predval' = r(mean)
-				local w_m = r(mean)
+				local ewmean = `r(mean)'
+				local esd = `r(sd)'
 				
-				* compute weighted SEs via Bootstrapping
-				set seed `=date("2015-05-03", "YMD")'
-				bootstrap r(wmean), reps(200) nodots nowarn: weighted_mean, var(pred_elast_`predfact'_`predval') weight(tmp_w)
-				ereturn list
-				matrix m_wse = e(se)
-				local w_se = m_wse[1,1]
+				* perform regression (to retrieve the interaction coefficient)
+				reg elast_std `elast_vars' [pw=weights] 
 				
+				* calculate interaction effect
+				lincom `ewmean' + `percentile'*`predfact'*`esd'
+				return list
+			
 				file write myfile %9s "`val'" _tab ///
 								  %9s "`predfact'" _tab ///
 								  %9s "`predval'" _tab /// 
-								  %12.0g (`w_m') _tab ///
-								  %12.0g (`w_se') _tab ///
+								  %12.0g (r(estimate)) _tab ///
+								  %12.0g (r(se)) _tab ///
 								  (r(N)) _n
 		  
 				restore
@@ -589,7 +563,6 @@ program spotlight_elast
 				
 				
 	}
-	*tabstat w_elast_* , stat(n mean sd min max) col(stat) varwidth(16)
 	
 	}
 	
@@ -598,11 +571,6 @@ program spotlight_elast
 	
 end
 
-
-*run_analysis
-*spotlight_equity
-
-spotlight_elast
 
 log close
 
@@ -622,8 +590,8 @@ program plot_elast
 				
 			replace sim_value = 1 if sim_value == 10
 			replace sim_value = 2.5 if sim_value == 90
-			gen conf_hi = pred + 1.96 * pred_se
-			gen conf_lo = pred - 1.96 * pred_se
+			gen conf_hi = pred + 1.69 * pred_se
+			gen conf_lo = pred - 1.69 * pred_se
 
 			* labeling
 			gen variable_label = " "
@@ -661,4 +629,10 @@ program plot_elast
 	
 end
 
+
+run_analysis
+spotlight_equity
+spotlight_elast
+
 plot_elast
+mean_elast
