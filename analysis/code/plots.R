@@ -260,10 +260,10 @@ path = .dirs[1]
 	for (l in seq(along=loop_vars)) {
 	
 		plotfkt(iv = 'bav_asset_YSTD', dv = 'sbbe_YSTD', xlabel = 'Brand Asset Score', ylabel = 'SBBE', 
-			sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr], '.png'), confidence = FALSE, lims_fixed = TRUE, xlim = c(-1.5,3))
+			sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr], '.png'), confidence = FALSE, lims_fixed = TRUE, xlim = c(-1.5,3.2), ylim 	= c(-2.3, 2.3))
 	
 		plotfkt(iv = 'bav_asset_YSTD', dv = 'annual_avgms', xlabel = 'Brand Asset Score', ylabel = 'Market share', 
-				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.png'), confidence = FALSE, lims_fixed=TRUE, xlim = c(-1.5,3), ylim = c(-.01,.2))
+				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.png'), confidence = FALSE, lims_fixed=FALSE, xlim = c(-1.5,3.3), ylim = c(-.01,.2))
 		cntr = cntr+2
 		}
 		
