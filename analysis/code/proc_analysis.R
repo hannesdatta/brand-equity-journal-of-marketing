@@ -431,6 +431,8 @@ show.bav_attraction <- function(x) {
 	print(x$model$rho)
 	cat('\n\n')
 
+	cat(paste0('Number of parameters: ', nrow(x$model$coefficients[which(!is.na(x$model$coefficients$coef)),]), '\n\n'))
+	
 	cat('Elasticities by brand:\n')
 	print(dcast(x$elasticities[which(!grepl('cop[_]', x$elasticities$var_name)),], brand_name ~ var_name, value.var='elast'), digits=3)
 
