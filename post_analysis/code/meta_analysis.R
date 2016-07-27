@@ -15,41 +15,71 @@ options(width=1000)
 
 	equity_nocop <- fread(paste0(path2, '//equity.csv'))
 	elast_nocop <- fread(paste0(path2, '//elasticities.csv'))
+
 	
+###############################
+# Stats for the paper         #
+###############################
+
+# How many brand entry/exists are there in the data?
+equity[, list(.N), by=c('cat_name', 'brand_name')][, list(.N)]
+
+tmp = equity[, list(.N), by=c('cat_name', 'brand_name')]
+length(which(tmp<10))
+length(which(tmp<10))/nrow(tmp)
+
+#enter
+tmp = equity[, list(enter=length(which(!any(year%in%2002))), exit = length(which(!any(year%in%2011)))), by=c('cat_name', 'brand_name')]
+sum(tmp$enter)
+sum(tmp$exit)
+
+tmp = equity[, list(.N), by=c('cat_name', 'brand_name')]
+
+length(which(tmp<10))
+length(which(tmp<10))/nrow(tmp)
+
+
+
+
 ###############################
 # Table 3: Sample description #
 ###############################
 
-equity[, years_per_brand := .N, by=c('cat_name', 'brand_name')]
-tmp=equity[, list(no_brands = length(unique(brand_name)),
+	equity[, years_per_brand := .N, by=c('cat_name', 'brand_name')]
+	tmp=equity[, list(no_brands = length(unique(brand_name)),
 			  no_bav_brands = length(unique(brand_name[!is.na(bav_asset)])),
 			  no_years = mean(years_per_brand[match(unique(brand_name), brand_name)], na.rm=T),
-			  dollar_sales = mean(revenue)/1E6, 
-			  dollar_sales_sd = sd(revenue/1E6),
-			  bav_asset = mean(bav_asset[!is.na(bav_asset)]), 
-			  bav_asset_sd = sd(bav_asset[!is.na(bav_asset)])
+			  #dollar_sales = mean(revenue)/1E6, 
+			  #dollar_sales_sd = sd(revenue/1E6),
+			  #bav_asset = mean(bav_asset[!is.na(bav_asset)]), 
+			  #bav_asset_sd = sd(bav_asset[!is.na(bav_asset)]),
+			  soc_value = mean(cat_socdemon,na.rm=T),
+			  hedonic = mean(cat_hedonic, na.rm=T),
+			  perfrisk = mean(cat_perfrisk,na.rm=T),
+			  c4=mean(c4,na.rm=T)
 			  ), by=c('cat_name')]
-
-# Total number of brands
-with(equity,length(unique(paste(cat_name, brand_name, sep= '_'))))
-# Total number of BAV brands
-with(equity[!is.na(bav_asset)],length(unique(paste(cat_name, brand_name, sep= '_'))))
-# Total number of brands
-length(unique(paste(equity$cat_name, equity$brand_name, sep= '_')))
-# Total number of brand-year observations
-nrow(equity[, list(.N), by=c('cat_name', 'brand_name', 'year')])
-
-# Export for XLS table
-write.table(tmp, '../output/sample_description.csv', row.names=F)
 	
-
-# Mean of C4 by category
-setkey(elast,cat_name)
-tmp=unique(elast)
-sink('../output/mean_of_c4.txt')
-tmp[, c('cat_name', 'c4'),with=F]
-sink()
+	# Merge actual catgory names
+	cat_names <- fread('../../raw/category_names/category_names.txt')
 	
+	tmp <- merge(tmp, cat_names, by=c('cat_name'),all.x=T)
+	setcolorder(tmp, c('cat_name_full', setdiff(colnames(tmp),'cat_name_full')))
+	
+	{
+	cat('\nTotal number of brand:\n')
+	cat(with(equity,length(unique(paste(cat_name, brand_name, sep= '_')))),fill=T)
+	cat('Total number of BAV brands:\n')
+	cat(with(equity[!is.na(bav_asset)],length(unique(paste(cat_name, brand_name, sep= '_')))),fill=T)
+	cat('Total number of brands:\n')
+	cat(length(unique(paste(equity$cat_name, equity$brand_name, sep= '_'))),fill=T)
+	cat('Total number of brand-year observations:\n')
+	cat(nrow(equity[, list(.N), by=c('cat_name', 'brand_name', 'year')]),fill=T)
+	}
+	
+	# Export for XLS table
+	tmp[, cat_name := NULL]
+	write.table(tmp, '../output/sample_description.csv', row.names=F)
+
 ###########################################
 # Table 4: Sales Response Model Estimates #
 ###########################################
