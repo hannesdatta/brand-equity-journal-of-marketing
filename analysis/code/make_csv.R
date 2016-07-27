@@ -66,7 +66,43 @@ for (fn in c(fn_data, fn_results)) {
 				}
 			}
 		sink()
+
+		#####################################################
+		# Conduct normality tests for Gaussian Copula terms #
+		#####################################################
 		
+		sink(paste0('..//output//', r, '//copulas', r, '.txt'))
+	
+		cat('Overview about any violations in the non-normal distribution of marketing mix instruments:\n')
+		cop_norm = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$copula_normality)))
+		cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.1)), N_nonnormal = length(which(pval<=.1)))]
+		cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.1)), N_nonnormal = length(which(pval<=.1))), by = c('variable')]
+	
+		cop_norm = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$copula_normality)))
+		cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.05)), N_nonnormal = length(which(pval<=.05)))]
+		cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.05)), N_nonnormal = length(which(pval<=.05))), by = c('variable')]
+		
+		# Check sign of the cop_ coefficients
+		
+		cop_sign = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$model$coefficients[grepl('cop[_]', x$model$coefficients$var_name),])))
+		cop_sign[!is.na(coef), list(significant = length(which(abs(z)<=1.69)), N_total = .N, perc = length(which(abs(z)<=1.69)) / .N)]
+		cop_sign[!is.na(coef), list(significant = length(which(abs(z)<=1.69)), N_total = .N,perc = length(which(abs(z)<=1.69)) / .N), by = c('var_name')]
+		
+		# Investigate in which categories we did not estimate fd or ad
+		ad_fd <- rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$model$coefficients)))
+		ad_fd <- ad_fd[!grepl('cop[_]', var_name)]
+		ad_fd <- ad_fd[grepl('adstock', var_name), var_name := 'advertising']
+		
+		ad_fd <- ad_fd[var_name%in%c('pi_bt', 'rreg_pr_bt', 'pct_store_skus_bt', 'fd_bt', 'advertising')]
+		
+		ad_fd[, max_n := length(which(var_name=='rreg_pr_bt')), by=c('cat_name')]
+		
+		tmp <- ad_fd[, list(N=unique(max_n), N_estim = length(which(!is.na(coef))), perc = length(which(!is.na(coef)))/unique(max_n)), by=c('cat_name', 'var_name')]
+		dcast(tmp, cat_name ~ var_name, value.var = 'perc')
+		dcast(tmp, cat_name ~ var_name, value.var = 'N_estim')
+		
+		sink()
+			
 		###########################
 		# Summarizing all results #
 		###########################
