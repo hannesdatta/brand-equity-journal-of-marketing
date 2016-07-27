@@ -200,9 +200,24 @@ program equity_final
 	
 	capture erase "$rtf_out"
 
+	/*
 	esttab m* using "$rtf_out", nodepvar label wide nopar se ///
 	title("`ttitle'") ///
 	modelwidth(10) varwidth(30) b(2) se(2) ///
+	stats(r2 N_clust N, labels("R-squared" "Number of brands" "Number of observations") fmt(2 0 0)) ///
+	star(* 0.10 ** 0.05 *** .01) replace ///
+	order(f2_pc1_std f2_pc1_stdXcat_socdemon f2_pc1_stdXcat_hedonic f2_pc1_stdXcat_perfrisk f2_pc1_stdXc4 ///
+		  f2_pc1_stdXcat_fsocdemon f2_pc1_stdXcat_fhedonic f2_pc1_stdXcat_fperfrisk ///
+		  f2_pc2_std f2_pc2_stdXcat_socdemon f2_pc2_stdXcat_hedonic f2_pc2_stdXcat_perfrisk  f2_pc2_stdXc4 ///
+		  f2_pc2_stdXcat_fsocdemon f2_pc2_stdXcat_fhedonic f2_pc2_stdXcat_fperfrisk ///
+		  seccat cat_socdemon cat_hedonic cat_perfrisk c4)
+		 */
+		 
+		 
+	esttab m* using "$rtf_out", nodepvar label ///
+	cells("b(fmt(2) star) p(fmt(3))" se(par fmt(2))) /// 
+	title("`ttitle'") ///
+	modelwidth(10) varwidth(30) ///
 	stats(r2 N_clust N, labels("R-squared" "Number of brands" "Number of observations") fmt(2 0 0)) ///
 	star(* 0.10 ** 0.05 *** .01) replace ///
 	order(f2_pc1_std f2_pc1_stdXcat_socdemon f2_pc1_stdXcat_hedonic f2_pc1_stdXcat_perfrisk f2_pc1_stdXc4 ///
