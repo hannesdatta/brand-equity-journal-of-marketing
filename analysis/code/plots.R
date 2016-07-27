@@ -186,6 +186,7 @@ path = .dirs[1]
 					 ggtitle(title) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) +
 					 theme(panel.grid.major = element_blank(), 
 						   panel.grid.minor = element_blank(),
+						   panel.background	= element_rect(fill=NA),
 						   plot.title=element_text(face="bold"),
 						   axis.title=element_text(face="bold"),
 						   panel.border = element_rect(colour = "black", fill=NA))
@@ -195,6 +196,11 @@ path = .dirs[1]
 		print(pl)
 		if (!is.null(fn)) dev.off()
 	}
+	
+	
+	# try plots
+	
+	#plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'carbbev', xlabel = 'Brand Asset Score', title = 'Carbonated Soft Drinks', fn = NULL)
 	
 	
 	# apply standardization for plots
@@ -210,7 +216,7 @@ path = .dirs[1]
 	for (l in seq(along=loop_vars)) equity[!is.na(bav_asset), names(loop_vars)[l] := (get(loop_vars[[l]])-mean(get(loop_vars[[l]]),na.rm=T))/sd(get(loop_vars[[l]]),na.rm=T), by=c('cat_name', 'year'), with = F]
 	
 	# create directory structure
-	for (p in c('sbbe_vs_cbbe', 'figure2', 'marketshare_vs_cbbe', 'sbbe_vs_cbbe_year')) {
+	for (p in c('sbbe_vs_cbbe', 'figure2', 'figure5', 'marketshare_vs_cbbe', 'sbbe_vs_cbbe_year')) {
 		fpath=paste0(path, '/', p, '/')
 		unlink(paste0(fpath,'*'))
 		dir.create(fpath)
@@ -240,8 +246,8 @@ path = .dirs[1]
 			plotfkt(iv = 'bav_energ_YSTD', sel_cat = catn, xlabel = 'Energized Differentiation', title = '', fn = paste0(wpath, 'bavdims_energ_', catn, '.png'), dv = dv, ylabel = ylabel)
 			
 			# BAV Factors
-			plotfkt(iv = 'relstat_YSTD', sel_cat = catn, xlabel = 'Factor for Relevant Stature (RelStat)', title = '', fn = paste0(wpath, 'bavfactors_relstat_', catn, '.png'), dv = dv, ylabel = ylabel)
-			plotfkt(iv = 'energdiff_YSTD', sel_cat = catn, xlabel = 'Factor for Energized Differentiation (EnDif)', title = '', fn = paste0(wpath, 'bavfactors_energ_', catn, '.png'), dv = dv, ylabel = ylabel)
+			plotfkt(iv = 'relstat_YSTD', sel_cat = catn, xlabel = 'Relevant Stature (RelStat)', title = '', fn = paste0(wpath, 'bavfactors_relstat_', catn, '.png'), dv = dv, ylabel = ylabel)
+			plotfkt(iv = 'energdiff_YSTD', sel_cat = catn, xlabel = 'Energized Differentiation (EnDif)', title = '', fn = paste0(wpath, 'bavfactors_energ_', catn, '.png'), dv = dv, ylabel = ylabel)
 		}
 	}
 
@@ -260,13 +266,20 @@ path = .dirs[1]
 	for (l in seq(along=loop_vars)) {
 	
 		plotfkt(iv = 'bav_asset_YSTD', dv = 'sbbe_YSTD', xlabel = 'Brand Asset Score', ylabel = 'SBBE', 
-			sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr], '.png'), confidence = FALSE, lims_fixed = TRUE, xlim = c(-1.5,3.2), ylim 	= c(-2.3, 2.3))
+			sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr], '.png'), confidence = FALSE, lims_fixed = TRUE, xlim = c(-1.5,3.2), ylim = c(-2.3, 2.3))
 	
 		plotfkt(iv = 'bav_asset_YSTD', dv = 'annual_avgms', xlabel = 'Brand Asset Score', ylabel = 'Market share', 
-				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.png'), confidence = FALSE, lims_fixed=FALSE, xlim = c(-1.5,3.3), ylim = c(-.01,.2))
+				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.png'), confidence = FALSE, lims_fixed=TRUE, xlim = c(-1.5,3.2), ylim = c(-.01,.3))
 		cntr = cntr+2
 		}
-		
+
+	##### FIGURE 5 ############
+	wpath = paste0(path, '/figure5/')
+	
+	plotfkt(iv = 'relstat_YSTD', sel_cat = 'beer', xlabel = 'Relevant Stature (RelStat)', title = '', fn = paste0(wpath, 'a_bavfactors_relstat_', catn, '.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
+	plotfkt(iv = 'energdiff_YSTD', sel_cat = 'beer', xlabel = 'Energized Differentiation (EnDif)', title = '', fn = paste0(wpath, 'b_bavfactors_energ_', catn, '.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
+	
+	
 	if(0){
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'carbbev', xlabel = 'Brand Asset Score', title = 'Carbonated Soft Drinks', fn = paste0(fpath, 'figure2b.png'))
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'cigets', xlabel = 'Brand Asset Score', title = 'Cigarettes', fn = paste0(fpath, 'figure2c.png'))
@@ -323,8 +336,8 @@ path = .dirs[1]
 		if (!is.null(fn)) dev.off()
 	}
 
-	plotfkt2(iv = 'relstat_YSTD', sel_cat = unique(equity$cat_name), xlabel = 'Factor for Relevant Stature (RelStat)', title = '', fn = paste0(path, '/all_relevantstature.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
-	plotfkt2(iv = 'energdiff_YSTD', sel_cat = unique(equity$cat_name), xlabel = 'Factor for Energized Differentiation (EnDif)', title = '', fn = paste0(path, '/all_energdiff.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
+	plotfkt2(iv = 'relstat_YSTD', sel_cat = unique(equity$cat_name), xlabel = 'Relevant Stature (RelStat)', title = '', fn = paste0(path, '/all_relevantstature.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
+	plotfkt2(iv = 'energdiff_YSTD', sel_cat = unique(equity$cat_name), xlabel = 'Energized Differentiation (EnDif)', title = '', fn = paste0(path, '/all_energdiff.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
 
 	equity[, relstat_YSTD := (F2_PC1_STD-mean(F2_PC1_STD,na.rm=T))/sd(F2_PC1_STD,na.rm=T), by=c('cat_name')]
 	equity[, energdiff_YSTD := (F2_PC2_STD-mean(F2_PC2_STD,na.rm=T))/sd(F2_PC2_STD,na.rm=T), by=c('cat_name')]
@@ -333,8 +346,8 @@ path = .dirs[1]
 	for (year in 2002:2011) {
 		# BAV Factors
 			wpath = paste0(path, '/sbbe_vs_cbbe_year/')
-			plotfkt(iv = 'relstat_YSTD', sel_cat = 'beer', xlabel = 'Factor for Relevant Stature (RelStat)', title = paste0('Beer: ', year), fn = paste0(wpath, 'bavfactors_relstat_', year, '_beer.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear=year)
-			plotfkt(iv = 'energdiff_YSTD', sel_cat = 'beer', xlabel = 'Factor for Energized Differentiation (EnDif)', title = paste0('Beer: ', year), fn = paste0(wpath, 'bavfactors_energdiff_', year, '_beer.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear=year)
+			plotfkt(iv = 'relstat_YSTD', sel_cat = 'beer', xlabel = 'Relevant Stature (RelStat)', title = paste0('Beer: ', year), fn = paste0(wpath, 'bavfactors_relstat_', year, '_beer.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear=year)
+			plotfkt(iv = 'energdiff_YSTD', sel_cat = 'beer', xlabel = 'Energized Differentiation (EnDif)', title = paste0('Beer: ', year), fn = paste0(wpath, 'bavfactors_energdiff_', year, '_beer.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear=year)
 		}
 		
 	
