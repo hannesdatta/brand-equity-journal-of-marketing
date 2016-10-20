@@ -75,7 +75,7 @@ library(psych)
 bav_dims =  c('bav_relevance', 'bav_esteem','bav_knowledge','bav_energizeddiff')
 
 source('corstars.R')
-		
+	
 	# Equity brand-value metrics (i.e., by year and brand)
 	for (ds in c('equity', 'elast')) {
 		for (nfactors in 2:3) {
@@ -105,6 +105,12 @@ source('corstars.R')
 			eig <- data.table(eigen(cor(mydata[, bav_dims, with=F]))$values)
 			setnames(eig, 'eigenvalue')
 			print(eig)
+
+			cat('\n\nMatrix to compute component scores from standardized input matrix (and vice versa):\n')
+			print(fit$weights)
+			
+			#tmp=as.matrix(mydata[, bav_dims,with=F])
+			#scale(tmp)%*%fit$weights # --> calculates component scores; hence fit$weights is matrix A* from Rust, Lemon, Zeithaml 2004, p. 124.
 			
 			fit_scores <- cbind(mydata[, keys,with=F], fit$scores)
 			setkeyv(fit_scores, keys)
