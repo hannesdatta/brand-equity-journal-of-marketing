@@ -71,22 +71,27 @@ for (fn in c(fn_data, fn_results)) {
 		# Conduct normality tests for Gaussian Copula terms #
 		#####################################################
 		
+		tmp=unlist(lapply(all_results[sel$index], function(x) x$copula_normality))
+		
 		sink(paste0('..//output//', r, '//copulas', r, '.txt'))
-	
-		cat('Overview about any violations in the non-normal distribution of marketing mix instruments:\n')
-		cop_norm = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$copula_normality)))
-		cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.1)), N_nonnormal = length(which(pval<=.1)))]
-		cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.1)), N_nonnormal = length(which(pval<=.1))), by = c('variable')]
-	
-		cop_norm = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$copula_normality)))
-		cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.05)), N_nonnormal = length(which(pval<=.05)))]
-		cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.05)), N_nonnormal = length(which(pval<=.05))), by = c('variable')]
 		
-		# Check sign of the cop_ coefficients
+		if(!is.null(tmp)) {
 		
-		cop_sign = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$model$coefficients[grepl('cop[_]', x$model$coefficients$var_name),])))
-		cop_sign[!is.na(coef), list(significant = length(which(abs(z)<=1.69)), N_total = .N, perc = length(which(abs(z)<=1.69)) / .N)]
-		cop_sign[!is.na(coef), list(significant = length(which(abs(z)<=1.69)), N_total = .N,perc = length(which(abs(z)<=1.69)) / .N), by = c('var_name')]
+			cat('Overview about any violations in the non-normal distribution of marketing mix instruments:\n')
+			cop_norm = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$copula_normality)))
+			cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.1)), N_nonnormal = length(which(pval<=.1)))]
+			cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.1)), N_nonnormal = length(which(pval<=.1))), by = c('variable')]
+		
+			cop_norm = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$copula_normality)))
+			cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.05)), N_nonnormal = length(which(pval<=.05)))]
+			cop_norm[!is.na(pval), list(N=.N, N_normal = length(which(pval>.05)), N_nonnormal = length(which(pval<=.05))), by = c('variable')]
+			
+			# Check sign of the cop_ coefficients
+			
+			cop_sign = rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$model$coefficients[grepl('cop[_]', x$model$coefficients$var_name),])))
+			cop_sign[!is.na(coef), list(significant = length(which(abs(z)<=1.69)), N_total = .N, perc = length(which(abs(z)<=1.69)) / .N)]
+			cop_sign[!is.na(coef), list(significant = length(which(abs(z)<=1.69)), N_total = .N,perc = length(which(abs(z)<=1.69)) / .N), by = c('var_name')]
+		}
 		
 		# Investigate in which categories we did not estimate fd or ad
 		ad_fd <- rbindlist(lapply(all_results[sel$index], function(x) data.table(cat_name = x$cat_name, x$model$coefficients)))
