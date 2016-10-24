@@ -146,6 +146,35 @@ cat('\n\n\n=========================\nModel without copulas\n===================
 summarize_elast(elast_nocop)
 sink()
 
+# Elasticities by category
+sigvalue = .1
+sigtest = qnorm(1-sigvalue/2)
+
+tmp = elast[!grepl('cop[_]', var_name) & !is.na(elast), list(ncoef = length(unique(id[!is.na(elast)])),
+			   welast = sum(elast/elast_se,na.rm=T)/sum(1/elast_se,na.rm=T),
+			   median = median(elast, na.rm=T),
+			   elast_sd = sd(elast, na.rm=T),
+			   possig = length(unique(id[elast/elast_se>=sigtest]))/length(unique(id)),
+			   null = length(unique(id[abs(elast/elast_se)<sigtest]))/length(unique(id)),
+			   negsig = length(unique(id[elast/elast_se<=-sigtest]))/length(unique(id))
+			   ), by=c('var_name', 'cat_name')]
+
+tmp2=melt(tmp, id.vars=c('var_name', 'cat_name'))
+tmp2[var_name=='rreg_pr_bt', var_name2 := '01_rreg_pr_bt']
+tmp2[var_name=='pi_bt', var_name2 := '02_pi_bt']
+tmp2[var_name=='fd_bt', var_name2 := '03_fd_bt']  
+tmp2[var_name=='pct_store_skus_bt', var_name2 := '04_pct_store_skus_bt']  
+tmp2[var_name=='adstock_bt', var_name2 := '05_adstock_bt']  
+
+tmp1 = dcast(tmp2, cat_name~var_name2+variable)
+tmp2 = elast[, list(adv_decay = mean(adv_decay)), by = c('cat_name')]
+
+# get decay parameter
+
+write.table(, row.names=F, file = '../output/elast_summary.csv')
+
+
+
 # Correlation between the elasticities
 focal_vars <- c('cat_name', 'brand_name', 'var_name', 'elast')
 elast[, type:='copula']

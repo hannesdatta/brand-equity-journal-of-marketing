@@ -29,7 +29,11 @@ extract_elast_equity <- function(tmp_results) {
 	elast=meanequity[elast]
 
 	elast=elast[, !colnames(elast)%in%c('z', 'orig_var'),with=F] #'mean_var','coef','se',  #'mean_ms'
-	return(list(elast=elast, equity=equity, meanequity=meanequity))
+	
+	# adv. decay
+	adv_decay = rbindlist(lapply(tmp_results, function(x) data.frame(cat_name=x$cat_name, adv_decay = x$adv_decay)))
+
+	return(list(elast=elast, equity=equity, meanequity=meanequity, adv_decay=adv_decay))
 	
 	}
 
@@ -67,6 +71,11 @@ setkey(elast, cat_name, brand_name)
 elast[brand_names, brand_name_orig := i.brand_name_orig]
 setcolorder(elast, c('cat_name', 'brand_name', 'brand_name_orig', setdiff(colnames(elast),c('cat_name', 'brand_name', 'brand_name_orig'))))
 
+setkey(elast, cat_name)
+adv = tmp$adv_decay
+adv[, adv_decay := as.numeric(as.character(adv_decay))]
+elast[adv, adv_decay := i.adv_decay]
+
 ################################
 # Principal Component Analysis #
 ################################
@@ -78,7 +87,7 @@ source('corstars.R')
 	
 	# Equity brand-value metrics (i.e., by year and brand)
 	for (ds in c('equity', 'elast')) {
-		for (nfactors in 2:3) {
+		for (nfactors in 2) {
 			
 			cat('\n\n===============================================================================\n')
 			cat(paste0('Principal Component Analysis on the ', toupper(ds), ' data with ', nfactors, ' components to be extracted\n'))
@@ -100,6 +109,19 @@ source('corstars.R')
 			
 			summary(fit)
 			print(fit)
+			
+			# Test: standardize scores
+			#mydata[, score1:=fit$scores[,1]]
+			#mydata[, score2:=fit$scores[,2]]
+			
+			# standardize by cat
+			#mydata[, score1_STD := (score1-mean(score1))/sd(score1), by = c('cat_name')]
+			#mydata[, score2_STD := (score2-mean(score2))/sd(score2), by = c('cat_name')]
+			
+			# convert to factor scores
+		
+			# first input matrix is standardized
+			#scale(as.matrix(mydata[, bav_dims, with=F]))%*%fit$weights
 			
 			cat('\n\nInitial Eigenvalues:\n')
 			eig <- data.table(eigen(cor(mydata[, bav_dims, with=F]))$values)

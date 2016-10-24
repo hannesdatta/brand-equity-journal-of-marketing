@@ -20,21 +20,21 @@ set sortseed 04251963
 set scheme s2mono
 
 global curr_modelname = "MNL_copula_5mmix_nomc"
-global path = "c:\Users\hanne\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
-*global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_hannes\analysis\output\"
-
-
+global path = "c:\Users\hanne\Dropbox\Tilburg\Projects\BAV\Shared\analysis_round2\analysis\output\"
+global path = "d:\DATTA\Dropbox\Tilburg\Projects\BAV\Shared\analysis_round2\analysis\output\"
 
 
 **** EXECUTION ****
-cd "$path"
+cap cd "$path"
 log using stata_log.txt, replace
 
 global equityfn = "$path\$curr_modelname\equity.csv"
 global elastfn = "$path\$curr_modelname\elasticities.csv"
 global sim_equityfn = "$path\$curr_modelname\sim_equity.csv"
 global sim_elastfn = "$path\$curr_modelname\sim_elast.csv"
-	
+global rob_pca = "$path\$curr_modelname\rob_pca.csv"
+global rob_pca_bycat = "$path\$curr_modelname\rob_pca_bycat.csv"
+		
 program do_preclean
 	* Kick out non-BAV brands
 	drop if bav_brand == 0
@@ -90,9 +90,6 @@ program do_preclean
 	foreach var in `mcvars' {
 		g f2_pc1_stdX`var' = f2_pc1_std * `var'_mc
 		g f2_pc2_stdX`var' = f2_pc2_std * `var'_mc
-		g f3_pc1_stdX`var' = f3_pc1_std * `var'_mc
-		g f3_pc2_stdX`var' = f3_pc2_std * `var'_mc
-		g f3_pc3_stdX`var' = f3_pc3_std * `var'_mc
 		local l: variable label `var'
 		label var f2_pc1_stdX`var' "     x `l'"
 		label var f2_pc2_stdX`var' "     x `l'"
@@ -102,9 +99,6 @@ program do_preclean
 	foreach var in `otherinteract_vars' {
 		g f2_pc1_stdX`var' = f2_pc1_std * `var'
 		g f2_pc2_stdX`var' = f2_pc2_std * `var'
-		g f3_pc1_stdX`var' = f3_pc1_std * `var'
-		g f3_pc2_stdX`var' = f3_pc2_std * `var'
-		g f3_pc3_stdX`var' = f3_pc3_std * `var'
 		local l: variable label `var'
 		label var f2_pc1_stdX`var' "     x `l'"
 		label var f2_pc2_stdX`var' "     x `l'"
@@ -112,6 +106,13 @@ program do_preclean
 		
 	label var f2_pc1_std "Principal Component for Relevant Stature"
 	label var f2_pc2_std "Principal Component for Energized Differentiation"
+	
+	* Compute category-means of non-standardized factors
+	sort cat_name
+	foreach bav in f2_pc1 f2_pc2 {
+		by cat_name: egen `bav'_cmean=mean(`bav')
+		by cat_name: egen `bav'_cstd=sd(`bav')
+		}
 	
 	g f2_pc1_stdXf2_pc2_std = f2_pc1_std*f2_pc2_std
 	
@@ -646,8 +647,329 @@ end
 
 
 run_analysis
-spotlight_equity
-spotlight_elast
+*spotlight_equity
+*spotlight_elast
 
-plot_elast
-mean_elast
+*plot_elast
+*mean_elast
+
+
+
+/* =================================================================
+                   R O B U S T N E S S   C H E C K
+			  
+	  SIMULATION OF IMPACT OF INDIVIDUAL BAV DIMENSIONS ON SBBE 
+   =================================================================
+*/
+
+insheet using "$equityfn", clear 
+do_preclean
+gen weights = 1/sbbe_se_std
+
+* Estimate model
+local vars f2_pc1_std f2_pc2_std ///
+		   seccat ///
+		   c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
+		   cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
+		   cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
+		   cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon
+									  
+reg sbbe_std `vars' [pw=weights], vce(cluster cat_brand_num)
+
+
+estimate_equity
+* Save coefficients and variance-covariance matrix
+matrix V = e(V)
+matrix b = e(b)
+matrix B = b[1,1..15]
+local nsim 1000
+
+* Sample from covariance matrix, save draws
+preserve
+drop `vars'
+set seed 04071984
+drawnorm `vars', cov(V) means(B) cstorage(full) n(`nsim') clear
+mkmat `vars', matrix(draws)
+restore
+	
+* Re-compute factor scores, whereby one BAV dimension is going to be shocked by category-level
+* standard deviations, and new factor values are computed
+
+* (1) Compute category-level SDs for the original (standardized) BAV values
+cap drop unique
+egen unique = tag(brand_name year)
+foreach var in bav_relevance bav_esteem bav_knowledge bav_energizeddiff {
+	cap drop `var'_globalstd
+	cap drop tmp
+	cap drop `var'_catsd
+	egen tmp = std(`var') if unique == 1
+	bysort brand_name year: egen `var'_globalstd = total(tmp)
+	
+	* generate category-specific SDs for standardized fac scores
+	bysort cat_name: egen `var'_catsd = sd(`var'_globalstd)
+	}
+
+* (2) Compute shocked factors
+
+/*
+Matrix to compute component scores from standardized input matrix (and vice versa):
+                          PC1         PC2
+bav_relevance      0.36218281  0.09216399
+bav_esteem         0.37428621  0.02197208
+bav_knowledge      0.35427477 -0.14749174
+bav_energizeddiff -0.03687092  0.97497004
+*/
+
+*cap drop newfac1 newfac2
+*gen newfac1 = 0.36218281 * bav_relevance_globalstd + 0.37428621 * bav_esteem_globalstd + 0.35427477 * bav_knowledge_globalstd -0.03687092 * bav_energizeddiff_globalstd
+*gen newfac2 = 0.09216399 * bav_relevance_globalstd + 0.02197208 * bav_esteem_globalstd  -0.14749174 * bav_knowledge_globalstd + 0.97497004 * bav_energizeddiff_globalstd
+
+*gen newfac1_s = newfac1 + 1
+*gen newfac2_s = newfac2 + 1
+
+
+* Do the average standard deviation within a category
+cap drop fac*_catsd
+by cat_name: egen fac1_catsd = sd(f2_pc1)
+by cat_name: egen fac2_catsd = sd(f2_pc2)
+by cat_name: egen fac1_catmean = mean(f2_pc1)
+by cat_name: egen fac2_catmean = mean(f2_pc2)
+
+
+* compute shocked factor scores
+foreach var in bav_relevance bav_esteem bav_knowledge bav_energizeddiff {
+	cap drop bav*_shock
+	gen bav_relevance_shock = bav_relevance_globalstd
+	gen bav_esteem_shock = bav_esteem_globalstd
+	gen bav_knowledge_shock = bav_knowledge_globalstd
+	gen bav_energizeddiff_shock = bav_energizeddiff_globalstd
+	
+	replace `var'_shock = `var'_shock + `var'_catsd
+	
+	cap drop newfac1_`var'_s
+	cap drpo newfac2_`var'_s
+	
+	gen newfac1_`var'_s = (0.36218281 * bav_relevance_shock + 0.37428621 * bav_esteem_shock + 0.35427477 * bav_knowledge_shock -0.03687092 * bav_energizeddiff_shock - fac1_catmean) / fac1_catsd
+	gen newfac2_`var'_s = (0.09216399 * bav_relevance_shock + 0.02197208 * bav_esteem_shock  -0.14749174 * bav_knowledge_shock + 0.97497004 * bav_energizeddiff_shock - fac2_catmean) / fac2_catsd
+
+	}
+
+* define colMeans (and then means across the column means) in Mata
+
+mata
+mata clear
+void do_mata() {
+		A = st_matrix("sim")
+		avgs = colsum(A)/rows(A)
+		M = mean(avgs')
+		SD = sqrt(variance(avgs'))
+		st_numscalar("M",M)
+		st_numscalar("SD",SD)
+	}
+end
+
+* Open file for output writing
+file open myfile using "$rob_pca", write replace
+set more off
+file write myfile  "variable" _tab "moderator" _tab "coef" _tab "se" _n
+
+* Define variables for which to compute effects
+local vars main Xc4 Xcat_hedonic Xcat_perfrisk Xcat_socdemon 
+
+* Perform calculation
+foreach var of local vars {
+	display "Computing effects for: `var'"
+	if "`var'"=="main" local var ""
+	
+	matrix coef = draws[1..`nsim', "f2_pc1_std`var'".."f2_pc2_std`var'"]
+	
+	foreach bavvar in bav_relevance bav_esteem bav_knowledge bav_energizeddiff {
+		* Impact of a dimension is equal to the differences in factor values for "shocked" factor (whereby one dimension is shocked) and baseline factor value...
+		cap drop comp_diff*
+		g comp_diff_fac1 = newfac1_`bavvar'_s - f2_pc1_std
+		g comp_diff_fac2 = newfac2_`bavvar'_s - f2_pc2_std
+
+		* ...times the coefficient draws for the relevant coefficients
+		mkmat comp_diff*, matrix(compdiff)
+		matrix sim = compdiff * coef' 
+		
+		* calculate means across observations per draw, and then average
+		mata: do_mata()
+		
+		file write myfile %9s "`bavvar'" _tab %9s "`var'" _tab %12.0g (M) _tab %12.0g (SD) _n 
+
+		}
+	}
+* Close output file	
+file close myfile
+set more on
+
+* End of simulation
+
+
+
+/* =================================================================
+                   R O B U S T N E S S   C H E C K
+			  
+	  COMPUTATION OF IMPACT OF INDIVIDUAL BAV DIMENSIONS ON SBBE
+	  BY CATEGORY USING THE DELTA RULE
+   =================================================================
+*/
+
+* Estimate model
+insheet using "$equityfn", clear 
+do_preclean
+gen weights = 1/sbbe_se_std
+
+* Estimate model
+local vars f2_pc1_std f2_pc2_std ///
+		   seccat ///
+		   c4 f2_pc1_stdXc4 f2_pc2_stdXc4 ///
+		   cat_hedonic f2_pc1_stdXcat_hedonic f2_pc2_stdXcat_hedonic ///
+		   cat_perfrisk f2_pc1_stdXcat_perfrisk f2_pc2_stdXcat_perfrisk ///
+		   cat_socdemon f2_pc1_stdXcat_socdemon f2_pc2_stdXcat_socdemon
+									  
+reg sbbe_std `vars' [pw=weights], vce(cluster cat_brand_num)
+
+
+* Write file for output
+file open myfile using "$rob_pca_bycat", write replace
+set more off
+file write myfile  "variable" _tab "moderator" _tab "coef" _tab "se" _n
+
+local vars main Xc4 Xcat_hedonic Xcat_perfrisk Xcat_socdemon 
+
+* Do the average approach
+
+* Do the average standard deviation within a category
+cap drop fac*_catsd
+by cat_name: egen fac1_catsd = sd(f2_pc1)
+by cat_name: egen fac2_catsd = sd(f2_pc2)
+cap drop unique
+egen unique = tag(cat_name)
+
+* mean of cat SDs
+summ fac1_catsd if unique == 1
+scalar fac1_mean = `r(mean)'
+summ fac2_catsd if unique == 1
+scalar fac2_mean = `r(mean)'
+
+* overall mean
+summ fac1_catsd
+scalar fac1_mean = `r(mean)'
+summ fac2_catsd
+scalar fac2_mean = `r(mean)'
+
+
+
+
+* INTERACTION EFFECTS
+foreach var of local vars {
+	if "`var'"=="main" local var ""
+
+	* VAR x Relevance
+	lincom 0.36218281 * f2_pc1_std`var' / fac1_mean + 0.09216399 * f2_pc2_std`var' / fac2_mean
+	
+	file write myfile %9s "bav_relevance" _tab %9s "`var'" _tab
+	return list
+	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
+	
+	* VAR x Esteem
+	lincom 0.37428621 * f2_pc1_std`var' / fac1_mean + 0.02197208 * f2_pc2_std`var' / fac2_mean
+	
+	file write myfile %9s "bav_esteem" _tab %9s "`var'" _tab
+	return list
+	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
+	
+	* VAR x Knowledge
+	lincom 0.35427477 * f2_pc1_std`var' / fac1_mean -0.14749174 * f2_pc2_std`var' / fac2_mean
+	
+	file write myfile %9s "bav_knowledge" _tab %9s "`var'" _tab
+	return list
+	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
+	
+	* VAR x Energized Diff								 
+	lincom -0.03687092 * f2_pc1_std`var' / fac1_mean + 0.97497004 * f2_pc2_std`var' / fac2_mean
+
+	file write myfile %9s "bav_energizeddiff" _tab %9s "`var'" _tab
+	return list
+	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
+	
+	}
+
+file close myfile
+set more on
+
+
+/*
+/* ELASTICITIES 
+*/
+
+file open myfile using "$rob_pca", write replace
+set more off
+file write myfile  "variable" _tab "moderator" _tab "coef" _tab "sd" _tab "t" _tab "pval" _n
+
+local vars main Xc4 Xcat_hedonic Xcat_perfrisk Xcat_socdemon 
+* INTERACTION EFFECTS
+foreach var of local vars {
+	if "`var'"=="main" local var ""
+		
+	* VAR x Relevance
+	lincom 0.36218281 * f2_pc1_std`var' + 0.09216399 * f2_pc2_std`var'
+	
+	file write myfile %9s "relevance" _tab %9s "`var'" _tab
+	return list
+	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
+	
+	* VAR x Esteem
+	lincom 0.37428621 * f2_pc1_std`var' + 0.02197208 * f2_pc2_std`var'
+	
+	file write myfile %9s "esteem" _tab %9s "`var'" _tab
+	return list
+	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
+	
+	* VAR x Knowledge
+	lincom 0.35427477 * f2_pc1_std`var' -0.14749174 * f2_pc2_std`var'
+	
+	file write myfile %9s "knowledge" _tab %9s "`var'" _tab
+	return list
+	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
+	
+	* VAR x Energized Diff								 
+	lincom -0.03687092 * f2_pc1_std`var' + 0.97497004 * f2_pc2_std`var'
+
+	file write myfile %9s "energizeddiff" _tab %9s "`var'" _tab
+	return list
+	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
+	
+	}
+
+file close myfile
+set more on
+
+
+	
+	local elast_dv elast_std
+	
+	if "`ttitle'"=="" local ttitle = "Elasticities"
+	
+	eststo clear
+	
+	local vars rreg_pr_bt pi_bt fd_bt pct_store_skus_bt adstock_bt
+	
+	local count_var : word count `vars'
+	display "`count_var'"
+	
+	* Loop over DVs (vars)
+		forvalues i = 1/`count_var' {
+			local m : word `i' of `vars'
+			load_elasticity, fn("$elastfn")
+			keep if var_name == "`m'"
+			do_preclean
+			sort cat_name
+			by cat_name: summ `elast_dv'
+			
+			eststo m`i': quietly reg `elast_dv' `elast_vars' [pw=weights] 
+
+			}
+*/

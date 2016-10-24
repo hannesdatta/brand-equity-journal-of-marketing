@@ -147,8 +147,6 @@ for (fn in c(fn_data, fn_results)) {
 		
 		sink()
 		
-		
-		
 		# Write data files to disk
 			# CSV
 			write.table(equity, paste0(fpath, '//equity.csv'), sep='\t', row.names=F,na = "")
