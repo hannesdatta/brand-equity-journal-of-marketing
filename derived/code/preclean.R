@@ -17,7 +17,7 @@ require(data.table)
 	load('..//temp//cpi.RData')
 	load('..//temp//bav.RData')
 	load('..//temp//bav_deletes.RData')
-
+	load('..//temp//iri_aggr.RData')
 # Brand selection has already been implemented in upstream-data preparation (Kusum, sas7bdat):
 # brands are selected that account for a cumulative market share of 90%.
 
@@ -275,7 +275,42 @@ setkey(bav_deletes, cat_name, brand_name)
 
 	selected_brands = selected_brands[selected==T]
 	setkey(selected_brands, cat_name, brand_name)
-	
+
+#########################################################################
+# PRODUCE AGGREGATION INFORMATION (LINKING TO IRI) FOR SELECTED BRANDS  #
+#########################################################################
+
+for (i in 1:length(aggr)) aggr[[i]]$cat_id <- i
+bav <- rbindlist(lapply(aggr, function(x) cbind(cat_id = x$cat_id, x[,seq(from=which(colnames(x)=='iri_brand_name'), length.out=3)])))
+nonbav <- rbindlist(lapply(aggr, function(x) cbind(cat_id = x$cat_id, x[,seq(from=which(colnames(x)=='iri_brand_name1'), length.out=2)])))
+
+setnames(bav, c('cat_id', 'iri_brand_name', 'brand_name', 'bav_id'))
+setnames(nonbav, c('cat_id', 'iri_brand_name', 'brand_name'))
+
+brands <- rbind(bav, nonbav, fill=T)
+brands <- brands[!is.na(iri_brand_name)]
+
+# trim strings
+require(stringr)
+brands[, iri_brand_name := str_trim(iri_brand_name)]
+brands[, brand_name := str_trim(brand_name)]
+
+# all matched
+table(selected_brands$brand_name%in%brands$brand_name)
+
+# keep brands that we have in our data set
+brands = brands[brand_name %in% selected_brands$brand_name]
+
+# drop BAV ID
+brands[, bav_id := NULL]
+brands[, cat_id := NULL]
+setkey(brands, iri_brand_name, brand_name)
+brands= unique(brands)
+
+# save file
+setorder(brands, iri_brand_name)
+write.csv(brands, file='..//output//brand_aggregation.csv', row.names=F)
+
 ###########################################################################################
 # KEEP SELECTED BRANDS, AND TAKE LONGEST CONSECUTIVE STRETCH OF AVAILABLE DATA per brand  #
 ###########################################################################################
