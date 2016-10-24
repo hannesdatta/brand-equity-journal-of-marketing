@@ -17,7 +17,7 @@ require(sas7bdat)
 # Gathers all data sets, and saves them as RData
 	catdata <- NULL
 
-	basepath <- '..\\..\\..\\'
+	basepath <- '..\\..\\..\\data\\'
 	fpath = '\\revision\\fix_distrwidth\\'
 	
 	# Define available categories
