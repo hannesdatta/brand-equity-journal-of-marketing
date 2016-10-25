@@ -276,6 +276,29 @@ setkey(bav_deletes, cat_name, brand_name)
 	selected_brands = selected_brands[selected==T]
 	setkey(selected_brands, cat_name, brand_name)
 
+# Assess whether brand_name uniquely identifies a brand correctly
+# (e.g., this identifier would be erroneous if it linked to different CBBE metrics by brand/category)
+
+	tmp=rbindlist(lapply(bavdata, function(x) x[, c('cat_name', 'brand_name','Brand_ID', 'year', 'Brand_Asset_C'), with=F]))
+	tmp=tmp[!is.na(Brand_Asset_C)]
+
+	setkey(tmp, cat_name, brand_name)
+	setkey(selected_brands, cat_name, brand_name)
+
+	tmp2=tmp[selected_brands]
+	setkey(tmp2, cat_name, brand_name)
+
+	unique(tmp2) # --> is 441. ok.
+
+	# verify whether Brand Asset score is unique by brand_name.
+	setkey(tmp2, brand_name, year)
+	unique(tmp2)
+	setkey(tmp2, brand_name, Brand_Asset_C)
+	unique(tmp2)
+
+	tmp2[, N:=length(unique(Brand_Asset_C)), by = c('brand_name', 'year')]
+	table(tmp2$N) # --> all is 1. Hence, all is good.
+
 #########################################################################
 # PRODUCE AGGREGATION INFORMATION (LINKING TO IRI) FOR SELECTED BRANDS  #
 #########################################################################
