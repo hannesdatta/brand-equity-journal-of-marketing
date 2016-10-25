@@ -647,11 +647,11 @@ end
 
 
 run_analysis
-*spotlight_equity
-*spotlight_elast
+spotlight_equity
+spotlight_elast
 
-*plot_elast
-*mean_elast
+plot_elast
+mean_elast
 
 
 
