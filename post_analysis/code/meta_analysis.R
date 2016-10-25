@@ -167,11 +167,10 @@ tmp2[var_name=='pct_store_skus_bt', var_name2 := '04_pct_store_skus_bt']
 tmp2[var_name=='adstock_bt', var_name2 := '05_adstock_bt']  
 
 tmp1 = dcast(tmp2, cat_name~var_name2+variable)
-tmp2 = elast[, list(adv_decay = mean(adv_decay)), by = c('cat_name')]
+tmp2 = elast[, list(adv_decay = mean(adv_decay)/100), by = c('cat_name')]
 
 # get decay parameter
-
-write.table(, row.names=F, file = '../output/elast_summary.csv')
+write.table(merge(tmp1, tmp2, by=c('cat_name')), row.names=F, file = '../output/elast_summary.csv')
 
 
 
