@@ -939,67 +939,7 @@ foreach var in rreg_pr_bt pi_bt fd_bt pct_store_skus_bt adstock_bt {
 * Close output file	
 file close myfile
 set more on	
-
-	
-			
+		
 
 * End of simulation
 
-
-
-/*
-/* ELASTICITIES 
-*/
-
-file open myfile using "$rob_pca_eq", write replace
-set more off
-file write myfile  "variable" _tab "moderator" _tab "coef" _tab "sd" _tab "t" _tab "pval" _n
-
-local vars main Xc4 Xcat_hedonic Xcat_perfrisk Xcat_socdemon 
-* INTERACTION EFFECTS
-foreach var of local vars {
-	if "`var'"=="main" local var ""
-		
-	* VAR x Relevance
-	lincom 0.36218281 * f2_pc1_std`var' + 0.09216399 * f2_pc2_std`var'
-	
-	file write myfile %9s "relevance" _tab %9s "`var'" _tab
-	return list
-	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
-	
-	* VAR x Esteem
-	lincom 0.37428621 * f2_pc1_std`var' + 0.02197208 * f2_pc2_std`var'
-	
-	file write myfile %9s "esteem" _tab %9s "`var'" _tab
-	return list
-	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
-	
-	* VAR x Knowledge
-	lincom 0.35427477 * f2_pc1_std`var' -0.14749174 * f2_pc2_std`var'
-	
-	file write myfile %9s "knowledge" _tab %9s "`var'" _tab
-	return list
-	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
-	
-	* VAR x Energized Diff								 
-	lincom -0.03687092 * f2_pc1_std`var' + 0.97497004 * f2_pc2_std`var'
-
-	file write myfile %9s "energizeddiff" _tab %9s "`var'" _tab
-	return list
-	file write myfile %12.0g (r(estimate)) _tab %12.0g (r(se)) _n 
-	
-	}
-
-file close myfile
-set more on
-
-
-	
-	local elast_dv elast_std
-	
-	if "`ttitle'"=="" local ttitle = "Elasticities"
-	
-	eststo clear
-	
-
-*/
