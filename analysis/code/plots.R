@@ -74,11 +74,6 @@ path = .dirs[1]
 			print(xyplot(elast~F2_PC1+F2_PC2|cat_name,data=df,auto.key=T, main = paste0('Elasticities vs. CBBE: ', i),scales = list(y = list(relation = "free"))))
 			dev.off()
 			
-			png(paste0(fpath, 'elast_cbbe_', i, '_3factors.png'), res=200, units='in', height=16, width=16)
-			df = elast[var_name==i]
-			print(xyplot(elast~F3_PC1+F3_PC2+F3_PC3|cat_name,data=df,auto.key=T, main = paste0('Elasticities vs. CBBE: ', i),scales = list(y = list(relation = "free"))))
-			dev.off()
-			
 			}
 
 	########
@@ -121,9 +116,8 @@ path = .dirs[1]
 	
 	for (j in unique(equity$cat_name)) {
 		
-		for (nfactors in c(2,3)) {
+		for (nfactors in c(2)) {
 			if (nfactors==2) fac = c('F2_PC1_STD', 'F2_PC2_STD')
-			if (nfactors==3) fac = c('F3_PC1_STD', 'F3_PC2_STD','F3_PC3_STD')
 			
 			png(paste0(fpath, 'sbbe_cbbe_', j, '_', nfactors, '_factors.png'), res=200, units='in', height=8, width=12)
 			df = equity[cat_name==j][!is.na(bav_asset)]
