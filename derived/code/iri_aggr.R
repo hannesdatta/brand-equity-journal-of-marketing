@@ -23,8 +23,10 @@ require(stringr)
 		tmp <- sqlQuery(ch, qry)
 
 		odbcCloseAll()
-	
-		aggr[[fn]] <- tmp
+		
+		cat_name_iri = tolower(gsub('[_]match.*', '', rev(strsplit(fs[fn], '\\\\')[[1]])[1]))
+		
+		aggr[[fn]] <- list(data=tmp, cat_name_iri=cat_name_iri)
 		}
 
 		
