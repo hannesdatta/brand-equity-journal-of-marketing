@@ -303,12 +303,19 @@ setkey(bav_deletes, cat_name, brand_name)
 # PRODUCE AGGREGATION INFORMATION (LINKING TO IRI) FOR SELECTED BRANDS  #
 #########################################################################
 
-for (i in 1:length(aggr)) aggr[[i]]$cat_id <- i
-bav <- rbindlist(lapply(aggr, function(x) cbind(cat_id = x$cat_id, x[,seq(from=which(colnames(x)=='iri_brand_name'), length.out=3)])))
-nonbav <- rbindlist(lapply(aggr, function(x) cbind(cat_id = x$cat_id, x[,seq(from=which(colnames(x)=='iri_brand_name1'), length.out=2)])))
 
-setnames(bav, c('cat_id', 'iri_brand_name', 'brand_name', 'bav_id'))
-setnames(nonbav, c('cat_id', 'iri_brand_name', 'brand_name'))
+bav <- rbindlist(lapply(aggr, function(x) cbind(cat_name_iri = x$cat_name_iri, 
+												iri_brand_name = x$data[,c(seq(from=which(colnames(x$data)=='iri_brand_name'), length.out=3))],
+												x$data[, grep('orig', colnames(x$data)[1], ignore.case=T)])),fill=T)
+
+nonbav <- rbindlist(lapply(aggr, function(x) data.frame(cat_name_iri = x$cat_name_iri, 
+												   iri_brand_name = as.character(x$data[,which(colnames(x$data)=='iri_brand_name1')]), 
+												   brand_name = as.character(x$data[,which(colnames(x$data)=='iri_brand_name1')+1]),
+												   x$data[, which(colnames(x$data)=='iri_cat')])
+												   ),fill=T)
+
+setnames(bav, c('cat_name_iri', 'iri_brand_name', 'brand_name', 'bav_id', 'iri_cat'))
+setnames(nonbav, c('cat_name_iri', 'iri_brand_name', 'brand_name', 'iri_cat'))
 
 brands <- rbind(bav, nonbav, fill=T)
 brands <- brands[!is.na(iri_brand_name)]
@@ -321,17 +328,69 @@ brands[, brand_name := str_trim(brand_name)]
 # all matched
 table(selected_brands$brand_name%in%brands$brand_name)
 
-# keep brands that we have in our data set
-brands = brands[brand_name %in% selected_brands$brand_name]
+# Merge our own category names to it
+brands = merge(brands, selected_brands[selected==T,c('cat_name', 'brand_name'),with=F], by=c('brand_name'), all.x=F, all.y=T)
 
-# drop BAV ID
-brands[, bav_id := NULL]
-brands[, cat_id := NULL]
-setkey(brands, iri_brand_name, brand_name)
+# Reclassify brands into original categories
+setnames(brands, 'cat_name_iri', 'cat_name_iri_old')
+
+brands[cat_name_iri_old == 'beer', cat_name_iri := 'BEER']
+brands[cat_name_iri_old == 'carbbev', cat_name_iri := 'CARBONATED BEVARAGES']
+brands[cat_name_iri_old == 'cigets', cat_name_iri := 'CIGARETTES']
+brands[cat_name_iri_old == 'coffee', cat_name_iri := 'COFFEE']
+brands[cat_name_iri_old == 'coldcer', cat_name_iri := 'COLD CEREAL']
+brands[cat_name_iri_old == 'deod', cat_name_iri := 'DEODORANT']
+brands[cat_name_iri_old == 'diapers', cat_name_iri := 'DIAPERS']
+brands[cat_name_iri_old == 'hhclean', cat_name_iri := 'HOUSEHOLD CLEANER']
+brands[cat_name_iri_old == 'laundet', cat_name_iri := 'LAUNDRY DETERGENT']
+brands[cat_name_iri_old == 'margbutr', cat_name_iri := 'MARGARINE/SPREADS/BUTT']
+brands[cat_name_iri_old == 'mayo', cat_name_iri := 'MAYONNAISE']
+brands[cat_name_iri_old == 'milk', cat_name_iri := 'MILK']
+brands[cat_name_iri_old == 'mustketc', cat_name_iri := 'MUSTARD & KETCHUP']
+brands[cat_name_iri_old == 'pastasauc', cat_name_iri := 'SPAGHETTI/ITALIAN SAUC']
+brands[cat_name_iri_old == 'peanbutr', cat_name_iri := 'PEANUT BUTTER']
+brands[cat_name_iri_old == 'saltsnck', cat_name_iri := 'SALTY SNACKS']
+brands[cat_name_iri_old == 'shamp', cat_name_iri := 'SHAMPOO']
+brands[cat_name_iri_old == 'soup', cat_name_iri := 'SOUP']
+brands[cat_name_iri_old == 'sugarsub', cat_name_iri := 'SUGAR SUBSTITUTES']
+brands[cat_name_iri_old == 'toitisu', cat_name_iri := 'TOILET TISSUE']
+brands[cat_name_iri_old == 'toothpa', cat_name_iri := 'TOOTHPASTE']
+brands[cat_name_iri_old == 'yogurt', cat_name_iri := 'YOGURT']
+
+brands[iri_cat == 'FZDINENT' | iri_cat == 'CATEGORY - FZ DINNERS/ENTREES', cat_name_iri := 'FZ DINNERS/ENTREES']
+brands[iri_cat == 'PIZZA' | iri_cat == 'CATEGORY - FZ PIZZA', cat_name_iri := 'FZ PIZZA']
+brands[iri_cat == 'Blades' | iri_cat == 'CATEGORY - BLADES', cat_name_iri := 'BLADES']
+brands[iri_cat == 'Razors' | iri_cat == 'CATEGORY - RAZORS', cat_name_iri := 'RAZORS']
+
+# keep brands that we have in our data set
+#brands = brands[brand_name %in% selected_brands$brand_name]
+
+# keep only matching categories
+brands[, cat_name_iri := as.character(cat_name_iri)]
+brands[, cat_name_iri_old := as.character(cat_name_iri_old)]
+brands[, cat_name := as.character(cat_name)]
+
+brands <- brands[cat_name==cat_name_iri_old | cat_name == 'pz_di' & cat_name_iri_old=='fz_pz' | cat_name == 'spagsauc' & cat_name_iri_old == 'pastasauc' | cat_name == 'rz_bl' & cat_name_iri_old == 'razors_blades' | 
+			     cat_name == 'ketchup' & cat_name_iri_old == 'mustketc' | cat_name == 'mustard' & cat_name_iri_old == 'mustketc']
+	
+# Remove unnecessary columns
+brands[, ':=' (cat_name_iri_old = NULL, bav_id = NULL, iri_cat = NULL)]
+
+# Rename
+setnames(brands, 'cat_name_iri', 'iri_cat_name')
+
+# Reorder columns
+setcolorder(brands, c('iri_cat_name', 'iri_brand_name', 'brand_name', 'cat_name'))
+setorder(brands, iri_cat_name, iri_brand_name, brand_name, cat_name)
+	
+# count unique brands
+brands[, list(.N), by = c('cat_name', 'brand_name')]
+
+# filter uniques
+setkey(brands, iri_cat_name, iri_brand_name, brand_name, cat_name)
 brands= unique(brands)
 
 # save file
-setorder(brands, iri_brand_name)
 write.csv(brands, file='..//output//brand_aggregation.csv', row.names=F)
 
 ###########################################################################################
