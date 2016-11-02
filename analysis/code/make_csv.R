@@ -107,7 +107,38 @@ for (fn in c(fn_data, fn_results)) {
 		dcast(tmp, cat_name ~ var_name, value.var = 'N_estim')
 		
 		sink()
-			
+		
+		############################################################
+		# Assess size of error variance compared to regression SEs #
+		############################################################
+		
+		if(0){
+		tmp_coefs = rbindlist(lapply(all_results[sel$index], function(x) data.frame(cat_name=x$cat_name, x$model$coefficients)))
+		tmp_coefs[, tmp_brand_name := gsub('dummy[_]', '', orig_var)]
+		tmp_coefs[, brand_name := sapply(tmp_brand_name, function(x) strsplit(x, '_')[[1]][1])]
+		tmp_coefs[, tmp_brand_name := NULL]
+		
+		tmp_variance = rbindlist(lapply(all_results[sel$index], function(x) data.frame(cat_name=x$cat_name, brand_name = names(x$model$rho), error_variance = diag(x$model$sigma))))
+		
+		tmp = merge(tmp_coefs, tmp_variance, by = c('cat_name', 'brand_name'), all.x=T)
+		tmp[, se_sq := se^2]
+		tmp <- tmp[!grepl('attr[_]', var_name) & (grepl('[_]bt', var_name)|grepl('[_]yr', var_name)) & !grepl('cop[_]', var_name)]
+		tmp[, sbbe_dum := grepl('[_]yr[_]', var_name)]
+		tmp[sbbe_dum==T]
+
+		tmp[grepl('adstock', var_name), var_name := 'adstock_bt']
+		
+		# by equation
+		#tmp[, list(R2 = 1- mean(se_sq) / var(coef)), by = c('sbbe_dum', 'cat_name', 'brand_name')]
+		
+		#tmp[, ':=' (meanse = mean(se_sq), variancecoef = var(coef)), by = c('sbbe_dum', 'cat_name', 'brand_name')]
+		
+		tmp[sbbe_dum==F, list(R2 = 1- (mean(se_sq) / var(coef))), by = c('var_name')]
+		tmp[sbbe_dum==F, list(R2 = 1- (mean(se_sq) / var(coef))), by = c('var_name')][, list(meanR2=mean(R2))]
+		tmp[sbbe_dum==T, list(R2 = 1- (mean(se_sq) / var(coef)))]
+		
+		}
+		
 		###########################
 		# Summarizing all results #
 		###########################
