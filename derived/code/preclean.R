@@ -392,7 +392,7 @@ brands= unique(brands)
 setorder(brands, iri_cat_name, brand_name, iri_brand_name, cat_name)
 
 # save file
-write.csv(brands, file='..//output//brand_aggregation.csv', row.names=F)
+write.csv(brands, file='..//output//brands.csv', row.names=F, quote=F)
 
 ###########################################################################################
 # KEEP SELECTED BRANDS, AND TAKE LONGEST CONSECUTIVE STRETCH OF AVAILABLE DATA per brand  #
