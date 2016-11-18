@@ -387,8 +387,9 @@ setorder(brands, iri_cat_name, iri_brand_name, brand_name, cat_name)
 brands[, list(.N), by = c('cat_name', 'brand_name')]
 
 # filter uniques
-setkey(brands, iri_cat_name, iri_brand_name, brand_name, cat_name)
+setkey(brands, iri_cat_name, brand_name, iri_brand_name, cat_name)
 brands= unique(brands)
+setorder(brands, iri_cat_name, brand_name, iri_brand_name, cat_name)
 
 # save file
 write.csv(brands, file='..//output//brand_aggregation.csv', row.names=F)
