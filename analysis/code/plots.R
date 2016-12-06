@@ -156,7 +156,7 @@ path = .dirs[1]
 	library(ggrepel)
 	library(ggplot2)
 	
-	plotfkt <- function(iv, sel_cat, xlabel, title = sel_cat, fn = NULL, dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear = 2011, confidence=TRUE, lims_fixed = FALSE, seed = 45, xlim = c(-3,3), ylim = c(-3,3)) {
+	plotfkt <- function(iv, sel_cat, xlabel, title = sel_cat, fn = NULL, format = 'png', resolution = 200, dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear = 2011, confidence=TRUE, lims_fixed = FALSE, seed = 45, xlim = c(-3,3), ylim = c(-3,3)) {
 		#iv = 'bav_asset_STD' 
 		#sel_cat = 'beer' 
 		#xlabel = 'Brand Asset Score' 
@@ -174,14 +174,18 @@ path = .dirs[1]
 			
 		df_plot <- rbind(df, predict_dat, fill=T)
 		
-		if (!is.null(fn)) png(fn, res=200, units='in', height=6, width=8)
+		if (!is.null(fn)) {
+			if (format == 'png') png(fn, res=resolution, units='in', height=7, width=7)
+			if (format == 'pdf') pdf(fn, height=7, width=7)
+			}
+		
 		pl <- ggplot(df_plot) + geom_point(aes(xvar,dv), color = 'black') + geom_text_repel(aes(xvar, dv, label = brand_name_orig)) +
 			         labs(x = xlabel) + labs(y = ylabel) + geom_path(aes(x=xvar, y = sbbe_STD_plot)) + 
 					 ggtitle(title) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) +
 					 theme(panel.grid.major = element_blank(), 
 						   panel.grid.minor = element_blank(),
 						   panel.background	= element_rect(fill=NA),
-						   plot.title=element_text(face="bold"),
+						   plot.title=element_text(face="bold",hjust = 0.5),
 						   axis.title=element_text(face="bold"),
 						   panel.border = element_rect(colour = "black", fill=NA))
 					
@@ -258,21 +262,26 @@ path = .dirs[1]
     cntr = 1				
 	
 	for (l in seq(along=loop_vars)) {
-	
-		plotfkt(iv = 'bav_asset_YSTD', dv = 'sbbe_YSTD', xlabel = 'Brand Asset Score', ylabel = 'SBBE', 
-			sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr], '.png'), confidence = FALSE, lims_fixed = TRUE, xlim = c(-1.5,3.2), ylim = c(-2.3, 2.3))
-	
-		plotfkt(iv = 'bav_asset_YSTD', dv = 'annual_avgms', xlabel = 'Brand Asset Score', ylabel = 'Market share', 
-				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.png'), confidence = FALSE, lims_fixed=TRUE, xlim = c(-1.5,3.2), ylim = c(-.01,.3))
+		
+		for (ftype in c('png','pdf')) {
+			plotfkt(iv = 'bav_asset_YSTD', dv = 'sbbe_YSTD', xlabel = 'Brand Asset Score', ylabel = 'SBBE', 
+				sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr], '.', ftype), format = ftype,confidence = FALSE, lims_fixed = TRUE, xlim = c(-1.5,3.2), ylim = c(-2.3, 2.52))
+		
+			plotfkt(iv = 'bav_asset_YSTD', dv = 'annual_avgms', xlabel = 'Brand Asset Score', ylabel = 'Market share', 
+					sel_cat = names(loop_vars)[l], title = loop_vars[[l]], fn = paste0(wpath, 'figure2', letters[cntr+1], '.', ftype), format = ftype, confidence = FALSE, lims_fixed=TRUE, xlim = c(-1.5,3.2), ylim = c(-.01,.3))
+			
+			}
 		cntr = cntr+2
 		}
 
 	##### FIGURE 5 ############
 	wpath = paste0(path, '/figure5/')
 	
-	plotfkt(iv = 'relstat_YSTD', sel_cat = 'beer', xlabel = 'Relevant Stature (RelStat)', title = '', fn = paste0(wpath, 'a_bavfactors_relstat_', catn, '.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
-	plotfkt(iv = 'energdiff_YSTD', sel_cat = 'beer', xlabel = 'Energized Differentiation (EnDif)', title = '', fn = paste0(wpath, 'b_bavfactors_energ_', catn, '.png'), dv = 'sbbe_YSTD', ylabel = 'SBBE')
+	plotfkt(iv = 'relstat_YSTD', sel_cat = 'beer', xlabel = 'Relevant Stature (RelStat)', title = '', fn = paste0(wpath, 'a_bavfactors_relstat_', catn, '.png'), format = 'png', dv = 'sbbe_YSTD', ylabel = 'SBBE')
+	plotfkt(iv = 'energdiff_YSTD', sel_cat = 'beer', xlabel = 'Energized Differentiation (EnDif)', title = '', fn = paste0(wpath, 'b_bavfactors_energ_', catn, '.png'), format = 'png', dv = 'sbbe_YSTD', ylabel = 'SBBE')
 	
+	plotfkt(iv = 'relstat_YSTD', sel_cat = 'beer', xlabel = 'Relevant Stature (RelStat)', title = '', fn = paste0(wpath, 'a_bavfactors_relstat_', catn, '.pdf'), format = 'pdf', dv = 'sbbe_YSTD', ylabel = 'SBBE')
+	plotfkt(iv = 'energdiff_YSTD', sel_cat = 'beer', xlabel = 'Energized Differentiation (EnDif)', title = '', fn = paste0(wpath, 'b_bavfactors_energ_', catn, '.pdf'), format = 'pdf', dv = 'sbbe_YSTD', ylabel = 'SBBE')
 	
 	if(0){
 	plotfkt(iv = 'bav_asset_YSTD', sel_cat = 'carbbev', xlabel = 'Brand Asset Score', title = 'Carbonated Soft Drinks', fn = paste0(fpath, 'figure2b.png'))
