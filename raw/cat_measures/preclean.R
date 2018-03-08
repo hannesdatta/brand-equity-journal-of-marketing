@@ -1,18 +1,31 @@
-require(foreign)
-require(data.table)
+#########################################################################
+# Category characteristics survey for the IRI Marketing Science dataset #
+#########################################################################
 
-raw_survey <- data.table(read.spss('../../raw/cat_measures/grocery_survey.sav', to.data.frame=T))
+# Converts raw data to file with means and standard deviations per construct
+# Author: h.datta@tilburguniversity.edu
+
+
+
+# Load packages
+library(foreign)
+library(data.table)
+library(reshape2)
+library(psych)
+
+# Load data
+raw_survey <- data.table(read.spss('grocery_survey.sav', to.data.frame=T))
 setnames(raw_survey, 'X..', 'user_id')
 
-items <- c('important', 'interest', 'fun', 'enjoyable', 'practical', 'necessary', 'muchtolose', 'largedifferences', 'tellalot', 'sayswhotheyare')
+# Write raw data to CSV (to ensure data is more persistent)
+fwrite(raw_survey, 'grocery_survey.csv', row.names=F)
 
-.tmp <- 
+# Procedure to reformat the data
+items <- c('important', 'interest', 'fun', 'enjoyable', 'practical', 'necessary', 'muchtolose', 'largedifferences', 'tellalot', 'sayswhotheyare')
 
 for (i in items) {
 	setnames(raw_survey, gsub(i, paste0(i, '_'), colnames(raw_survey), ignore.case=T))
 	}
-
-require(reshape2)
 
 tmp = melt(raw_survey, id.vars=c('user_id', 'Age', 'Gender'), measure.vars=grep(paste0(items, collapse='|'), colnames(raw_survey), ignore.case=T, value=T))
 tmp[, category := sapply(as.character(variable), function(x) strsplit(x, '_')[[1]][2])]
@@ -23,13 +36,11 @@ tmp2[, purchased := grepl('Yes', value)]
 tmp2[, category := gsub('Purchase', '', variable)]
 setkey(tmp2, user_id, category)
 
-#tmp[, list(N=length(which(!is.na(value))), mean = mean(value, na.rm=T), sd = sd(value, na.rm=T)), by=c('category', 'metric')]
-
 survey <- data.table(dcast(tmp, user_id + Age + Gender + category ~ metric, value.var='value'))
 setkey(survey, user_id, category)
 survey[tmp2, purchase := i.purchased]
 
-# map real category names
+# map category names
 survey[category=='Beer', category := 'beer']
 survey[category=='Breakfastcereal', category := 'coldcer']
 survey[category=='Carbonatedsoftdrinks', category := 'carbbev']
@@ -56,17 +67,19 @@ survey[category=='Toilettissue', category := 'toitisu']
 survey[category=='Toothpaste', category := 'toothpa']
 survey[category=='Yogurt', category := 'yogurt']
 
+# retain only observations for which respondends indicated they purchased in the category
 survey = survey[purchase==T]
 
-require(psych)
+
+###################
+# Evaluate scales #
+###################
 
 scales <- list(cat_hedonic = c('enjoyable','fun'),
 			   cat_perfrisk = c('muchtolose','largedifferences'),
 			   cat_socdemon = c('tellalot', 'sayswhotheyare'),
-			   cat_differences = c('largedifferences'),
 			   cat_invol = c('important', 'interest'),
-			   cat_utilit = c('practical', 'necessary'),
-			   cat_muchtolose = c('muchtolose'))
+			   cat_utilit = c('practical', 'necessary'))
 
 
 # Compute mean of constructs 
@@ -75,9 +88,8 @@ for (i in seq(along=scales)) {
 	eval(parse(text=paste0('survey[, ', names(scales)[i], ' := rowMeans(data.frame(', paste(scales[[i]], collapse=','), '),na.rm=T)]')))
 	}
 
-
-# Summarize means	
-sink('../output/survey_report.txt')
+# Summarize means	and standard deviations
+sink('survey_report.txt')
 	
 means <- survey[, lapply(.SD, function(x) mean(x,na.rm=T)), by=c('category'), .SDcols=names(scales)]
 sds <- survey[, lapply(.SD, function(x) sd(x,na.rm=T)), by=c('category'), .SDcols=names(scales)]
@@ -111,32 +123,9 @@ cat('\n\nCronbach alphas:\n')
 print(do.call('rbind', alphas))
 
 
-# Perform factor analysis
-	catmeans <- survey[, lapply(.SD, function(x) mean(x,na.rm=T)), by=c('category'), .SDcols=unlist(scales)]
+sresults <- merge(means, sds, by=c('cat_name'),all.x=T)
 
-	library(psych)
+setnames(sresults, gsub('[.]x', '_mean', colnames(sresults)))
+setnames(sresults, gsub('[.]y', '_sd', colnames(sresults)))
 
-	mydata=catmeans[, c('category', unlist(scales[names(scales)%in%c('cat_hedonic', 'cat_perfrisk', 'cat_socdemon')])), with=F]
-
-	fit <- principal(mydata[, !colnames(mydata)%in%c('category'),with=F], nfactors=3, rotate="varimax")
-	
-	cat('\n\n\nPRINCIPAL COMPONENT ANALYSIS\n============================================\n\n')
-
-	summary(fit)
-	print(fit)
-				
-	cat('\n\nInitial Eigenvalues:\n')
-	eig <- data.table(eigen(cor(mydata[, !colnames(mydata)%in%c('category'), with=F]))$values)
-	setnames(eig, 'eigenvalue')
-	print(eig)
-				
-	fit_scores <- cbind(mydata[, 'category',with=F], fit$scores)
-	setnames(fit_scores, c('cat_name', 'cat_fhedonic', 'cat_fsocdemon', 'cat_fperfrisk'))
-
-	print(fit_scores)
-	
-sink()
-
-sresults <- merge(means, fit_scores, by=c('cat_name'),all.x=T)
-
-write.table(sresults, '../output/survey.csv', row.names=F)
+fwrite(sresults, file='survey.csv', row.names=F)
