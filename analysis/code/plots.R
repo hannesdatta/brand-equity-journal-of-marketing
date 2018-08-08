@@ -156,7 +156,7 @@ path = .dirs[1]
 	library(ggrepel)
 	library(ggplot2)
 	
-	plotfkt <- function(iv, sel_cat, xlabel, title = sel_cat, fn = NULL, format = 'png', resolution = 200, dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear = 2011, confidence=TRUE, lims_fixed = FALSE, seed = 45, xlim = c(-3,3), ylim = c(-3,3)) {
+	plotfkt <- function(iv, sel_cat, xlabel, title = sel_cat, fn = NULL, format = 'png', resolution = 200, dv = 'sbbe_YSTD', ylabel = 'SBBE', selyear = 2011, confidence=TRUE, lims_fixed = FALSE, seed = 45, xlim = c(-3,3), ylim = c(-3,3),height=7,width=7) {
 		#iv = 'bav_asset_STD' 
 		#sel_cat = 'beer' 
 		#xlabel = 'Brand Asset Score' 
@@ -175,8 +175,8 @@ path = .dirs[1]
 		df_plot <- rbind(df, predict_dat, fill=T)
 		
 		if (!is.null(fn)) {
-			if (format == 'png') png(fn, res=resolution, units='in', height=7, width=7)
-			if (format == 'pdf') pdf(fn, height=7, width=7)
+			if (format == 'png') png(fn, res=resolution, units='in', height=height, width=width)
+			if (format == 'pdf') pdf(fn, height=height, width=width)
 			}
 		
 		pl <- ggplot(df_plot) + geom_point(aes(xvar,dv), color = 'black') + geom_text_repel(aes(xvar, dv, label = brand_name_orig)) +
@@ -214,7 +214,7 @@ path = .dirs[1]
 	for (l in seq(along=loop_vars)) equity[!is.na(bav_asset), names(loop_vars)[l] := (get(loop_vars[[l]])-mean(get(loop_vars[[l]]),na.rm=T))/sd(get(loop_vars[[l]]),na.rm=T), by=c('cat_name', 'year'), with = F]
 	
 	# create directory structure
-	for (p in c('sbbe_vs_cbbe', 'figure2', 'figure5', 'marketshare_vs_cbbe', 'sbbe_vs_cbbe_year')) {
+	for (p in c('sbbe_vs_cbbe', 'figure2', 'figure2-pres', 'figure5', 'marketshare_vs_cbbe', 'sbbe_vs_cbbe_year')) {
 		fpath=paste0(path, '/', p, '/')
 		unlink(paste0(fpath,'*'))
 		dir.create(fpath)
@@ -274,6 +274,13 @@ path = .dirs[1]
 		cntr = cntr+2
 		}
 
+  # Plot for presentation
+    plotfkt(iv = 'bav_asset_YSTD', dv = 'sbbe_YSTD', xlabel = 'Brand Asset Score', ylabel = 'SBBE', 
+            sel_cat = 'beer', title = 'Beer', fn = paste0(path, '/figure2-pres/figure2a-pres.png'), 
+            format = 'png', confidence = FALSE, lims_fixed = TRUE, xlim = c(-1.5,3.2), ylim = c(-2.3, 2.52),
+            width=8,height=5.5)
+    
+    
 	##### FIGURE 5 ############
 	wpath = paste0(path, '/figure5/')
 	
